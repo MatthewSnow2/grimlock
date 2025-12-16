@@ -1,0 +1,273 @@
+# ============================================================================
+# PROJECT PRD TEMPLATE
+# ============================================================================
+# Copy this template and fill in for each new project
+# Required sections are marked with [REQUIRED]
+# ============================================================================
+
+# ============================================================================
+# SECTION 1: METADATA [REQUIRED]
+# ============================================================================
+metadata:
+  project_name: ""                    # [REQUIRED] Name of the project
+  prd_version: "1.0"
+  author: ""                          # [REQUIRED] Who created this PRD
+  created_date: ""                    # [REQUIRED] YYYY-MM-DD
+  last_modified: ""
+  
+  sprint:
+    type: "marathon"                  # marathon | supervised_build
+    start_datetime: ""                # [REQUIRED] ISO 8601 with timezone
+    end_datetime: ""                  # [REQUIRED] ISO 8601 with timezone
+    timezone: "America/Chicago"
+
+# ============================================================================
+# SECTION 2: SUCCESS CRITERIA [REQUIRED]
+# ============================================================================
+# GRIMLOCK will not start without at least one success criterion
+success_criteria:
+  - id: "SC001"
+    description: ""                   # [REQUIRED] What does success look like?
+    validation_method: ""             # [REQUIRED] manual_test | automated_check | file_exists | output_inspection
+    validation_details: ""            # [REQUIRED] Specific steps to verify
+    
+  # Add more criteria as needed
+  # - id: "SC002"
+  #   description: ""
+  #   validation_method: ""
+  #   validation_details: ""
+
+# ============================================================================
+# SECTION 3: SCOPE [REQUIRED]
+# ============================================================================
+scope:
+  in_scope:
+    - id: "SCOPE001"
+      item: ""                        # [REQUIRED] What is being built
+      description: ""                 # Details about this scope item
+      
+    # Add more in-scope items
+    # - id: "SCOPE002"
+    #   item: ""
+    #   description: ""
+
+  out_of_scope:
+    - id: "EXCL001"
+      item: ""                        # What is NOT being built
+      description: ""
+      detection_patterns:             # Keywords that indicate scope violation
+        - ""
+        
+    # Add more exclusions
+    # - id: "EXCL002"
+    #   item: ""
+    #   description: ""
+    #   detection_patterns: []
+
+  scope_creep_indicators:
+    - pattern: "new_tool_integration"
+      description: "Request to add tools/services not in approved list"
+      severity: "warn"                # warn | pause | stop
+      
+    - pattern: "architecture_redesign"
+      description: "Fundamental changes to agreed architecture"
+      severity: "pause"
+      
+    - pattern: "feature_addition"
+      description: "New features not in original scope"
+      severity: "pause"
+
+# ============================================================================
+# SECTION 4: TECHNICAL REQUIREMENTS
+# ============================================================================
+technical:
+  stack:
+    # Define your technology stack
+    primary_language: ""
+    framework: ""
+    database: ""
+    # Add other stack components as needed
+
+  approved_dependencies:
+    # List approved libraries, tools, services
+    - ""
+    
+  architecture_decisions:
+    - id: "AD001"
+      decision: ""
+      rationale: ""
+
+  directory_structure:
+    root: ""
+    structure:
+      - path: "/"
+        contents: []
+        
+    files_cc_may_create:
+      - ""
+      
+    files_cc_may_not_create:
+      - ""
+
+# ============================================================================
+# SECTION 5: MILESTONES [REQUIRED]
+# ============================================================================
+milestones:
+  - id: "M1"
+    name: ""                          # [REQUIRED]
+    description: ""
+    target_completion: ""             # e.g., "Day 1-2" or specific date
+    
+    deliverables:                     # [REQUIRED] At least one
+      - ""
+      
+    validation:
+      commands:
+        - ""
+      all_must_pass: true
+      
+    gate_criteria:
+      - ""
+      
+    on_failure: "pause"               # pause | stop | warn
+    depends_on: []                    # List of milestone IDs this depends on
+
+  # Add more milestones
+  # - id: "M2"
+  #   name: ""
+  #   ...
+
+  - id: "FINAL"
+    name: "Completion"
+    description: "Final validation and handoff"
+    target_completion: ""
+    
+    deliverables:
+      - "All success criteria verified"
+      - "Documentation complete"
+      
+    validation:
+      commands:
+        - "All SC criteria pass"
+      all_must_pass: true
+      
+    gate_criteria:
+      - "Project ready for use"
+      
+    on_failure: "stop"
+    depends_on: []                    # List all previous milestones
+
+# ============================================================================
+# SECTION 6: ESCALATION
+# ============================================================================
+escalation:
+  severity_levels:
+    - level: "INFO"
+      description: "Normal status updates"
+      response: "Log only"
+      
+    - level: "WARNING"
+      description: "Unexpected but recoverable"
+      response: "Post to Slack channel"
+      
+    - level: "PAUSE"
+      description: "Requires human decision"
+      response: "Post to channel, DM human, halt"
+      
+    - level: "EMERGENCY"
+      description: "Critical failure"
+      response: "Immediate halt, DM, terminate process"
+
+  circuit_breakers:
+    - id: "CB001"
+      name: "Time Boundary Exceeded"
+      trigger: "Current time > sprint.end_datetime"
+      severity: "PAUSE"
+      
+    - id: "CB002"
+      name: "Consecutive Failures"
+      trigger: "3+ consecutive validation failures"
+      severity: "PAUSE"
+      
+    # Add project-specific circuit breakers
+
+  human_commands:
+    - command: "/grimlock resume"
+      description: "Continue after PAUSE"
+      
+    - command: "/grimlock abort"
+      description: "Cancel sprint"
+      
+    - command: "/grimlock status"
+      description: "Get current state"
+
+# ============================================================================
+# SECTION 7: COMMUNICATION
+# ============================================================================
+communication:
+  channels:
+    primary:
+      type: "Slack"
+      channel_name: "#grimlock-ops"
+      
+    escalation:
+      type: "Slack DM"
+      recipient: ""                   # Your Slack handle
+
+  frequency_limits:
+    heartbeat:
+      interval: "30 minutes"
+      
+    warnings:
+      max_per_hour: 10
+
+# ============================================================================
+# SECTION 8: ACCEPTANCE CRITERIA
+# ============================================================================
+acceptance_criteria:
+  overview:
+    required_to_pass: "ALL"
+    evaluation_method: "Manual verification"
+    
+  criteria:
+    - id: "AC001"
+      category: ""
+      description: ""
+      verification:
+        method: ""                    # manual_test | automated_check | observation
+        steps:
+          - ""
+        expected_result: ""
+      success_criteria_link: ""       # SC ID this verifies, or null
+
+  sign_off:
+    required_approver: ""
+    method: "Manual review"
+
+# ============================================================================
+# SECTION 9: STATE PERSISTENCE
+# ============================================================================
+state_persistence:
+  overview:
+    mechanism: "Markdown file in repository"
+    file_path: "/GRIMLOCK_STATE.md"
+    update_frequency: "After every significant action"
+
+# ============================================================================
+# SECTION 10: APPENDIX
+# ============================================================================
+appendix:
+  glossary:
+    - term: ""
+      definition: ""
+
+  references:
+    - title: ""
+      url: ""
+
+  version_history:
+    - version: "1.0"
+      date: ""
+      author: ""
+      changes:
+        - "Initial PRD creation"

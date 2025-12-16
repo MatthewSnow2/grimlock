@@ -1,0 +1,1334 @@
+# ============================================================================
+# GRIMLOCK PRD - Product Requirements Document
+# ============================================================================
+# Autonomous Coding System for Marathon Development Sprints
+# Version: 1.0
+# Created: 2024-12-15
+# Author: Matthew (Me, Myself Plus AI LLC)
+# ============================================================================
+
+# ============================================================================
+# SECTION 1: METADATA
+# ============================================================================
+metadata:
+  project_name: "GRIMLOCK"
+  prd_version: "1.0"
+  author: "Matthew (Me, Myself Plus AI LLC)"
+  created_date: "2024-12-15"
+  last_modified: "2024-12-15"
+  
+  sprint:
+    type: "supervised_build"  # Phase A: Building GRIMLOCK with human-in-loop
+    start_datetime: "2024-12-15T20:00:00-06:00"
+    end_datetime: "2024-12-22T23:59:00-06:00"
+    timezone: "America/Chicago"
+    
+  target_operating_mode:
+    type: "marathon"  # Phase B: How GRIMLOCK will run future projects
+    typical_duration_hours: 62
+    example: "Friday 18:00 to Monday 08:00"
+
+# ============================================================================
+# SECTION 2: SUCCESS CRITERIA
+# ============================================================================
+success_criteria:
+  - id: "SC001"
+    description: "Sprint Initiator workflow executes successfully when triggered"
+    validation_method: "manual_test"
+    validation_details: "POST to webhook returns 200, Slack message appears"
+    
+  - id: "SC002"
+    description: "Heartbeat Monitor posts status every 30 minutes"
+    validation_method: "timed_observation"
+    validation_details: "Observe 2+ heartbeat messages in Slack over 1 hour"
+    
+  - id: "SC003"
+    description: "Milestone Gate Checker validates and routes correctly"
+    validation_method: "manual_test"
+    validation_details: "Pass payload → continue signal; Fail payload → pause signal"
+    
+  - id: "SC004"
+    description: "Escalation Handler routes by severity (warning/pause/emergency)"
+    validation_method: "manual_test"
+    validation_details: "Each severity triggers correct notification routing"
+    
+  - id: "SC005"
+    description: "End-to-end integration test completes (mock sprint → completion)"
+    validation_method: "integration_test"
+    validation_details: "Trigger start → simulate milestones → completion message"
+    
+  - id: "SC006"
+    description: "Completion report includes steps_taken section"
+    validation_method: "output_inspection"
+    validation_details: "Completion message contains numbered list of actions"
+    
+  - id: "SC007"
+    description: "Completion report includes outcome summary"
+    validation_method: "output_inspection"
+    validation_details: "Completion message contains pass/fail status and summary"
+    
+  - id: "SC008"
+    description: "Runbook documentation exists with required sections"
+    validation_method: "file_exists"
+    validation_details: "docs/RUNBOOK.md contains Prerequisites, Starting, Monitoring, Troubleshooting, Emergency sections"
+
+# ============================================================================
+# SECTION 3: SCOPE
+# ============================================================================
+scope:
+  in_scope:
+    - id: "SCOPE001"
+      item: "n8n Workflow: Sprint Initiator"
+      description: "Slack trigger → PRD validation → EC2 launch → confirmation"
+      
+    - id: "SCOPE002"
+      item: "n8n Workflow: Heartbeat Monitor"
+      description: "30-min schedule → state check → Slack status post"
+      
+    - id: "SCOPE003"
+      item: "n8n Workflow: Milestone Gate Checker"
+      description: "Webhook trigger → validation → pass/fail routing"
+      
+    - id: "SCOPE004"
+      item: "n8n Workflow: Escalation Handler"
+      description: "Webhook trigger → severity routing → notifications → logging"
+      
+    - id: "SCOPE005"
+      item: "GRIMLOCK_STATE.md template and protocol"
+      description: "State file structure, update procedures, recovery logic"
+      
+    - id: "SCOPE006"
+      item: "Sprint completion report format"
+      description: "Template with steps_taken, outcome, artifacts sections"
+      
+    - id: "SCOPE007"
+      item: "Operational runbook"
+      description: "docs/RUNBOOK.md with operational procedures"
+
+  out_of_scope:
+    - id: "EXCL001"
+      item: "AWS infrastructure changes"
+      description: "No EC2, IAM, security group, or terraform modifications"
+      detection_patterns:
+        - "terraform"
+        - "cloudformation"
+        - "aws iam"
+        - "security group"
+        - "ec2 create"
+        - "launch template"
+        
+    - id: "EXCL002"
+      item: "n8n credential management"
+      description: "No API key creation, OAuth setup, or credential rotation"
+      detection_patterns:
+        - "create credential"
+        - "api key"
+        - "oauth"
+        - "client secret"
+        - "credential"
+        
+    - id: "EXCL003"
+      item: "Slack workspace administration"
+      description: "No channel creation, permission changes, or app installation"
+      detection_patterns:
+        - "create channel"
+        - "slack admin"
+        - "workspace settings"
+        - "app install"
+        - "bot permissions"
+        
+    - id: "EXCL004"
+      item: "GitHub repository settings"
+      description: "No branch protection, webhooks, or access control changes"
+      detection_patterns:
+        - "branch protection"
+        - "github webhook"
+        - "repository settings"
+        - "access control"
+        - "deploy key"
+        
+    - id: "EXCL005"
+      item: "Production deployments or external integrations"
+      description: "GRIMLOCK V1 is internal tooling only"
+      detection_patterns:
+        - "deploy to prod"
+        - "external api"
+        - "third party"
+        - "customer facing"
+        - "public endpoint"
+
+  scope_creep_indicators:
+    - pattern: "new_tool_integration"
+      description: "Request to add tools/services not in approved list"
+      severity: "warn"
+      
+    - pattern: "architecture_redesign"
+      description: "Fundamental changes to agreed architecture"
+      severity: "pause"
+      
+    - pattern: "premature_optimization"
+      description: "Performance tuning before functionality complete"
+      severity: "warn"
+      
+    - pattern: "feature_addition"
+      description: "New features not in original scope"
+      severity: "pause"
+
+# ============================================================================
+# SECTION 4: TECHNICAL REQUIREMENTS
+# ============================================================================
+technical:
+  stack:
+    orchestration:
+      name: "n8n"
+      version: "cloud (latest)"
+      notes: "n8n Cloud handles versioning; workflows exported as JSON backup"
+      
+    execution_engine:
+      name: "Claude Code"
+      version: "latest"
+      environment: "AWS EC2 Ubuntu 24.04"
+      
+    state_management:
+      name: "Markdown file in Git"
+      format: "GRIMLOCK_STATE.md"
+      
+    communication:
+      name: "Slack"
+      method: "Bot API via n8n Slack node"
+      
+    version_control:
+      name: "GitHub"
+      repository: "grimlock"
+      branch_strategy: "main only for V1"
+
+  approved_dependencies:
+    n8n_nodes:
+      - "Slack"
+      - "Slack Trigger"
+      - "Webhook"
+      - "Respond to Webhook"
+      - "SSH"
+      - "HTTP Request"
+      - "IF"
+      - "Switch"
+      - "Code"
+      - "Schedule Trigger"
+      - "Google Sheets"
+      - "Set"
+      - "Merge"
+      
+    n8n_nodes_not_approved:
+      - "Execute Command"    # Security risk - use SSH to EC2 instead
+      - "Function"           # Deprecated, use Code node
+      - "Any database node"  # No direct DB access in V1
+      
+    external_services:
+      - "Slack workspace (existing)"
+      - "AWS EC2 (existing instance)"
+      - "GitHub API (read PRDs, backup workflows)"
+      - "Google Sheets (escalation log)"
+
+  architecture_decisions:
+    - id: "AD001"
+      decision: "All command execution happens on EC2 via SSH, never on n8n server"
+      rationale: "Security isolation - n8n orchestrates, EC2 executes"
+      
+    - id: "AD002"
+      decision: "State persists in GRIMLOCK_STATE.md committed to repo"
+      rationale: "Simplicity, version control, CC can read/write natively"
+      
+    - id: "AD003"
+      decision: "Slack is the single communication channel for V1"
+      rationale: "Reduce complexity; email/SMS can be added in V2"
+      
+    - id: "AD004"
+      decision: "n8n workflows are the source of truth, JSON exports are backups only"
+      rationale: "Edit in n8n UI, export periodically for disaster recovery"
+      
+    - id: "AD005"
+      decision: "One webhook per workflow, descriptive paths"
+      rationale: "Clear routing: /grimlock/start, /grimlock/milestone, /grimlock/escalate, /grimlock/complete"
+      
+    - id: "AD006"
+      decision: "Heartbeat interval is 30 minutes"
+      rationale: "Frequent enough to catch issues, not so frequent it's noisy"
+
+  directory_structure:
+    root: "grimlock"
+    structure:
+      - path: "/"
+        contents:
+          - "README.md"
+          - "GRIMLOCK_STATE.md"
+          - ".gitignore"
+          
+      - path: "/prds/"
+        contents:
+          - "GRIMLOCK-PRD.yaml"
+          - "TEMPLATE.yaml"
+          
+      - path: "/docs/"
+        contents:
+          - "ARCHITECTURE.md"
+          - "RUNBOOK.md"
+          - "LESSONS_LEARNED.md"
+          
+      - path: "/n8n/"
+        contents:
+          - "workflow-exports/"
+          
+      - path: "/templates/"
+        contents:
+          - "STATE_TEMPLATE.md"
+          - "COMPLETION_REPORT.md"
+          
+    files_cc_may_create:
+      - "Any file within defined structure"
+      - "New .md files in /docs/"
+      - "New .yaml files in /prds/"
+      
+    files_cc_may_not_create:
+      - "Files outside grimlock/ directory"
+      - "Executable scripts (.sh, .py, .js) without explicit approval"
+      - "Configuration files (.env, credentials, secrets)"
+
+# ============================================================================
+# SECTION 5: MILESTONES
+# ============================================================================
+milestones:
+  - id: "M1"
+    name: "Foundation & Sprint Initiator"
+    description: "Repository setup, state file template, first workflow operational"
+    target_completion: "Day 1-2"
+    
+    deliverables:
+      - "GitHub repo created with defined structure"
+      - "GRIMLOCK_STATE.md template defined"
+      - "n8n Workflow 1 (Sprint Initiator) built and tested"
+      - "Slack channel configured and bot responding"
+      
+    validation:
+      commands:
+        - "Repo structure matches /directory_structure specification"
+        - "POST to /grimlock/start returns 200"
+        - "Slack receives '🚀 Sprint initiated' message"
+      all_must_pass: true
+      
+    gate_criteria:
+      - "Can trigger a sprint via Slack command"
+      - "Confirmation message appears in channel"
+      
+    on_failure: "pause"
+    depends_on: []
+
+  - id: "M2"
+    name: "Monitoring & State Management"
+    description: "Heartbeat workflow operational, state file being read correctly"
+    target_completion: "Day 2-3"
+    
+    deliverables:
+      - "n8n Workflow 2 (Heartbeat Monitor) built and tested"
+      - "GRIMLOCK_STATE.md read/parse logic working"
+      - "Scheduled execution confirmed (30-min interval)"
+      
+    validation:
+      commands:
+        - "Heartbeat workflow executes on schedule"
+        - "State file content appears in Slack message"
+        - "Process detection (running/stopped) works"
+      all_must_pass: true
+      
+    gate_criteria:
+      - "Heartbeat posts to Slack every 30 minutes"
+      - "State information is accurate in heartbeat"
+      
+    on_failure: "pause"
+    depends_on: ["M1"]
+
+  - id: "M3"
+    name: "Validation & Gating"
+    description: "Milestone gate checker operational, can approve/reject milestone completion"
+    target_completion: "Day 3-4"
+    
+    deliverables:
+      - "n8n Workflow 3 (Milestone Gate Checker) built and tested"
+      - "Validation command execution via SSH working"
+      - "Pass/fail logic implemented"
+      - "Slack notifications for both outcomes"
+      
+    validation:
+      commands:
+        - "POST to /grimlock/milestone with passing payload returns continue signal"
+        - "POST to /grimlock/milestone with failing payload returns pause signal"
+        - "Appropriate Slack message for each outcome"
+      all_must_pass: true
+      
+    gate_criteria:
+      - "Can validate a milestone programmatically"
+      - "Correct routing based on validation results"
+      
+    on_failure: "pause"
+    depends_on: ["M2"]
+
+  - id: "M4"
+    name: "Escalation & Safety"
+    description: "Escalation handler operational, all safety mechanisms in place"
+    target_completion: "Day 4-5"
+    
+    deliverables:
+      - "n8n Workflow 4 (Escalation Handler) built and tested"
+      - "Three-tier routing (warning/pause/emergency) working"
+      - "Google Sheets logging configured"
+      - "DM escalation for pause/emergency working"
+      
+    validation:
+      commands:
+        - "POST warning escalation → channel message only"
+        - "POST pause escalation → channel message + DM"
+        - "POST emergency escalation → channel + DM + process termination"
+        - "All escalations logged to Google Sheets"
+      all_must_pass: true
+      
+    gate_criteria:
+      - "Each escalation type routes correctly"
+      - "Audit trail captures all events"
+      
+    on_failure: "pause"
+    depends_on: ["M3"]
+
+  - id: "M5"
+    name: "Integration & Completion"
+    description: "End-to-end flow working, completion reports generating"
+    target_completion: "Day 5-6"
+    
+    deliverables:
+      - "Sprint completion workflow functional"
+      - "Completion report template implemented"
+      - "End-to-end test passes (trigger → completion)"
+      - "Steps taken + outcome sections in report"
+      
+    validation:
+      commands:
+        - "Full sprint simulation completes successfully"
+        - "Completion message contains steps_taken section"
+        - "Completion message contains outcome section"
+      all_must_pass: true
+      
+    gate_criteria:
+      - "Can run mock sprint from start to finish"
+      - "Completion report meets format requirements"
+      
+    on_failure: "pause"
+    depends_on: ["M4"]
+
+  - id: "FINAL"
+    name: "Documentation & Handoff"
+    description: "Runbook complete, system ready for autonomous operation"
+    target_completion: "Day 6-7 (by Dec 22)"
+    
+    deliverables:
+      - "docs/RUNBOOK.md complete"
+      - "README.md with usage instructions"
+      - "docs/ARCHITECTURE.md documenting system design"
+      - "All workflows exported to /n8n/workflow-exports/"
+      - "Final integration test passes"
+      
+    validation:
+      commands:
+        - "RUNBOOK.md exists with required sections"
+        - "README.md contains quick start guide"
+        - "Workflow JSON exports exist"
+        - "Final end-to-end test passes"
+      all_must_pass: true
+      
+    gate_criteria:
+      - "Someone else could operate GRIMLOCK using only the documentation"
+      - "All success criteria (SC001-SC008) are met"
+      
+    on_failure: "stop"
+    depends_on: ["M5"]
+
+# ============================================================================
+# SECTION 6: ESCALATION & CIRCUIT BREAKERS
+# ============================================================================
+escalation:
+  severity_levels:
+    - level: "INFO"
+      description: "Normal status updates, progress notifications"
+      response: "Log only, no alert"
+      example: "Milestone M1 completed"
+      
+    - level: "WARNING"
+      description: "Unexpected but recoverable situation"
+      response: "Post to Slack channel, continue execution"
+      example: "Retry attempt 2 of 3 for SSH connection"
+      
+    - level: "PAUSE"
+      description: "Requires human decision before continuing"
+      response: "Post to channel, DM Matthew, halt execution"
+      example: "Milestone validation failed, PRD ambiguity detected"
+      
+    - level: "EMERGENCY"
+      description: "Critical failure, potential harm if continued"
+      response: "Immediate halt, DM + channel, terminate CC process"
+      example: "Runaway loop detected, unknown command execution"
+
+  circuit_breakers:
+    - id: "CB001"
+      name: "Time Boundary Exceeded"
+      trigger: "Current time > sprint.end_datetime"
+      severity: "PAUSE"
+      action: "Halt all workflows, post completion summary"
+      
+    - id: "CB002"
+      name: "Consecutive Failures"
+      trigger: "3+ consecutive milestone validation failures"
+      severity: "PAUSE"
+      action: "Stop execution, request human intervention"
+      
+    - id: "CB003"
+      name: "Scope Violation Detected"
+      trigger: "CC attempts action matching exclusion detection patterns"
+      severity: "PAUSE"
+      action: "Block action, log violation, await human approval"
+      
+    - id: "CB004"
+      name: "Heartbeat Timeout"
+      trigger: "No heartbeat received for 90 minutes (3 missed intervals)"
+      severity: "WARNING"
+      action: "Alert channel, check EC2 instance status"
+      
+    - id: "CB005"
+      name: "Heartbeat Timeout Critical"
+      trigger: "No heartbeat received for 180 minutes (6 missed intervals)"
+      severity: "PAUSE"
+      action: "Alert + DM, assume system failure, await human"
+      
+    - id: "CB006"
+      name: "Rapid Escalation Pattern"
+      trigger: "5+ escalations within 30 minutes"
+      severity: "PAUSE"
+      action: "System may be in unstable state, halt for review"
+      
+    - id: "CB007"
+      name: "Unknown Error Category"
+      trigger: "Error type not in known_errors list"
+      severity: "PAUSE"
+      action: "Conservative halt, log full context, await human"
+      
+    - id: "CB008"
+      name: "Resource Exhaustion"
+      trigger: "EC2 disk >90% OR memory >95%"
+      severity: "WARNING → PAUSE at 95%/98%"
+      action: "Alert, allow graceful checkpoint, then halt"
+
+  known_errors:
+    recoverable:
+      - "SSH connection timeout"
+      - "Slack API rate limit"
+      - "GitHub API 503"
+      - "Transient network failure"
+    recovery_strategy: "Exponential backoff, max 3 retries"
+    
+    non_recoverable:
+      - "SSH authentication failure"
+      - "Invalid PRD schema"
+      - "Missing required credential"
+      - "Process crash with core dump"
+    response: "Immediate PAUSE, no retry"
+
+  notification_routing:
+    INFO:
+      channel: false
+      dm: false
+      log_only: true
+      
+    WARNING:
+      channel: true
+      dm: false
+      log: true
+      format: "⚠️ [WARNING] {message}"
+      
+    PAUSE:
+      channel: true
+      dm: true
+      log: true
+      format: "🛑 [PAUSED] {message}\nAction required: {action}"
+      
+    EMERGENCY:
+      channel: true
+      dm: true
+      log: true
+      process_termination: true
+      format: "🚨 [EMERGENCY] {message}\nSystem halted. Immediate attention required."
+
+  human_commands:
+    - command: "/grimlock resume"
+      description: "Continue after PAUSE state"
+      requires: "Human has reviewed and approved continuation"
+      
+    - command: "/grimlock abort"
+      description: "Cancel current sprint entirely"
+      triggers: "Completion report with status: aborted"
+      
+    - command: "/grimlock status"
+      description: "Request current state summary"
+      response: "Posts current GRIMLOCK_STATE.md contents"
+      
+    - command: "/grimlock skip-milestone"
+      description: "Mark current milestone as skipped, proceed to next"
+      requires: "Explicit acknowledgment of skip reason"
+
+# ============================================================================
+# SECTION 7: COMMUNICATION PROTOCOL
+# ============================================================================
+communication:
+  channels:
+    primary:
+      type: "Slack"
+      workspace: "existing"
+      channel_name: "#grimlock-ops"
+      purpose: "All automated updates, warnings, completions"
+      
+    escalation:
+      type: "Slack DM"
+      recipient: "Matthew"
+      purpose: "PAUSE and EMERGENCY notifications only"
+      
+    audit:
+      type: "Google Sheets"
+      spreadsheet_name: "GRIMLOCK Escalation Log"
+      purpose: "Permanent record of all escalations for review"
+
+  message_templates:
+    sprint_initiated:
+      trigger: "Sprint Initiator workflow completes successfully"
+      channel: "#grimlock-ops"
+      format: |
+        🚀 *Sprint Initiated*
+        ━━━━━━━━━━━━━━━━━━━
+        *Project:* {project_name}
+        *PRD:* {prd_file}
+        *Started:* {timestamp}
+        *Target End:* {end_datetime}
+        *First Milestone:* {first_milestone_name}
+        ━━━━━━━━━━━━━━━━━━━
+        GRIMLOCK is now running autonomously.
+        
+    heartbeat:
+      trigger: "Heartbeat Monitor workflow (every 30 min)"
+      channel: "#grimlock-ops"
+      format: |
+        💓 *Heartbeat* [{timestamp}]
+        *Status:* {status}
+        *Current Milestone:* {current_milestone}
+        *Progress:* {completed_tasks}/{total_tasks}
+        *Next Check:* {next_heartbeat_time}
+        
+    milestone_passed:
+      trigger: "Milestone Gate Checker returns pass"
+      channel: "#grimlock-ops"
+      format: |
+        ✅ *Milestone Complete: {milestone_id}*
+        ━━━━━━━━━━━━━━━━━━━
+        *Name:* {milestone_name}
+        *Duration:* {duration}
+        *Deliverables Verified:* {deliverable_count}
+        *Proceeding to:* {next_milestone_id} - {next_milestone_name}
+        
+    milestone_failed:
+      trigger: "Milestone Gate Checker returns fail"
+      channel: "#grimlock-ops"
+      dm: true
+      format: |
+        ❌ *Milestone Failed: {milestone_id}*
+        ━━━━━━━━━━━━━━━━━━━
+        *Name:* {milestone_name}
+        *Failed Validations:*
+        {validation_failures}
+        *System Status:* PAUSED
+        ━━━━━━━━━━━━━━━━━━━
+        Reply `/grimlock resume` to retry or `/grimlock abort` to cancel.
+        
+    warning:
+      trigger: "WARNING severity event"
+      channel: "#grimlock-ops"
+      format: |
+        ⚠️ *Warning*
+        *Issue:* {warning_message}
+        *Context:* {context}
+        *Action Taken:* {automatic_action}
+        _No intervention required unless repeated._
+        
+    paused:
+      trigger: "PAUSE severity event"
+      channel: "#grimlock-ops"
+      dm: true
+      format: |
+        🛑 *GRIMLOCK Paused*
+        ━━━━━━━━━━━━━━━━━━━
+        *Reason:* {pause_reason}
+        *Circuit Breaker:* {circuit_breaker_id}
+        *Last Action:* {last_action}
+        *State Preserved:* Yes
+        ━━━━━━━━━━━━━━━━━━━
+        *Options:*
+        • `/grimlock resume` - Continue from current state
+        • `/grimlock status` - View full state details
+        • `/grimlock abort` - Cancel sprint
+        
+    emergency:
+      trigger: "EMERGENCY severity event"
+      channel: "#grimlock-ops"
+      dm: true
+      format: |
+        🚨 *EMERGENCY - GRIMLOCK Halted*
+        ━━━━━━━━━━━━━━━━━━━
+        *Critical Issue:* {emergency_reason}
+        *Trigger:* {circuit_breaker_id}
+        *Process Status:* TERMINATED
+        *Last Known State:* {last_state_summary}
+        ━━━━━━━━━━━━━━━━━━━
+        Immediate human review required.
+        EC2 process has been killed.
+        
+    sprint_completed:
+      trigger: "All milestones pass OR sprint.end_datetime reached"
+      channel: "#grimlock-ops"
+      format: |
+        🏁 *Sprint Complete*
+        ━━━━━━━━━━━━━━━━━━━
+        *Project:* {project_name}
+        *Duration:* {actual_duration}
+        *Status:* {completion_status}
+        
+        *Milestones:*
+        {milestone_summary}
+        
+        *Steps Taken:*
+        {steps_taken_summary}
+        
+        *Outcome:*
+        {outcome_summary}
+        
+        *Artifacts:*
+        {artifacts_list}
+        ━━━━━━━━━━━━━━━━━━━
+        Full report: {report_link}
+
+  frequency_limits:
+    heartbeat:
+      interval: "30 minutes"
+      skip_if: "No state change since last heartbeat"
+      note: "Still log internally, just don't post to Slack"
+      
+    warnings:
+      max_per_hour: 10
+      on_exceed: "Batch remaining warnings into single summary"
+      
+    rate_limiting:
+      min_interval_between_messages: "30 seconds"
+      reason: "Prevent Slack spam, maintain readability"
+
+  state_in_messages:
+    always_include:
+      - "timestamp"
+      - "current_milestone"
+      - "status (running/paused/stopped)"
+      
+    include_on_error:
+      - "last_successful_action"
+      - "error_context"
+      - "state_file_snapshot"
+      
+    never_include:
+      - "credentials or secrets"
+      - "full file contents (link instead)"
+      - "internal n8n execution IDs"
+
+# ============================================================================
+# SECTION 8: ACCEPTANCE CRITERIA
+# ============================================================================
+acceptance_criteria:
+  overview:
+    total_criteria: 13
+    required_to_pass: "ALL"
+    evaluation_method: "Manual verification by Matthew"
+    
+  # Static criteria: Always required for GRIMLOCK V1
+  static_criteria:
+    - id: "AC001"
+      category: "Workflow Functionality"
+      description: "Sprint Initiator workflow triggers successfully from Slack command"
+      verification:
+        method: "manual_test"
+        steps:
+          - "Send `/grimlock start GRIMLOCK-PRD.yaml` in Slack"
+          - "Observe workflow execution in n8n"
+          - "Confirm sprint initiated message appears in #grimlock-ops"
+        expected_result: "Message appears within 30 seconds"
+      success_criteria_link: "SC001"
+      
+    - id: "AC002"
+      category: "Workflow Functionality"
+      description: "Heartbeat Monitor posts status every 30 minutes"
+      verification:
+        method: "timed_observation"
+        steps:
+          - "Start a sprint"
+          - "Wait 35 minutes"
+          - "Check #grimlock-ops for heartbeat message"
+        expected_result: "Heartbeat message with accurate state information"
+      success_criteria_link: "SC002"
+      
+    - id: "AC003"
+      category: "Workflow Functionality"
+      description: "Milestone Gate Checker validates and routes correctly"
+      verification:
+        method: "manual_test"
+        steps:
+          - "POST passing payload to /grimlock/milestone"
+          - "Confirm 'continue' response and success message"
+          - "POST failing payload to /grimlock/milestone"
+          - "Confirm 'pause' response and failure message"
+        expected_result: "Both paths route correctly with appropriate messages"
+      success_criteria_link: "SC003"
+      
+    - id: "AC004"
+      category: "Workflow Functionality"
+      description: "Escalation Handler routes by severity correctly"
+      verification:
+        method: "manual_test"
+        steps:
+          - "POST warning escalation → channel only"
+          - "POST pause escalation → channel + DM"
+          - "POST emergency escalation → channel + DM + process signal"
+        expected_result: "Each severity level triggers correct notification routing"
+      success_criteria_link: "SC004"
+      
+    - id: "AC005"
+      category: "Integration"
+      description: "End-to-end mock sprint completes successfully"
+      verification:
+        method: "integration_test"
+        steps:
+          - "Trigger sprint start"
+          - "Simulate milestone completions via webhooks"
+          - "Trigger sprint completion"
+          - "Verify completion message in Slack"
+        expected_result: "Full flow executes without manual intervention"
+      success_criteria_link: "SC005"
+      
+    - id: "AC006"
+      category: "Reporting"
+      description: "Completion report includes steps taken"
+      verification:
+        method: "output_inspection"
+        steps:
+          - "Complete a mock sprint"
+          - "Examine completion message"
+          - "Verify 'Steps Taken' section exists and is populated"
+        expected_result: "Steps taken section lists actions performed"
+      success_criteria_link: "SC006"
+      
+    - id: "AC007"
+      category: "Reporting"
+      description: "Completion report includes outcome summary"
+      verification:
+        method: "output_inspection"
+        steps:
+          - "Complete a mock sprint"
+          - "Examine completion message"
+          - "Verify 'Outcome' section exists with pass/fail status"
+        expected_result: "Outcome section summarizes results clearly"
+      success_criteria_link: "SC007"
+      
+    - id: "AC008"
+      category: "Documentation"
+      description: "Runbook exists with required sections"
+      verification:
+        method: "file_inspection"
+        steps:
+          - "Open docs/RUNBOOK.md"
+          - "Verify sections exist: Prerequisites, Starting a Sprint, Monitoring, Troubleshooting, Emergency Procedures"
+        expected_result: "All required sections present and populated"
+      success_criteria_link: "SC008"
+      
+    - id: "AC009"
+      category: "State Management"
+      description: "GRIMLOCK_STATE.md updates correctly during sprint"
+      verification:
+        method: "observation"
+        steps:
+          - "Start a sprint"
+          - "Check GRIMLOCK_STATE.md after each milestone"
+          - "Verify state reflects current progress"
+        expected_result: "State file accurately tracks sprint progress"
+      success_criteria_link: null
+      
+    - id: "AC010"
+      category: "Safety"
+      description: "Circuit breakers trigger appropriately"
+      verification:
+        method: "manual_test"
+        steps:
+          - "Simulate 3 consecutive milestone failures"
+          - "Verify CB002 triggers PAUSE"
+          - "Verify DM sent to Matthew"
+        expected_result: "System pauses and notifies on circuit breaker trigger"
+      success_criteria_link: null
+      
+    - id: "AC011"
+      category: "Safety"
+      description: "Human commands work correctly"
+      verification:
+        method: "manual_test"
+        steps:
+          - "Trigger a PAUSE state"
+          - "Send `/grimlock status`"
+          - "Send `/grimlock resume`"
+          - "Verify system continues"
+        expected_result: "All human override commands function as specified"
+      success_criteria_link: null
+      
+    - id: "AC012"
+      category: "Audit"
+      description: "Escalations logged to Google Sheets"
+      verification:
+        method: "log_inspection"
+        steps:
+          - "Trigger several escalations of different severities"
+          - "Open GRIMLOCK Escalation Log spreadsheet"
+          - "Verify entries appear with timestamp, severity, message"
+        expected_result: "All escalations have corresponding log entries"
+      success_criteria_link: null
+
+    - id: "AC013"
+      category: "Dynamic Loading"
+      description: "GRIMLOCK correctly loads and tracks success criteria from PRD"
+      verification:
+        method: "integration_test"
+        steps:
+          - "Create test PRD with 3 custom success criteria"
+          - "Start sprint with test PRD"
+          - "Verify GRIMLOCK_STATE.md contains the 3 criteria"
+          - "Verify completion report evaluates against those criteria"
+        expected_result: "Dynamic criteria appear in state and completion report"
+      success_criteria_link: null
+
+  # Dynamic criteria: Loaded from PRD at runtime
+  dynamic_criteria:
+    source: "success_criteria section of active PRD"
+    loaded_at: "Sprint initiation"
+    required_sections:
+      - "success_criteria"
+      - "milestones"
+      - "scope.in_scope"
+      - "scope.out_of_scope"
+      
+    validation_on_load:
+      - check: "success_criteria array is not empty"
+        on_fail: "PAUSE - PRD has no success criteria defined"
+        
+      - check: "Each success_criterion has id, description, validation_method"
+        on_fail: "PAUSE - Success criterion missing required fields"
+        
+      - check: "At least one milestone exists"
+        on_fail: "PAUSE - PRD has no milestones"
+        
+      - check: "Final milestone references success_criteria"
+        on_fail: "WARNING - Final milestone doesn't link to success criteria"
+        
+    sprint_cannot_start_without:
+      - "Valid PRD file path"
+      - "Parseable YAML structure"
+      - "Non-empty success_criteria section"
+      - "At least one milestone with deliverables"
+
+  sign_off:
+    required_approver: "Matthew"
+    method: "Manual review of all AC001-AC013"
+    evidence: "Screenshots or screen recording of verification steps"
+    final_action: "Mark sprint as COMPLETE in GRIMLOCK_STATE.md"
+
+# ============================================================================
+# SECTION 9: STATE PERSISTENCE
+# ============================================================================
+state_persistence:
+  overview:
+    mechanism: "Markdown file in repository"
+    file_path: "/GRIMLOCK_STATE.md"
+    format: "Structured markdown with YAML frontmatter"
+    update_frequency: "After every significant action"
+    version_control: "Committed to Git after each update"
+    
+  design_rationale:
+    why_markdown:
+      - "Claude Code reads/writes it natively"
+      - "Human-readable without tooling"
+      - "Version controlled automatically"
+      - "Diff-friendly for debugging"
+    why_not_database:
+      - "Adds infrastructure complexity"
+      - "Requires credentials management"
+      - "Overkill for single-sprint state"
+    why_not_memory:
+      - "Lost on process restart"
+      - "Not auditable"
+      - "Can't resume after failure"
+
+  state_transitions:
+    valid_transitions:
+      - from: "not_started"
+        to: "running"
+        trigger: "Sprint Initiator completes"
+        
+      - from: "running"
+        to: "paused"
+        trigger: "PAUSE escalation or circuit breaker"
+        
+      - from: "paused"
+        to: "running"
+        trigger: "/grimlock resume command"
+        
+      - from: "running"
+        to: "completed"
+        trigger: "All success criteria pass"
+        
+      - from: "running"
+        to: "aborted"
+        trigger: "/grimlock abort command"
+        
+      - from: "paused"
+        to: "aborted"
+        trigger: "/grimlock abort command"
+        
+    invalid_transitions:
+      - from: "completed"
+        to: "any"
+        reason: "Completed sprints are immutable"
+        
+      - from: "aborted"
+        to: "any"
+        reason: "Aborted sprints are immutable"
+
+  update_protocol:
+    when_to_update:
+      - "Sprint starts"
+      - "Task begins"
+      - "Task completes"
+      - "Milestone completes"
+      - "Escalation occurs"
+      - "Status changes (running→paused, etc.)"
+      - "Every 30 minutes regardless (heartbeat sync)"
+      
+    commit_messages:
+      format: "state: {action}"
+      examples:
+        - "state: sprint started for GRIMLOCK-PRD"
+        - "state: milestone M1 completed"
+        - "state: paused - circuit breaker CB002"
+        - "state: resumed by human command"
+        - "state: sprint completed - all criteria passed"
+
+  recovery:
+    on_process_restart:
+      - step: 1
+        action: "Read GRIMLOCK_STATE.md"
+        
+      - step: 2
+        action: "Validate state file integrity"
+        on_fail: "PAUSE - state file corrupted"
+        
+      - step: 3
+        action: "Check sprint.status"
+        if_running: "Resume from current_position"
+        if_paused: "Remain paused, await human command"
+        if_completed: "No action needed"
+        if_aborted: "No action needed"
+        
+      - step: 4
+        action: "Post recovery message to Slack"
+        format: "🔄 GRIMLOCK recovered from restart. Resuming at {milestone} task {index}."
+        
+    state_file_corruption:
+      detection:
+        - "YAML frontmatter won't parse"
+        - "Required fields missing"
+        - "Timestamp in future"
+        - "Invalid status value"
+      response: "PAUSE immediately, post to Slack, await human repair"
+      
+    git_conflict:
+      scenario: "State file modified externally during sprint"
+      detection: "Git pull fails with merge conflict"
+      response: "PAUSE, alert human, do not auto-resolve"
+
+# ============================================================================
+# SECTION 10: APPENDIX
+# ============================================================================
+appendix:
+  glossary:
+    - term: "CC"
+      definition: "Claude Code - the AI coding agent that executes tasks"
+      
+    - term: "Sprint"
+      definition: "A bounded period of autonomous work with defined start/end times"
+      
+    - term: "Marathon Sprint"
+      definition: "Extended autonomous operation, typically Friday evening to Monday morning (62+ hours)"
+      
+    - term: "Heartbeat"
+      definition: "Periodic status check confirming system is running and reporting state"
+      
+    - term: "Circuit Breaker"
+      definition: "Automatic safety mechanism that halts execution when specific conditions are met"
+      
+    - term: "Escalation"
+      definition: "Notification sent when system encounters issue requiring attention"
+      
+    - term: "Gate"
+      definition: "Validation checkpoint between milestones that must pass before proceeding"
+      
+    - term: "PRD"
+      definition: "Product Requirements Document - the specification GRIMLOCK follows"
+      
+    - term: "Corrigibility"
+      definition: "Property of AI system that allows it to be safely corrected, modified, or shut down"
+      
+    - term: "Human-in-the-loop"
+      definition: "Design pattern where human oversight is integrated into automated processes"
+
+  webhook_endpoints:
+    base_url: "https://{your-n8n-instance}.app.n8n.cloud/webhook"
+    endpoints:
+      - path: "/grimlock/start"
+        method: "POST"
+        workflow: "Sprint Initiator"
+        payload:
+          prd_file: "string (required)"
+          override_end_time: "ISO timestamp (optional)"
+        response:
+          success: "{ status: 'initiated', sprint_id: string }"
+          failure: "{ status: 'error', message: string }"
+          
+      - path: "/grimlock/milestone"
+        method: "POST"
+        workflow: "Milestone Gate Checker"
+        payload:
+          milestone_id: "string (required)"
+          validation_results: "array of { check: string, passed: boolean }"
+        response:
+          success: "{ action: 'continue' | 'pause', next_milestone: string }"
+          
+      - path: "/grimlock/escalate"
+        method: "POST"
+        workflow: "Escalation Handler"
+        payload:
+          severity: "'WARNING' | 'PAUSE' | 'EMERGENCY'"
+          message: "string"
+          context: "object (optional)"
+        response:
+          success: "{ logged: true, escalation_id: string }"
+          
+      - path: "/grimlock/complete"
+        method: "POST"
+        workflow: "Sprint Completion"
+        payload:
+          status: "'success' | 'partial' | 'failed'"
+          summary: "object with steps_taken and outcome"
+        response:
+          success: "{ report_generated: true, report_url: string }"
+
+  slack_commands:
+    - command: "/grimlock start {prd_file}"
+      description: "Initiate a new sprint"
+      example: "/grimlock start GRIMLOCK-PRD.yaml"
+      
+    - command: "/grimlock status"
+      description: "Request current state summary"
+      example: "/grimlock status"
+      
+    - command: "/grimlock resume"
+      description: "Continue after PAUSE state"
+      example: "/grimlock resume"
+      requires: "System must be in PAUSED state"
+      
+    - command: "/grimlock abort"
+      description: "Cancel current sprint"
+      example: "/grimlock abort"
+      confirmation: "Will prompt for confirmation before aborting"
+      
+    - command: "/grimlock skip-milestone"
+      description: "Skip current milestone, proceed to next"
+      example: "/grimlock skip-milestone"
+      requires: "Explicit reason in follow-up"
+
+  escalation_log_schema:
+    spreadsheet_name: "GRIMLOCK Escalation Log"
+    columns:
+      - name: "Timestamp"
+        type: "datetime"
+        format: "YYYY-MM-DD HH:mm:ss"
+        
+      - name: "Sprint ID"
+        type: "string"
+        description: "Unique identifier for the sprint"
+        
+      - name: "Project"
+        type: "string"
+        description: "Project name from PRD"
+        
+      - name: "Severity"
+        type: "enum"
+        values: ["INFO", "WARNING", "PAUSE", "EMERGENCY"]
+        
+      - name: "Circuit Breaker"
+        type: "string"
+        description: "CB ID if triggered, empty otherwise"
+        
+      - name: "Message"
+        type: "string"
+        description: "Escalation message content"
+        
+      - name: "Context"
+        type: "string"
+        description: "JSON blob with additional context"
+        
+      - name: "Resolution"
+        type: "string"
+        description: "How escalation was resolved (filled post-resolution)"
+        
+      - name: "Resolved At"
+        type: "datetime"
+        description: "When escalation was resolved"
+
+  templates:
+    state_file_template:
+      location: "/templates/STATE_TEMPLATE.md"
+      description: "Blank GRIMLOCK_STATE.md for new sprints"
+      
+    completion_report_template:
+      location: "/templates/COMPLETION_REPORT.md"
+      description: "Template for sprint completion reports"
+      sections:
+        - "Sprint Summary"
+        - "Milestones Completed"
+        - "Success Criteria Results"
+        - "Steps Taken"
+        - "Outcome"
+        - "Artifacts Produced"
+        - "Lessons Learned"
+        - "Recommendations for Next Sprint"
+        
+    prd_template:
+      location: "/prds/TEMPLATE.yaml"
+      description: "Blank PRD template for new projects"
+      required_sections:
+        - "metadata"
+        - "success_criteria"
+        - "scope"
+        - "milestones"
+        - "escalation"
+        - "acceptance_criteria"
+
+  error_codes:
+    - code: "E001"
+      category: "Initialization"
+      message: "PRD file not found"
+      recovery: "Verify file path, check /prds/ directory"
+      
+    - code: "E002"
+      category: "Initialization"
+      message: "Invalid PRD YAML syntax"
+      recovery: "Validate YAML with linter, fix syntax errors"
+      
+    - code: "E003"
+      category: "Initialization"
+      message: "PRD missing required section"
+      recovery: "Add missing section per template"
+      
+    - code: "E004"
+      category: "Initialization"
+      message: "Success criteria empty or invalid"
+      recovery: "Define at least one success criterion with required fields"
+      
+    - code: "E010"
+      category: "Execution"
+      message: "SSH connection failed"
+      recovery: "Check EC2 status, verify SSH credentials"
+      
+    - code: "E011"
+      category: "Execution"
+      message: "SSH authentication failed"
+      recovery: "Verify SSH key, check EC2 security group"
+      
+    - code: "E012"
+      category: "Execution"
+      message: "Command execution timeout"
+      recovery: "Check for hung process, may need manual intervention"
+      
+    - code: "E020"
+      category: "State"
+      message: "State file corrupted"
+      recovery: "Restore from git history, verify YAML syntax"
+      
+    - code: "E021"
+      category: "State"
+      message: "State file git conflict"
+      recovery: "Manual merge resolution required"
+      
+    - code: "E030"
+      category: "Communication"
+      message: "Slack API rate limited"
+      recovery: "Automatic backoff, will retry"
+      
+    - code: "E031"
+      category: "Communication"
+      message: "Slack channel not found"
+      recovery: "Verify channel name, check bot permissions"
+      
+    - code: "E040"
+      category: "Validation"
+      message: "Milestone validation failed"
+      recovery: "Review failure details, fix issues, retry"
+      
+    - code: "E050"
+      category: "Safety"
+      message: "Circuit breaker triggered"
+      recovery: "Review trigger condition, resolve issue, /grimlock resume"
+
+  version_history:
+    - version: "1.0"
+      date: "2024-12-15"
+      author: "Matthew"
+      changes:
+        - "Initial PRD creation"
+        - "Defined all 10 sections"
+        - "Established V1 scope and milestones"
+      
+  references:
+    anthropic:
+      - title: "Claude Code Documentation"
+        url: "https://docs.anthropic.com/claude-code"
+        
+      - title: "Anthropic Core Views on AI Safety"
+        url: "https://www.anthropic.com/core-views"
+        
+      - title: "Constitutional AI Paper"
+        url: "https://arxiv.org/abs/2212.08073"
+        
+    n8n:
+      - title: "n8n Documentation"
+        url: "https://docs.n8n.io"
+        
+      - title: "n8n Webhook Node"
+        url: "https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.webhook/"
+        
+    project:
+      - title: "GRIMLOCK GitHub Repository"
+        url: "https://github.com/{your-username}/grimlock"
+        
+      - title: "n8n Workflow Prompts Document"
+        url: "/docs/GRIMLOCK-n8n-Workflow-Prompts.docx"
