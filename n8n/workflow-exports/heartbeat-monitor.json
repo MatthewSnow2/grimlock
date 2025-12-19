@@ -1,0 +1,188 @@
+{
+  "name": "GRIMLOCK - Heartbeat Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "30 Minute Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "cat /home/ubuntu/projects/grimlock/GRIMLOCK_STATE.md 2>/dev/null || echo \"STATE_FILE_NOT_FOUND\""
+      },
+      "id": "read-state",
+      "name": "Read State File",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "sshPrivateKey": {
+          "id": "CREDENTIAL_ID",
+          "name": "ec2-grimlock"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse state file and check circuit breakers\nconst stateContent = $input.first().json.stdout;\nconst now = new Date();\nconst timestamp = now.toISOString();\n\nif (stateContent.trim() === 'STATE_FILE_NOT_FOUND') {\n  return [{ json: { status: 'not_found', is_running: false, timestamp, message: 'No state file found' } }];\n}\n\nconst yamlMatch = stateContent.match(/^---\\n([\\s\\S]*?)\\n---/);\nif (!yamlMatch) {\n  return [{ json: { status: 'corrupted', is_running: false, timestamp, circuit_breakers: [{ id: 'CB_CORRUPT', severity: 'PAUSE', message: 'State file corrupted' }], has_circuit_breaker: true, highest_severity: 'PAUSE' } }];\n}\n\nlet state;\ntry {\n  const yaml = require('js-yaml');\n  state = yaml.load(yamlMatch[1]);\n} catch (e) {\n  return [{ json: { status: 'corrupted', is_running: false, timestamp, circuit_breakers: [{ id: 'CB_CORRUPT', severity: 'PAUSE', message: e.message }], has_circuit_breaker: true, highest_severity: 'PAUSE' } }];\n}\n\nconst isRunning = state.sprint?.status === 'running';\nif (!isRunning) {\n  return [{ json: { status: state.sprint?.status || 'not_started', is_running: false, timestamp, project_name: state.sprint?.project_name, circuit_breakers: [], has_circuit_breaker: false } }];\n}\n\nconst circuitBreakers = [];\nconst lastUpdated = new Date(state.sprint.last_updated);\nconst targetEnd = new Date(state.sprint.target_end);\nconst minutesSinceUpdate = (now - lastUpdated) / (1000 * 60);\n\nif (now > targetEnd) circuitBreakers.push({ id: 'CB001', severity: 'PAUSE', message: 'Sprint end time passed' });\nif (minutesSinceUpdate > 180) circuitBreakers.push({ id: 'CB005', severity: 'PAUSE', message: `No update for ${Math.round(minutesSinceUpdate)} min` });\nelse if (minutesSinceUpdate > 90) circuitBreakers.push({ id: 'CB004', severity: 'WARNING', message: `No update for ${Math.round(minutesSinceUpdate)} min` });\n\nconst highestSeverity = circuitBreakers.some(cb => cb.severity === 'PAUSE') ? 'PAUSE' : circuitBreakers.some(cb => cb.severity === 'WARNING') ? 'WARNING' : 'INFO';\n\nreturn [{ json: {\n  status: state.sprint.status,\n  is_running: true,\n  project_name: state.sprint.project_name,\n  current_milestone: state.current_position?.milestone_name,\n  milestone_id: state.current_position?.milestone_id,\n  minutes_since_update: Math.round(minutesSinceUpdate),\n  circuit_breakers,\n  has_circuit_breaker: circuitBreakers.length > 0,\n  highest_severity: highestSeverity,\n  timestamp\n} }];"
+      },
+      "id": "parse-state",
+      "name": "Parse State & Check CB",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            { "id": "running-check", "leftValue": "={{ $json.is_running }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "is-running",
+      "name": "Sprint Running?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#grimlock-ops",
+        "text": "={{ '💓 *Heartbeat* [' + $json.timestamp + ']\\n*Status:* ' + $json.status + '\\n*Project:* ' + $json.project_name + '\\n*Current Milestone:* ' + $json.milestone_id + ' - ' + $json.current_milestone + '\\n*Last Update:* ' + $json.minutes_since_update + ' minutes ago\\n*Next Check:* in 30 minutes' }}",
+        "otherOptions": {}
+      },
+      "id": "post-heartbeat",
+      "name": "Post Heartbeat",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1100, 200],
+      "credentials": {
+        "slackApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "grimlock-slack-bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            { "id": "cb-check", "leftValue": "={{ $json.has_circuit_breaker }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "cb-triggered",
+      "name": "CB Triggered?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1300, 200]
+    },
+    {
+      "parameters": {
+        "channel": "#grimlock-ops",
+        "text": "={{ ($json.highest_severity === 'PAUSE' ? '🛑' : '⚠️') + ' *' + $json.highest_severity + '*\\n━━━━━━━━━━━━━━━━━━━\\n*Circuit Breaker(s):*\\n' + $json.circuit_breakers.map(cb => '• ' + cb.id + ': ' + cb.message).join('\\n') + '\\n\\n*Project:* ' + $json.project_name + '\\n━━━━━━━━━━━━━━━━━━━\\n' + ($json.highest_severity === 'PAUSE' ? 'Reply `/grimlock resume` to continue.' : 'Monitoring continues.') }}",
+        "otherOptions": {}
+      },
+      "id": "post-cb-alert",
+      "name": "Post CB Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1550, 100],
+      "credentials": {
+        "slackApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "grimlock-slack-bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            { "id": "pause-check", "leftValue": "={{ $json.highest_severity }}", "rightValue": "PAUSE", "operator": { "type": "string", "operation": "equals" } }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "is-pause",
+      "name": "Is PAUSE?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1750, 100]
+    },
+    {
+      "parameters": {
+        "channel": "@matthew",
+        "text": "={{ '🛑 *GRIMLOCK Requires Attention*\\n\\n*Project:* ' + $json.project_name + '\\n*Issue:* ' + $json.circuit_breakers.map(cb => cb.id + ': ' + cb.message).join('; ') + '\\n\\nCheck #grimlock-ops for details.' }}",
+        "otherOptions": {}
+      },
+      "id": "dm-operator",
+      "name": "DM Operator",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [2000, 50],
+      "credentials": {
+        "slackApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "grimlock-slack-bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "30 Minute Schedule": {
+      "main": [[{ "node": "Read State File", "type": "main", "index": 0 }]]
+    },
+    "Read State File": {
+      "main": [[{ "node": "Parse State & Check CB", "type": "main", "index": 0 }]]
+    },
+    "Parse State & Check CB": {
+      "main": [[{ "node": "Sprint Running?", "type": "main", "index": 0 }]]
+    },
+    "Sprint Running?": {
+      "main": [
+        [{ "node": "Post Heartbeat", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Post Heartbeat": {
+      "main": [[{ "node": "CB Triggered?", "type": "main", "index": 0 }]]
+    },
+    "CB Triggered?": {
+      "main": [
+        [{ "node": "Post CB Alert", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Post CB Alert": {
+      "main": [[{ "node": "Is PAUSE?", "type": "main", "index": 0 }]]
+    },
+    "Is PAUSE?": {
+      "main": [
+        [{ "node": "DM Operator", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "GRIMLOCK" }]
+}

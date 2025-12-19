@@ -1,0 +1,287 @@
+{
+  "name": "GRIMLOCK - Sprint Initiator",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "webhook-start",
+      "name": "Webhook Start",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "grimlock-start"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "prd_file",
+              "name": "prd_file",
+              "value": "={{ $json.body?.prd_file || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "trigger_source",
+              "name": "trigger_source",
+              "value": "webhook",
+              "type": "string"
+            },
+            {
+              "id": "timestamp",
+              "name": "timestamp",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "normalize-input",
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse and validate PRD path\nconst prdFile = $input.first().json.prd_file;\n\nif (!prdFile) {\n  throw new Error('E001: PRD file not specified. Usage: POST with {\"prd_file\": \"filename.yaml\"}');\n}\n\n// Ensure file is in prds directory\nlet normalizedPath = prdFile.trim();\nif (!normalizedPath.startsWith('prds/')) {\n  normalizedPath = `prds/${normalizedPath}`;\n}\n\n// Ensure .yaml extension\nif (!normalizedPath.endsWith('.yaml') && !normalizedPath.endsWith('.yml')) {\n  normalizedPath = `${normalizedPath}.yaml`;\n}\n\nconst fullPath = `/home/ubuntu/projects/grimlock/${normalizedPath}`;\n\nreturn [{\n  json: {\n    prd_path: fullPath,\n    prd_filename: normalizedPath,\n    timestamp: $input.first().json.timestamp,\n    trigger_source: $input.first().json.trigger_source\n  }\n}];"
+      },
+      "id": "parse-prd-path",
+      "name": "Parse PRD Path",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "cat {{ $json.prd_path }} 2>/dev/null || echo \"FILE_NOT_FOUND\""
+      },
+      "id": "read-prd",
+      "name": "Read PRD",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "credentials": {
+        "sshPrivateKey": {
+          "id": "CREDENTIAL_ID",
+          "name": "ec2-grimlock"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate PRD structure\nconst prdContent = $input.first().json.stdout;\n\n// Check if file exists\nif (prdContent.trim() === 'FILE_NOT_FOUND') {\n  return [{\n    json: {\n      valid: false,\n      errors: ['E001: PRD file not found at specified path'],\n      prd: null\n    }\n  }];\n}\n\n// Parse YAML\nlet prd;\ntry {\n  const yaml = require('js-yaml');\n  prd = yaml.load(prdContent);\n} catch (e) {\n  return [{\n    json: {\n      valid: false,\n      errors: [`E002: Invalid PRD YAML syntax - ${e.message}`],\n      prd: null\n    }\n  }];\n}\n\n// Validate required sections\nconst errors = [];\n\nif (!prd.metadata) {\n  errors.push('E003: Missing metadata section');\n} else {\n  if (!prd.metadata.project_name) errors.push('E003: Missing metadata.project_name');\n  if (!prd.metadata.sprint?.start_datetime) errors.push('E003: Missing metadata.sprint.start_datetime');\n  if (!prd.metadata.sprint?.end_datetime) errors.push('E003: Missing metadata.sprint.end_datetime');\n}\n\nif (!prd.success_criteria || prd.success_criteria.length === 0) {\n  errors.push('E004: Success criteria empty or missing');\n}\n\nif (!prd.milestones || prd.milestones.length === 0) {\n  errors.push('E003: Missing milestones section');\n}\n\nif (errors.length > 0) {\n  return [{ json: { valid: false, errors, prd: null } }];\n}\n\nconst milestoneIds = prd.milestones.map(m => m.id);\nconst firstMilestone = prd.milestones[0];\n\nreturn [{\n  json: {\n    valid: true,\n    errors: [],\n    prd: prd,\n    project_name: prd.metadata.project_name,\n    target_end: prd.metadata.sprint.end_datetime,\n    milestones: milestoneIds,\n    first_milestone: { id: firstMilestone.id, name: firstMilestone.name },\n    success_criteria_count: prd.success_criteria.length,\n    prd_path: $('Parse PRD Path').item.json.prd_path,\n    prd_filename: $('Parse PRD Path').item.json.prd_filename,\n    timestamp: $('Parse PRD Path').item.json.timestamp\n  }\n}];"
+      },
+      "id": "validate-prd",
+      "name": "Validate PRD",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "valid-check",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "prd-valid-check",
+      "name": "PRD Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "cd /home/ubuntu/projects/grimlock && nohup claude --dangerously-skip-permissions > /tmp/grimlock-cc.log 2>&1 & echo \"CC_LAUNCHED\""
+      },
+      "id": "launch-cc",
+      "name": "Launch Claude Code",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [1500, 200],
+      "credentials": {
+        "sshPrivateKey": {
+          "id": "CREDENTIAL_ID",
+          "name": "ec2-grimlock"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#grimlock-ops",
+        "text": "={{ '❌ *Sprint Failed to Start*\\n━━━━━━━━━━━━━━━━━━━\\n*Errors:*\\n• ' + $json.errors.join('\\n• ') + '\\n\\nPlease fix the PRD and try again.' }}",
+        "otherOptions": {}
+      },
+      "id": "send-error",
+      "name": "Send Error",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1500, 400],
+      "credentials": {
+        "slackApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "grimlock-slack-bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "cat > /home/ubuntu/projects/grimlock/GRIMLOCK_STATE.md << 'STATEEOF'\n---\nsprint:\n  status: \"running\"\n  started_at: \"{{ $json.timestamp }}\"\n  last_updated: \"{{ $json.timestamp }}\"\n  prd_file: \"{{ $json.prd_filename }}\"\n  project_name: \"{{ $json.project_name }}\"\n  target_end: \"{{ $json.target_end }}\"\n\ncurrent_position:\n  milestone_id: \"{{ $json.first_milestone.id }}\"\n  milestone_name: \"{{ $json.first_milestone.name }}\"\n  task_index: 0\n  task_description: null\n\nprogress:\n  milestones_completed: []\n  milestones_remaining: {{ JSON.stringify($json.milestones) }}\n  current_milestone_tasks:\n    completed: []\n    remaining: []\n\nsuccess_criteria:\n  total: {{ $json.success_criteria_count }}\n  evaluated: 0\n  passed: 0\n  failed: 0\n  pending: {{ $json.success_criteria_count }}\n  details: []\n\nrecent_actions:\n  - timestamp: \"{{ $json.timestamp }}\"\n    action: \"Sprint initiated\"\n\nescalations:\n  total_count: 0\n  by_severity:\n    warning: 0\n    pause: 0\n    emergency: 0\n  last_escalation: null\n\ncheckpoints:\n  last_successful_checkpoint: \"{{ $json.timestamp }}\"\n  checkpoint_data: null\n---\n\n## Current Status Summary\n\nSprint active. Working on {{ $json.first_milestone.name }}.\n\n## Steps Taken This Sprint\n\n1. Sprint initiated at {{ $json.timestamp }}\n\n## Blockers or Issues\n\nNone.\n\n## Next Actions\n\nExecuting milestone {{ $json.first_milestone.id }}: {{ $json.first_milestone.name }}.\nSTATEEOF"
+      },
+      "id": "init-state",
+      "name": "Initialize State",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [1700, 200],
+      "credentials": {
+        "sshPrivateKey": {
+          "id": "CREDENTIAL_ID",
+          "name": "ec2-grimlock"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "cd /home/ubuntu/projects/grimlock && git add GRIMLOCK_STATE.md && git commit -m 'state: sprint started for {{ $json.project_name }}'"
+      },
+      "id": "git-commit",
+      "name": "Git Commit",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [1900, 200],
+      "credentials": {
+        "sshPrivateKey": {
+          "id": "CREDENTIAL_ID",
+          "name": "ec2-grimlock"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#grimlock-ops",
+        "text": "={{ '🚀 *Sprint Initiated*\\n━━━━━━━━━━━━━━━━━━━\\n*Project:* ' + $json.project_name + '\\n*PRD:* ' + $json.prd_filename + '\\n*Started:* ' + $json.timestamp + '\\n*Target End:* ' + $json.target_end + '\\n*First Milestone:* ' + $json.first_milestone.id + ' - ' + $json.first_milestone.name + '\\n━━━━━━━━━━━━━━━━━━━\\nGRIMLOCK is now running autonomously.' }}",
+        "otherOptions": {}
+      },
+      "id": "send-confirm",
+      "name": "Send Confirmation",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [2100, 200],
+      "credentials": {
+        "slackApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "grimlock-slack-bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'initiated', sprint_id: $json.project_name + '-' + Date.now(), project: $json.project_name, started_at: $json.timestamp, target_end: $json.target_end } }}"
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2300, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'error', errors: $json.errors } }}"
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1700, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Start": {
+      "main": [
+        [{ "node": "Normalize Input", "type": "main", "index": 0 }]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [{ "node": "Parse PRD Path", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse PRD Path": {
+      "main": [
+        [{ "node": "Read PRD", "type": "main", "index": 0 }]
+      ]
+    },
+    "Read PRD": {
+      "main": [
+        [{ "node": "Validate PRD", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validate PRD": {
+      "main": [
+        [{ "node": "PRD Valid?", "type": "main", "index": 0 }]
+      ]
+    },
+    "PRD Valid?": {
+      "main": [
+        [{ "node": "Launch Claude Code", "type": "main", "index": 0 }],
+        [{ "node": "Send Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Launch Claude Code": {
+      "main": [
+        [{ "node": "Initialize State", "type": "main", "index": 0 }]
+      ]
+    },
+    "Initialize State": {
+      "main": [
+        [{ "node": "Git Commit", "type": "main", "index": 0 }]
+      ]
+    },
+    "Git Commit": {
+      "main": [
+        [{ "node": "Send Confirmation", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Confirmation": {
+      "main": [
+        [{ "node": "Respond Success", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Error": {
+      "main": [
+        [{ "node": "Respond Error", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "GRIMLOCK" }
+  ],
+  "meta": {
+    "instanceId": "grimlock-instance"
+  }
+}

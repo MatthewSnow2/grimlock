@@ -1,0 +1,222 @@
+{
+  "name": "GRIMLOCK - Escalation Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "grimlock/escalate",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-escalate",
+      "name": "Webhook Escalate",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst timestamp = new Date().toISOString();\n\nconst validSeverities = ['INFO', 'WARNING', 'PAUSE', 'EMERGENCY'];\nlet severity = (body.severity || 'WARNING').toUpperCase();\nif (!validSeverities.includes(severity)) severity = 'WARNING';\n\nif (!body.message) {\n  return [{ json: { error: true, error_message: 'Missing required field: message', timestamp } }];\n}\n\nconst escalationId = `ESC-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;\nconst displayTime = new Date().toLocaleString('en-US', { timeZone: 'America/Chicago', dateStyle: 'short', timeStyle: 'medium' });\n\nconst emojiMap = { 'INFO': 'ℹ️', 'WARNING': '⚠️', 'PAUSE': '🛑', 'EMERGENCY': '🚨' };\n\nreturn [{ json: {\n  error: false,\n  escalation_id: escalationId,\n  severity,\n  message: body.message,\n  circuit_breaker: body.circuit_breaker || null,\n  project_name: body.project_name || 'Unknown',\n  sprint_id: body.sprint_id || 'Unknown',\n  context: body.context || {},\n  context_json: JSON.stringify(body.context || {}),\n  timestamp,\n  display_time: displayTime,\n  emoji: emojiMap[severity],\n  notify_channel: severity !== 'INFO',\n  notify_dm: severity === 'PAUSE' || severity === 'EMERGENCY',\n  kill_process: severity === 'EMERGENCY'\n} }];"
+      },
+      "id": "parse-validate",
+      "name": "Parse & Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.severity }}",
+        "rules": {
+          "rules": [
+            { "value2": "INFO" },
+            { "value2": "WARNING" },
+            { "value2": "PAUSE" },
+            { "value2": "EMERGENCY" }
+          ]
+        }
+      },
+      "id": "route-severity",
+      "name": "Route by Severity",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "notification", "name": "notification_sent", "value": "log_only", "type": "string" },
+            { "id": "action", "name": "process_action", "value": "none", "type": "string" }
+          ]
+        }
+      },
+      "id": "info-path",
+      "name": "INFO Path",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [900, 100]
+    },
+    {
+      "parameters": {
+        "channel": "#grimlock-ops",
+        "text": "={{ '⚠️ *Warning*\\n━━━━━━━━━━━━━━━━━━━\\n*Issue:* ' + $json.message + '\\n*Project:* ' + $json.project_name + ($json.circuit_breaker ? '\\n*Circuit Breaker:* ' + $json.circuit_breaker : '') + '\\n*Escalation ID:* ' + $json.escalation_id + '\\n━━━━━━━━━━━━━━━━━━━\\n_No intervention required unless repeated._' }}",
+        "otherOptions": {}
+      },
+      "id": "warn-channel",
+      "name": "WARNING Channel",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [900, 250],
+      "credentials": {
+        "slackApi": { "id": "CREDENTIAL_ID", "name": "grimlock-slack-bot" }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#grimlock-ops",
+        "text": "={{ '🛑 *GRIMLOCK Paused*\\n━━━━━━━━━━━━━━━━━━━\\n*Reason:* ' + $json.message + '\\n*Project:* ' + $json.project_name + ($json.circuit_breaker ? '\\n*Circuit Breaker:* ' + $json.circuit_breaker : '\\n*Trigger:* Manual') + '\\n*Escalation ID:* ' + $json.escalation_id + '\\n*State Preserved:* Yes\\n━━━━━━━━━━━━━━━━━━━\\n*Options:*\\n• `/grimlock resume` - Continue\\n• `/grimlock status` - View state\\n• `/grimlock abort` - Cancel' }}",
+        "otherOptions": {}
+      },
+      "id": "pause-channel",
+      "name": "PAUSE Channel",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [900, 400],
+      "credentials": {
+        "slackApi": { "id": "CREDENTIAL_ID", "name": "grimlock-slack-bot" }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#grimlock-ops",
+        "text": "={{ '🚨 *EMERGENCY - GRIMLOCK Halted*\\n━━━━━━━━━━━━━━━━━━━\\n*Critical Issue:* ' + $json.message + '\\n*Project:* ' + $json.project_name + ($json.circuit_breaker ? '\\n*Trigger:* ' + $json.circuit_breaker : '\\n*Trigger:* Manual Emergency') + '\\n*Escalation ID:* ' + $json.escalation_id + '\\n*Process Status:* TERMINATED\\n━━━━━━━━━━━━━━━━━━━\\nImmediate human review required.\\nClaude Code process has been killed.' }}",
+        "otherOptions": {}
+      },
+      "id": "emergency-channel",
+      "name": "EMERGENCY Channel",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [900, 550],
+      "credentials": {
+        "slackApi": { "id": "CREDENTIAL_ID", "name": "grimlock-slack-bot" }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "@matthew",
+        "text": "={{ '🛑 *GRIMLOCK Requires Your Attention*\\n\\n*Project:* ' + $json.project_name + '\\n*Issue:* ' + $json.message + ($json.circuit_breaker ? '\\n*Circuit Breaker:* ' + $json.circuit_breaker : '') + '\\n*Escalation ID:* ' + $json.escalation_id + '\\n\\nCheck #grimlock-ops for full details.\\n\\nReply with:\\n• `/grimlock resume` to continue\\n• `/grimlock status` to check state\\n• `/grimlock abort` to cancel' }}",
+        "otherOptions": {}
+      },
+      "id": "pause-dm",
+      "name": "PAUSE DM",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1150, 400],
+      "credentials": {
+        "slackApi": { "id": "CREDENTIAL_ID", "name": "grimlock-slack-bot" }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "@matthew",
+        "text": "={{ '🚨 *GRIMLOCK EMERGENCY*\\n\\n*Critical Issue:* ' + $json.message + '\\n*Project:* ' + $json.project_name + '\\n*Escalation ID:* ' + $json.escalation_id + '\\n\\nClaude Code process has been TERMINATED.\\nImmediate review required.' }}",
+        "otherOptions": {}
+      },
+      "id": "emergency-dm",
+      "name": "EMERGENCY DM",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1150, 550],
+      "credentials": {
+        "slackApi": { "id": "CREDENTIAL_ID", "name": "grimlock-slack-bot" }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "pkill -f 'claude' || echo 'No claude process'; cd /home/ubuntu/projects/grimlock && sed -i 's/status: \"[^\"]*\"/status: \"aborted\"/' GRIMLOCK_STATE.md && git add GRIMLOCK_STATE.md && git commit -m 'state: EMERGENCY - process terminated ({{ $json.escalation_id }})'"
+      },
+      "id": "kill-cc",
+      "name": "Kill CC Process",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [1400, 550],
+      "credentials": {
+        "sshPrivateKey": { "id": "CREDENTIAL_ID", "name": "ec2-grimlock" }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch"
+      },
+      "id": "merge-paths",
+      "name": "Merge Paths",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1600, 300]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": { "mode": "id", "value": "YOUR_SPREADSHEET_ID" },
+        "sheetName": "Escalations",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.timestamp }}",
+            "Sprint ID": "={{ $json.sprint_id }}",
+            "Project": "={{ $json.project_name }}",
+            "Severity": "={{ $json.severity }}",
+            "Circuit Breaker": "={{ $json.circuit_breaker || '' }}",
+            "Message": "={{ $json.message }}",
+            "Context": "={{ $json.context_json }}",
+            "Escalation ID": "={{ $json.escalation_id }}"
+          }
+        }
+      },
+      "id": "log-sheets",
+      "name": "Log to Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1800, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "CREDENTIAL_ID", "name": "grimlock-sheets" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { logged: true, escalation_id: $json.escalation_id, severity: $json.severity, notification_sent: $json.notify_channel ? ($json.notify_dm ? 'channel_and_dm' : 'channel') : 'log_only', process_action: $json.kill_process ? 'terminated' : 'none' } }}"
+      },
+      "id": "respond-webhook",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2000, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Escalate": { "main": [[{ "node": "Parse & Validate", "type": "main", "index": 0 }]] },
+    "Parse & Validate": { "main": [[{ "node": "Route by Severity", "type": "main", "index": 0 }]] },
+    "Route by Severity": {
+      "main": [
+        [{ "node": "INFO Path", "type": "main", "index": 0 }],
+        [{ "node": "WARNING Channel", "type": "main", "index": 0 }],
+        [{ "node": "PAUSE Channel", "type": "main", "index": 0 }],
+        [{ "node": "EMERGENCY Channel", "type": "main", "index": 0 }]
+      ]
+    },
+    "INFO Path": { "main": [[{ "node": "Merge Paths", "type": "main", "index": 0 }]] },
+    "WARNING Channel": { "main": [[{ "node": "Merge Paths", "type": "main", "index": 0 }]] },
+    "PAUSE Channel": { "main": [[{ "node": "PAUSE DM", "type": "main", "index": 0 }]] },
+    "PAUSE DM": { "main": [[{ "node": "Merge Paths", "type": "main", "index": 0 }]] },
+    "EMERGENCY Channel": { "main": [[{ "node": "EMERGENCY DM", "type": "main", "index": 0 }]] },
+    "EMERGENCY DM": { "main": [[{ "node": "Kill CC Process", "type": "main", "index": 0 }]] },
+    "Kill CC Process": { "main": [[{ "node": "Merge Paths", "type": "main", "index": 0 }]] },
+    "Merge Paths": { "main": [[{ "node": "Log to Sheets", "type": "main", "index": 0 }]] },
+    "Log to Sheets": { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "GRIMLOCK" }]
+}

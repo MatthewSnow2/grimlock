@@ -1,0 +1,184 @@
+{
+  "name": "GRIMLOCK - Milestone Gate Checker",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "grimlock/milestone",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-milestone",
+      "name": "Webhook Milestone",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst timestamp = new Date().toISOString();\n\nif (!body.milestone_id) {\n  return [{ json: { error: true, error_message: 'Missing required field: milestone_id', timestamp } }];\n}\n\nreturn [{ json: {\n  error: false,\n  milestone_id: body.milestone_id,\n  validation_results: body.validation_results || [],\n  has_custom_validation: (body.validation_results || []).length > 0,\n  timestamp\n} }];"
+      },
+      "id": "parse-payload",
+      "name": "Parse Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "cat /home/ubuntu/projects/grimlock/GRIMLOCK_STATE.md"
+      },
+      "id": "read-state",
+      "name": "Read State",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "sshPrivateKey": { "id": "CREDENTIAL_ID", "name": "ec2-grimlock" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const yaml = require('js-yaml');\nconst input = $('Parse Payload').item.json;\nconst stateContent = $input.first().json.stdout;\n\nif (input.error) return [{ json: { result: 'ERROR', action: 'error', message: input.error_message, timestamp: input.timestamp } }];\n\nlet state;\ntry {\n  const yamlMatch = stateContent.match(/^---\\n([\\s\\S]*?)\\n---/);\n  if (!yamlMatch) throw new Error('Invalid state file');\n  state = yaml.load(yamlMatch[1]);\n} catch (e) {\n  return [{ json: { result: 'ERROR', action: 'error', message: 'E020: State corrupted', timestamp: input.timestamp } }];\n}\n\nlet passedChecks = [], failedChecks = [];\nconst validationResults = input.validation_results;\n\nif (validationResults.length > 0) {\n  validationResults.forEach(r => r.passed ? passedChecks.push(r.check) : failedChecks.push(r.check));\n} else {\n  if (state.current_position?.milestone_id === input.milestone_id) passedChecks.push('Milestone ID matches');\n  else failedChecks.push('Milestone ID mismatch');\n  if (state.sprint?.status === 'running') passedChecks.push('Sprint running');\n  else failedChecks.push('Sprint not running');\n}\n\nconst allPassed = failedChecks.length === 0;\nconst remaining = state.progress?.milestones_remaining || [];\nconst idx = remaining.indexOf(input.milestone_id);\nconst nextMilestone = allPassed && idx >= 0 && idx < remaining.length - 1 ? remaining[idx + 1] : (idx === remaining.length - 1 ? 'COMPLETE' : null);\n\nreturn [{ json: {\n  milestone_id: input.milestone_id,\n  result: allPassed ? 'PASS' : 'FAIL',\n  action: allPassed ? 'continue' : 'pause',\n  passed: allPassed,\n  passed_checks: passedChecks,\n  failed_checks: failedChecks,\n  passed_count: passedChecks.length,\n  failed_count: failedChecks.length,\n  next_milestone: nextMilestone,\n  project_name: state.sprint?.project_name || 'Unknown',\n  timestamp: input.timestamp\n} }];"
+      },
+      "id": "evaluate-results",
+      "name": "Evaluate Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.result }}",
+        "rules": {
+          "rules": [
+            { "value2": "PASS" },
+            { "value2": "FAIL" }
+          ]
+        },
+        "fallbackOutput": 2
+      },
+      "id": "route-result",
+      "name": "Route Result",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "cd /home/ubuntu/projects/grimlock && sed -i 's/status: \"[^\"]*\"/status: \"running\"/' GRIMLOCK_STATE.md && git add GRIMLOCK_STATE.md && git commit -m 'state: milestone {{ $json.milestone_id }} passed'"
+      },
+      "id": "update-pass",
+      "name": "Update State (Pass)",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [1300, 150],
+      "credentials": {
+        "sshPrivateKey": { "id": "CREDENTIAL_ID", "name": "ec2-grimlock" }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "cd /home/ubuntu/projects/grimlock && sed -i 's/status: \"[^\"]*\"/status: \"paused\"/' GRIMLOCK_STATE.md && git add GRIMLOCK_STATE.md && git commit -m 'state: milestone {{ $json.milestone_id }} failed - paused'"
+      },
+      "id": "update-fail",
+      "name": "Update State (Fail)",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [1300, 300],
+      "credentials": {
+        "sshPrivateKey": { "id": "CREDENTIAL_ID", "name": "ec2-grimlock" }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#grimlock-ops",
+        "text": "={{ '✅ *Milestone Complete: ' + $json.milestone_id + '*\\n━━━━━━━━━━━━━━━━━━━\\n*Project:* ' + $json.project_name + '\\n*Checks Passed:* ' + $json.passed_count + '\\n*Proceeding to:* ' + ($json.next_milestone || 'FINAL') }}",
+        "otherOptions": {}
+      },
+      "id": "slack-pass",
+      "name": "Slack (Pass)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1550, 150],
+      "credentials": {
+        "slackApi": { "id": "CREDENTIAL_ID", "name": "grimlock-slack-bot" }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#grimlock-ops",
+        "text": "={{ '❌ *Milestone Failed: ' + $json.milestone_id + '*\\n━━━━━━━━━━━━━━━━━━━\\n*Project:* ' + $json.project_name + '\\n*Failed Validations:*\\n• ' + $json.failed_checks.join('\\n• ') + '\\n*System Status:* PAUSED\\n━━━━━━━━━━━━━━━━━━━\\nReply `/grimlock resume` to retry.' }}",
+        "otherOptions": {}
+      },
+      "id": "slack-fail",
+      "name": "Slack (Fail)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1550, 300],
+      "credentials": {
+        "slackApi": { "id": "CREDENTIAL_ID", "name": "grimlock-slack-bot" }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "@matthew",
+        "text": "={{ '❌ Milestone ' + $json.milestone_id + ' failed.\\n\\nFailed checks:\\n• ' + $json.failed_checks.join('\\n• ') + '\\n\\nCheck #grimlock-ops for details.' }}",
+        "otherOptions": {}
+      },
+      "id": "dm-fail",
+      "name": "DM on Fail",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1750, 300],
+      "credentials": {
+        "slackApi": { "id": "CREDENTIAL_ID", "name": "grimlock-slack-bot" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { action: $json.action, result: $json.result, milestone_id: $json.milestone_id, next_milestone: $json.next_milestone, passed_checks: $json.passed_count, failed_checks: $json.failed_count } }}"
+      },
+      "id": "respond-pass",
+      "name": "Respond (Pass)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1800, 150]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { action: $json.action, result: $json.result, milestone_id: $json.milestone_id, failed_checks: $json.failed_count } }}"
+      },
+      "id": "respond-fail",
+      "name": "Respond (Fail)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1950, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Milestone": { "main": [[{ "node": "Parse Payload", "type": "main", "index": 0 }]] },
+    "Parse Payload": { "main": [[{ "node": "Read State", "type": "main", "index": 0 }]] },
+    "Read State": { "main": [[{ "node": "Evaluate Results", "type": "main", "index": 0 }]] },
+    "Evaluate Results": { "main": [[{ "node": "Route Result", "type": "main", "index": 0 }]] },
+    "Route Result": {
+      "main": [
+        [{ "node": "Update State (Pass)", "type": "main", "index": 0 }],
+        [{ "node": "Update State (Fail)", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Update State (Pass)": { "main": [[{ "node": "Slack (Pass)", "type": "main", "index": 0 }]] },
+    "Update State (Fail)": { "main": [[{ "node": "Slack (Fail)", "type": "main", "index": 0 }]] },
+    "Slack (Pass)": { "main": [[{ "node": "Respond (Pass)", "type": "main", "index": 0 }]] },
+    "Slack (Fail)": { "main": [[{ "node": "DM on Fail", "type": "main", "index": 0 }]] },
+    "DM on Fail": { "main": [[{ "node": "Respond (Fail)", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "GRIMLOCK" }]
+}
