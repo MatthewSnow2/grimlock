@@ -1,0 +1,5 @@
+Workflow: Heartbeat Monitor
+Node: Parse State File
+Error: Unexpected token in JSON at position 0
+Context: Attempted JSON.parse() on GRIMLOCK_STATE.md which contains YAML frontmatter
+Root Cause: Format assumption mismatch - .md file treated as JSON

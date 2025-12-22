@@ -1,0 +1,280 @@
+{
+  "id": "HxnmkkumPCgxkuX3",
+  "name": "GRIMLOCK Escalation Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "grimlock/escalate",
+        "options": {}
+      },
+      "id": "a531d656-325c-4064-bea2-4d7a6f774ce0",
+      "name": "Escalation Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-672, 96]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse escalation webhook data\nconst webhookData = $('Escalation Trigger').first().json;\nconst body = webhookData.body || webhookData;\n\nconst severity = (body.severity || 'WARNING').toUpperCase();\nconst error_msg = body.error_msg || body.message || 'No error message provided';\nconst context = body.context || body.details || '';\nconst timestamp = new Date().toISOString();\n\n// Validate severity\nconst validSeverities = ['WARNING', 'PAUSE', 'EMERGENCY'];\nconst finalSeverity = validSeverities.includes(severity) ? severity : 'WARNING';\n\n// Return as array (required by n8n Code node)\nreturn [{\n  severity: finalSeverity,\n  error_msg: error_msg,\n  context: context,\n  timestamp: timestamp,\n  original_data: body\n}];"
+      },
+      "id": "eb6a172b-1a45-4f88-b594-36ba37757440",
+      "name": "Parse Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-448, 96]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": false,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Parse Alert').item.json.severity }}",
+              "rightValue": "WARNING",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f7c69228-8670-4153-899e-203c9dc3bd20",
+      "name": "Is Warning?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [-224, 96]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1SpeLZnSl5NDgT7Nu2gRqE6uVwW6g0VOncqs56nVzJqg",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "GRIMLOCK-Logs"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.timestamp }}",
+            "Severity": "={{ $json.severity }}",
+            "Error": "={{ $json.error_msg }}",
+            "Context": "={{ JSON.stringify($json.context) }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "f0a7a506-e06c-4546-847d-f911d45d3cec",
+      "name": "Log Warning",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": false,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Parse Alert').item.json.severity }}",
+              "rightValue": "PAUSE",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "47551d05-ffa3-464c-b701-10b99db1e504",
+      "name": "Is Pause?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [0, 192]
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "=echo -e \"severity: PAUSE\\nreason: {{ $('Parse Alert').item.json.error_msg }}\\ntimestamp: {{ $('Parse Alert').item.json.timestamp }}\" > /home/ubuntu/projects/grimlock/CIRCUIT_BREAKER.md"
+      },
+      "id": "657df787-9fc6-48af-8416-5c595ec2f46c",
+      "name": "Set Pause Flag",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [224, 96]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "C0A3XJ9HV4L"
+        },
+        "text": "=⏸️ GRIMLOCK PAUSED | {{ $('Parse Alert').item.json.error_msg }}",
+        "operation": "post",
+        "otherOptions": {}
+      },
+      "id": "791746ac-3c84-41f2-9ed3-10752c81f251",
+      "name": "Slack Pause Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [224, 288]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": false,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Parse Alert').item.json.severity }}",
+              "rightValue": "EMERGENCY",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "201851b0-a77b-4c99-a9e1-1e9f0b1d2768",
+      "name": "Is Emergency?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [224, 480]
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "pkill -f \"claude\""
+      },
+      "id": "5d16cea1-3516-4723-adb9-8186236f6b31",
+      "name": "Kill Process",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [448, 96]
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "=echo -e \"severity: EMERGENCY\\nreason: {{ $('Parse Alert').item.json.error_msg }}\\ntimestamp: {{ $('Parse Alert').item.json.timestamp }}\" > /home/ubuntu/projects/grimlock/CIRCUIT_BREAKER.md"
+      },
+      "id": "f14cc146-d963-4f52-b251-8d3e2468da59",
+      "name": "Set Emergency Flag",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [448, 288]
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "mode": "id",
+          "value": "U08TP307Z70"
+        },
+        "text": "=🚨 EMERGENCY STOP | {{ $('Parse Alert').item.json.error_msg }} | <@U08TP307Z70>",
+        "operation": "post",
+        "otherOptions": {}
+      },
+      "id": "a07c1a4e-c688-451e-94fa-26ee944fb529",
+      "name": "Slack Emergency DM",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [448, 480]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1SpeLZnSl5NDgT7Nu2gRqE6uVwW6g0VOncqs56nVzJqg",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "GRIMLOCK-Logs"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $json.timestamp }}",
+            "Severity": "={{ $json.severity }}",
+            "Error": "={{ $json.error_msg }}",
+            "Context": "={{ JSON.stringify($json.context) }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "e03236b6-6248-461f-ac73-286985aef950",
+      "name": "Log Critical",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [448, 672]
+    }
+  ],
+  "connections": {
+    "Escalation Trigger": {
+      "main": [[{"node": "Parse Alert", "type": "main", "index": 0}]]
+    },
+    "Parse Alert": {
+      "main": [[{"node": "Is Warning?", "type": "main", "index": 0}]]
+    },
+    "Is Warning?": {
+      "main": [
+        [{"node": "Log Warning", "type": "main", "index": 0}],
+        [{"node": "Is Pause?", "type": "main", "index": 0}]
+      ]
+    },
+    "Is Pause?": {
+      "main": [
+        [
+          {"node": "Set Pause Flag", "type": "main", "index": 0},
+          {"node": "Slack Pause Notification", "type": "main", "index": 0}
+        ],
+        [{"node": "Is Emergency?", "type": "main", "index": 0}]
+      ]
+    },
+    "Is Emergency?": {
+      "main": [
+        [
+          {"node": "Kill Process", "type": "main", "index": 0},
+          {"node": "Set Emergency Flag", "type": "main", "index": 0},
+          {"node": "Slack Emergency DM", "type": "main", "index": 0},
+          {"node": "Log Critical", "type": "main", "index": 0}
+        ]
+      ]
+    }
+  }
+}

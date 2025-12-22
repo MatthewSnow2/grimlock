@@ -1,0 +1,100 @@
+{
+  "id": "JGF6RiBZEg9i5VHE",
+  "name": "GRIMLOCK Heartbeat Monitor CC",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{"field": "minutes", "minutesInterval": 30}]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Heartbeat Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "pgrep -f \"claude\" && echo \"RUNNING\" || echo \"STOPPED\""
+      },
+      "id": "ssh-check-process",
+      "name": "Check Claude Process",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [224, -96]
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "cat /home/ubuntu/projects/grimlock/GRIMLOCK_STATE.md 2>/dev/null || echo \"STATE_FILE_MISSING\""
+      },
+      "id": "ssh-read-state",
+      "name": "Read State File",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [224, 112]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get outputs from SSH nodes\nconst processCheck = $('Check Claude Process').first().json.stdout || '';\nconst stateContent = $('Read State File').first().json.stdout || '';\n\n// Determine if Claude is running\nconst is_running = processCheck.includes('RUNNING');\n\n// Parse state file content\nlet current_milestone = 'Unknown';\nlet progress_percentage = 0;\nlet last_task = 'None';\nlet next_task = 'None';\nlet blockers = 'None';\nlet status = 'unknown';\n\nif (stateContent && stateContent !== 'STATE_FILE_MISSING') {\n  // Extract YAML frontmatter values\n  const statusMatch = stateContent.match(/status:\\s*[\"']?([^\"'\\n]+)[\"']?/);\n  if (statusMatch) status = statusMatch[1].trim();\n  \n  const milestoneMatch = stateContent.match(/milestone_name:\\s*[\"']?([^\"'\\n]+)[\"']?/);\n  if (milestoneMatch) current_milestone = milestoneMatch[1].trim();\n  \n  const milestoneIdMatch = stateContent.match(/milestone_id:\\s*[\"']?([^\"'\\n]+)[\"']?/);\n  if (milestoneIdMatch && current_milestone === 'Unknown') {\n    current_milestone = milestoneIdMatch[1].trim();\n  }\n  \n  const taskDescMatch = stateContent.match(/task_description:\\s*[\"']?([^\"'\\n]+)[\"']?/);\n  if (taskDescMatch) last_task = taskDescMatch[1].trim();\n  \n  // Calculate progress from milestones\n  const completedMatch = stateContent.match(/milestones_completed:\\s*\\[([^\\]]*)\\]/);\n  const remainingMatch = stateContent.match(/milestones_remaining:\\s*\\[([^\\]]*)\\]/);\n  \n  if (completedMatch && remainingMatch) {\n    const completed = completedMatch[1].split(',').filter(x => x.trim()).length;\n    const remaining = remainingMatch[1].split(',').filter(x => x.trim()).length;\n    const total = completed + remaining;\n    if (total > 0) {\n      progress_percentage = Math.round((completed / total) * 100);\n    }\n  }\n}\n\nreturn [{\n  json: {\n    is_running,\n    status,\n    current_milestone,\n    progress_percentage,\n    last_task,\n    next_task,\n    blockers,\n    raw_process_output: processCheck,\n    state_file_found: stateContent !== 'STATE_FILE_MISSING'\n  }\n}];"
+      },
+      "id": "code-parse-status",
+      "name": "Parse Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"version": 2, "leftValue": "", "caseSensitive": true, "typeValidation": "strict"},
+          "combinator": "and",
+          "conditions": [
+            {"id": "condition-1", "operator": {"type": "boolean", "operation": "true", "singleValue": true}, "leftValue": "={{ $json.is_running }}"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "if-process-running",
+      "name": "Process Running?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [672, 0]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {"__rl": true, "mode": "id", "value": "C0A3XJ9HV4L"},
+        "text": "=💚 *GRIMLOCK Heartbeat* | Status: {{ $json.status }} | Milestone: {{ $json.current_milestone }} | Progress: {{ $json.progress_percentage }}% | Current Task: {{ $json.last_task }} | Blockers: {{ $json.blockers }}",
+        "otherOptions": {}
+      },
+      "id": "slack-heartbeat",
+      "name": "Heartbeat Update",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [880, -96]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {"__rl": true, "mode": "id", "value": "C0A3XJ9HV4L"},
+        "text": "=🚨 *ALERT: Claude Code process not detected!*\n\nLast known status: {{ $json.status }}\nMilestone: {{ $json.current_milestone }}\nProgress: {{ $json.progress_percentage }}%\n\nManual intervention required. <@U08TP307Z70>",
+        "otherOptions": {}
+      },
+      "id": "slack-alert",
+      "name": "Process Down Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [880, 112]
+    }
+  ],
+  "connections": {
+    "Heartbeat Schedule": {"main": [[{"node": "Check Claude Process", "type": "main", "index": 0}, {"node": "Read State File", "type": "main", "index": 0}]]},
+    "Check Claude Process": {"main": [[{"node": "Parse Status", "type": "main", "index": 0}]]},
+    "Read State File": {"main": [[{"node": "Parse Status", "type": "main", "index": 0}]]},
+    "Parse Status": {"main": [[{"node": "Process Running?", "type": "main", "index": 0}]]},
+    "Process Running?": {"main": [[{"node": "Heartbeat Update", "type": "main", "index": 0}], [{"node": "Process Down Alert", "type": "main", "index": 0}]]}
+  }
+}

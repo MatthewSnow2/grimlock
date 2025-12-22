@@ -1,0 +1,28 @@
+{
+  "id": "bad-example",
+  "name": "Bad Workflow Example",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "cat /projects/GRIMLOCK_STATE.md"
+      },
+      "id": "bad-ssh",
+      "name": "Bad SSH Path",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const yaml = require('js-yaml');\nconst content = $input.first().json.stdout;\n// Parse GRIMLOCK_STATE.md as JSON\nconst state = JSON.parse(content);\nconst parsed = yaml.load(state);\nreturn [{json: {data: parsed}}];"
+      },
+      "id": "bad-code",
+      "name": "Parse State File",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [224, 0]
+    }
+  ],
+  "connections": {}
+}
