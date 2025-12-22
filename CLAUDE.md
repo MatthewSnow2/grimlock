@@ -4,31 +4,63 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-GRIMLOCK is an autonomous coding orchestration system for marathon development sprints. It enables Claude Code to work autonomously over extended periods (e.g., Friday evening to Monday morning) with human oversight, safety mechanisms, and structured reporting.
+GRIMLOCK is an **Autonomous MCP Server Factory** - a system that builds production-ready MCP (Model Context Protocol) servers from PRD specifications. It follows the Week 1 → Weekend → Week 2 sprint model:
 
-**Architecture:** Slack (commands) → n8n (orchestration) → Claude Code (execution) → GitHub (state + code)
+- **Week 1 (Human)**: Define MCP server requirements in PRD template
+- **Friday-Monday (Grimlock)**: Autonomous MCP server construction
+- **Week 2 (Human)**: Security review, integration testing, production hardening
+
+**Architecture:** Slack (commands) → n8n (orchestration) → Claude Code (builds MCP) → GitHub (code + state)
 
 ## Key Components
 
-- **GRIMLOCK_STATE.md** - Sprint state file with YAML frontmatter; auto-updated during sprints, do not edit manually during active sprint
-- **prds/*.yaml** - PRD specifications defining sprints (success criteria, milestones, scope)
-- **n8n/workflow-exports/** - Backup JSON exports of n8n workflows
+- **GRIMLOCK_STATE.md** - Sprint state file with YAML frontmatter; auto-updated during sprints
+- **prds/TEMPLATE.yaml** - MCP PRD template (tools, resources, prompts, acceptance criteria)
+- **n8n/workflow-exports/** - Backup JSON exports of orchestration workflows
 
-## n8n Workflows (Build These)
+## MCP Server Output Structure
 
-1. **Sprint Initiator** - Slack trigger → PRD validation → EC2 launch → confirmation
-2. **Heartbeat Monitor** - 30-min schedule → state check → Slack status post
-3. **Milestone Gate Checker** - Webhook → validation → pass/fail routing
-4. **Escalation Handler** - Webhook → severity routing → notifications → Google Sheets logging
+When Grimlock builds an MCP server, it creates:
 
-## Webhook Endpoints
+```
+<project-name>/
+├── package.json              # Node.js project (TypeScript)
+├── tsconfig.json             # TypeScript configuration
+├── src/
+│   ├── index.ts              # MCP server entry point
+│   ├── tools/                # Tool implementations
+│   ├── resources/            # Resource handlers (if any)
+│   └── prompts/              # Prompt templates (if any)
+├── tests/
+│   └── *.test.ts             # Jest test suite
+└── README.md                 # Setup and usage docs
+```
 
-| Path | Workflow | Purpose |
-|------|----------|---------|
-| `/grimlock/start` | Sprint Initiator | Start new sprint |
-| `/grimlock/milestone` | Gate Checker | Validate milestone completion |
-| `/grimlock/escalate` | Escalation Handler | Route escalations by severity |
-| `/grimlock/complete` | Sprint Completion | Generate completion report |
+## MCP PRD Template Sections
+
+The PRD template (`prds/TEMPLATE.yaml`) includes:
+
+| Section | Purpose |
+|---------|---------|
+| `project` | Name, SDK (typescript/python), deployment config |
+| `integration` | Target API details, authentication method |
+| `tools` | MCP tools with parameters, behavior, examples |
+| `resources` | Application-controlled data sources |
+| `prompts` | User-controlled prompt templates |
+| `acceptance_criteria` | Functional and non-functional requirements |
+| `security` | Credential handling, data sensitivity |
+| `testing` | Unit, integration, manual test requirements |
+| `grimlock_handoff` | Required inputs for autonomous build |
+| `week2_refinement` | Post-delivery review checklist |
+
+## Orchestration Workflows
+
+| Workflow | Purpose |
+|----------|---------|
+| Sprint Initiator | Validate MCP PRD → Launch CC → Initialize state |
+| Heartbeat Monitor | 30-min health checks → Slack status |
+| Milestone Gate Checker | Validate milestones → Route pass/fail |
+| Escalation Handler | Severity routing → Notifications → Logging |
 
 ## Escalation Severity Levels
 
@@ -39,29 +71,45 @@ GRIMLOCK is an autonomous coding orchestration system for marathon development s
 
 ## Scope Boundaries
 
-**In scope:** n8n workflows, state management, Slack notifications, documentation
+**In scope:**
+- MCP server TypeScript/Python code
+- Tool implementations matching PRD spec
+- Unit and integration tests
+- Setup documentation (README.md)
+- State management and progress reporting
 
 **Out of scope (PAUSE if detected):**
-- AWS infrastructure changes (terraform, EC2, IAM)
+- AWS infrastructure changes
 - n8n credential management
-- Slack workspace administration
-- GitHub repository settings
-- Executable scripts (.sh, .py, .js) without explicit approval
+- Slack/GitHub administration
+- Production deployments (Week 2 human task)
+- Publishing to npm/PyPI without approval
+
+## MCP SDK References
+
+**TypeScript:**
+- Package: `@modelcontextprotocol/sdk`
+- Docs: https://modelcontextprotocol.io/docs
+
+**Python:**
+- Package: `mcp`
+- Docs: https://modelcontextprotocol.io/docs
 
 ## State Transitions
 
 `not_started` → `running` → `paused` ↔ `running` → `completed|aborted`
 
-Completed and aborted states are immutable.
-
 ## Files Claude Code May Create
 
-- Any .md file in `/docs/`
-- Any .yaml file in `/prds/`
-- Files within the defined directory structure
+- MCP server source files (`.ts`, `.py`)
+- Test files (`.test.ts`, `test_*.py`)
+- Configuration files (`package.json`, `tsconfig.json`, `pyproject.toml`)
+- Documentation (`.md` files)
+- PRD files in `/prds/`
 
 ## Files Claude Code May NOT Create
 
-- Files outside `grimlock/` directory
-- `.env`, credentials, or secrets files
-- Executable scripts without approval
+- Files outside project directory
+- `.env` files with real credentials (only `.env.example`)
+- Executable deployment scripts without approval
+- CI/CD pipelines (Week 2 human task)

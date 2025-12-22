@@ -1,273 +1,357 @@
 # ============================================================================
-# PROJECT PRD TEMPLATE
+# GRIMLOCK MCP SERVER PRD TEMPLATE
 # ============================================================================
-# Copy this template and fill in for each new project
-# Required sections are marked with [REQUIRED]
+# Purpose: Specification document for autonomous MCP server development
+# Sprint Model: Week 1 (Requirements) -> Friday-Monday (Grimlock Build) -> Week 2 (Refinement)
+# Version: 2.0.0
 # ============================================================================
 
-# ============================================================================
-# SECTION 1: METADATA [REQUIRED]
-# ============================================================================
-metadata:
-  project_name: ""                    # [REQUIRED] Name of the project
-  prd_version: "1.0"
-  author: ""                          # [REQUIRED] Who created this PRD
-  created_date: ""                    # [REQUIRED] YYYY-MM-DD
-  last_modified: ""
-  
+# ----------------------------------------------------------------------------
+# PROJECT METADATA
+# ----------------------------------------------------------------------------
+project:
+  name: "[MCP_SERVER_NAME]"                    # e.g., "ratchet-mcp", "notion-sync-mcp"
+  version: "0.1.0"
+  description: |
+    [One paragraph describing what this MCP server does and why it exists]
+
+  # Sprint Planning
   sprint:
-    type: "marathon"                  # marathon | supervised_build
-    start_datetime: ""                # [REQUIRED] ISO 8601 with timezone
-    end_datetime: ""                  # [REQUIRED] ISO 8601 with timezone
-    timezone: "America/Chicago"
+    week_1_start: "YYYY-MM-DD"                 # Requirements gathering begins
+    grimlock_handoff: "YYYY-MM-DD HH:MM"       # Friday EOD handoff
+    grimlock_delivery: "YYYY-MM-DD HH:MM"      # Monday AM expected delivery
+    week_2_end: "YYYY-MM-DD"                   # Production deployment target
 
-# ============================================================================
-# SECTION 2: SUCCESS CRITERIA [REQUIRED]
-# ============================================================================
-# GRIMLOCK will not start without at least one success criterion
-success_criteria:
-  - id: "SC001"
-    description: ""                   # [REQUIRED] What does success look like?
-    validation_method: ""             # [REQUIRED] manual_test | automated_check | file_exists | output_inspection
-    validation_details: ""            # [REQUIRED] Specific steps to verify
-    
-  # Add more criteria as needed
-  # - id: "SC002"
-  #   description: ""
-  #   validation_method: ""
-  #   validation_details: ""
+  # Technical Stack
+  sdk: "typescript"                            # Options: python, typescript
+  python_version: "3.11+"                      # If SDK is Python
+  node_version: "18+"                          # If SDK is TypeScript
 
-# ============================================================================
-# SECTION 3: SCOPE [REQUIRED]
-# ============================================================================
-scope:
-  in_scope:
-    - id: "SCOPE001"
-      item: ""                        # [REQUIRED] What is being built
-      description: ""                 # Details about this scope item
-      
-    # Add more in-scope items
-    # - id: "SCOPE002"
-    #   item: ""
-    #   description: ""
+  # Deployment Target
+  deployment:
+    type: "local"                              # Options: local, remote, hybrid
+    transport: "stdio"                         # Options: stdio, http, sse
+    containerized: false                       # Docker deployment?
 
-  out_of_scope:
-    - id: "EXCL001"
-      item: ""                        # What is NOT being built
-      description: ""
-      detection_patterns:             # Keywords that indicate scope violation
-        - ""
-        
-    # Add more exclusions
-    # - id: "EXCL002"
-    #   item: ""
-    #   description: ""
-    #   detection_patterns: []
+# ----------------------------------------------------------------------------
+# TARGET INTEGRATION
+# ----------------------------------------------------------------------------
+integration:
+  service_name: "[SERVICE_NAME]"               # e.g., "Notion", "GitHub", "Custom API"
+  service_type: "api"                          # Options: api, database, filesystem, hybrid
 
-  scope_creep_indicators:
-    - pattern: "new_tool_integration"
-      description: "Request to add tools/services not in approved list"
-      severity: "warn"                # warn | pause | stop
-      
-    - pattern: "architecture_redesign"
-      description: "Fundamental changes to agreed architecture"
-      severity: "pause"
-      
-    - pattern: "feature_addition"
-      description: "New features not in original scope"
-      severity: "pause"
+  # API Details (if applicable)
+  api:
+    base_url: "https://api.example.com/v1"
+    documentation_url: "https://docs.example.com"
+    rate_limits:
+      requests_per_minute: 60
+      requests_per_day: 10000
 
-# ============================================================================
-# SECTION 4: TECHNICAL REQUIREMENTS
-# ============================================================================
-technical:
-  stack:
-    # Define your technology stack
-    primary_language: ""
-    framework: ""
-    database: ""
-    # Add other stack components as needed
+  # Authentication
+  auth:
+    type: "oauth2"                             # Options: oauth2, api_key, bearer, basic, none
+    oauth2:
+      authorization_url: "https://example.com/oauth/authorize"
+      token_url: "https://example.com/oauth/token"
+      scopes:
+        - "read:data"
+        - "write:data"
+      flow: "authorization_code"               # Options: authorization_code, client_credentials
+    api_key:
+      header_name: "X-API-Key"                 # If auth type is api_key
+      env_variable: "EXAMPLE_API_KEY"
 
-  approved_dependencies:
-    # List approved libraries, tools, services
-    - ""
-    
-  architecture_decisions:
-    - id: "AD001"
-      decision: ""
-      rationale: ""
+# ----------------------------------------------------------------------------
+# MCP TOOLS SPECIFICATION
+# ----------------------------------------------------------------------------
+# Tools are model-controlled actions the AI can invoke
+tools:
+  - name: "tool_name_snake_case"
+    description: |
+      Clear description of what this tool does.
+      Include when the AI should use this tool.
 
-  directory_structure:
-    root: ""
-    structure:
-      - path: "/"
-        contents: []
-        
-    files_cc_may_create:
-      - ""
-      
-    files_cc_may_not_create:
-      - ""
+    # Input Parameters
+    parameters:
+      - name: "param_name"
+        type: "string"                         # Options: string, number, boolean, array, object
+        required: true
+        description: "What this parameter controls"
+        validation:
+          pattern: "^[a-z]+$"                  # Regex pattern (optional)
+          min_length: 1                        # For strings
+          max_length: 100
+          enum: ["option1", "option2"]         # Allowed values (optional)
 
-# ============================================================================
-# SECTION 5: MILESTONES [REQUIRED]
-# ============================================================================
-milestones:
-  - id: "M1"
-    name: ""                          # [REQUIRED]
-    description: ""
-    target_completion: ""             # e.g., "Day 1-2" or specific date
-    
-    deliverables:                     # [REQUIRED] At least one
-      - ""
-      
-    validation:
-      commands:
-        - ""
-      all_must_pass: true
-      
-    gate_criteria:
-      - ""
-      
-    on_failure: "pause"               # pause | stop | warn
-    depends_on: []                    # List of milestone IDs this depends on
+      - name: "optional_param"
+        type: "number"
+        required: false
+        default: 10
+        description: "Optional parameter with default"
+        validation:
+          minimum: 1
+          maximum: 100
 
-  # Add more milestones
-  # - id: "M2"
-  #   name: ""
-  #   ...
+    # Expected Behavior
+    behavior:
+      api_endpoint: "GET /api/resource/{param_name}"
+      returns: "object"                        # What type is returned
+      error_handling:
+        - condition: "resource_not_found"
+          response: "Return helpful message about missing resource"
+        - condition: "rate_limited"
+          response: "Inform user to wait, suggest retry"
 
-  - id: "FINAL"
-    name: "Completion"
-    description: "Final validation and handoff"
-    target_completion: ""
-    
-    deliverables:
-      - "All success criteria verified"
-      - "Documentation complete"
-      
-    validation:
-      commands:
-        - "All SC criteria pass"
-      all_must_pass: true
-      
-    gate_criteria:
-      - "Project ready for use"
-      
-    on_failure: "stop"
-    depends_on: []                    # List all previous milestones
+    # Example Usage
+    examples:
+      - input:
+          param_name: "example_value"
+        expected_output: |
+          Description of what should be returned
+      - input:
+          param_name: "edge_case"
+        expected_output: |
+          How edge cases should be handled
 
-# ============================================================================
-# SECTION 6: ESCALATION
-# ============================================================================
-escalation:
-  severity_levels:
-    - level: "INFO"
-      description: "Normal status updates"
-      response: "Log only"
-      
-    - level: "WARNING"
-      description: "Unexpected but recoverable"
-      response: "Post to Slack channel"
-      
-    - level: "PAUSE"
-      description: "Requires human decision"
-      response: "Post to channel, DM human, halt"
-      
-    - level: "EMERGENCY"
-      description: "Critical failure"
-      response: "Immediate halt, DM, terminate process"
+  # Add more tools following the same structure
+  # - name: "another_tool"
+  #   description: "..."
+  #   parameters: []
+  #   behavior: {}
+  #   examples: []
 
-  circuit_breakers:
-    - id: "CB001"
-      name: "Time Boundary Exceeded"
-      trigger: "Current time > sprint.end_datetime"
-      severity: "PAUSE"
-      
-    - id: "CB002"
-      name: "Consecutive Failures"
-      trigger: "3+ consecutive validation failures"
-      severity: "PAUSE"
-      
-    # Add project-specific circuit breakers
+# ----------------------------------------------------------------------------
+# MCP RESOURCES SPECIFICATION
+# ----------------------------------------------------------------------------
+# Resources are application-controlled data sources
+resources:
+  - uri: "resource://example/data"
+    name: "Example Data Resource"
+    description: |
+      What data this resource provides.
+      How it should be used by the application.
+    mime_type: "application/json"
 
-  human_commands:
-    - command: "/grimlock resume"
-      description: "Continue after PAUSE"
-      
-    - command: "/grimlock abort"
-      description: "Cancel sprint"
-      
-    - command: "/grimlock status"
-      description: "Get current state"
+    # Data Schema
+    schema:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        name:
+          type: "string"
+        data:
+          type: "array"
+          items:
+            type: "object"
 
-# ============================================================================
-# SECTION 7: COMMUNICATION
-# ============================================================================
-communication:
-  channels:
-    primary:
-      type: "Slack"
-      channel_name: "#grimlock-ops"
-      
-    escalation:
-      type: "Slack DM"
-      recipient: ""                   # Your Slack handle
+# ----------------------------------------------------------------------------
+# MCP PROMPTS SPECIFICATION
+# ----------------------------------------------------------------------------
+# Prompts are user-controlled templates
+prompts:
+  - name: "example_prompt"
+    description: |
+      When users should use this prompt template.
 
-  frequency_limits:
-    heartbeat:
-      interval: "30 minutes"
-      
-    warnings:
-      max_per_hour: 10
+    arguments:
+      - name: "context"
+        description: "Context for the prompt"
+        required: true
 
-# ============================================================================
-# SECTION 8: ACCEPTANCE CRITERIA
-# ============================================================================
+    template: |
+      Given the following context: {{context}}
+
+      Please analyze and provide insights on...
+
+# ----------------------------------------------------------------------------
+# ACCEPTANCE CRITERIA
+# ----------------------------------------------------------------------------
 acceptance_criteria:
-  overview:
-    required_to_pass: "ALL"
-    evaluation_method: "Manual verification"
-    
-  criteria:
-    - id: "AC001"
-      category: ""
-      description: ""
-      verification:
-        method: ""                    # manual_test | automated_check | observation
-        steps:
-          - ""
-        expected_result: ""
-      success_criteria_link: ""       # SC ID this verifies, or null
+  # Functional Requirements
+  functional:
+    - id: "AC-001"
+      description: "Tool X successfully retrieves data when given valid input"
+      test_method: "manual"                    # Options: manual, automated, both
+      priority: "must-have"                    # Options: must-have, should-have, nice-to-have
 
-  sign_off:
-    required_approver: ""
-    method: "Manual review"
+    - id: "AC-002"
+      description: "Tool X returns appropriate error for invalid input"
+      test_method: "automated"
+      priority: "must-have"
 
-# ============================================================================
-# SECTION 9: STATE PERSISTENCE
-# ============================================================================
-state_persistence:
-  overview:
-    mechanism: "Markdown file in repository"
-    file_path: "/GRIMLOCK_STATE.md"
-    update_frequency: "After every significant action"
+  # Non-Functional Requirements
+  non_functional:
+    - id: "NFR-001"
+      category: "performance"
+      description: "Response time under 2 seconds for standard queries"
 
-# ============================================================================
-# SECTION 10: APPENDIX
-# ============================================================================
-appendix:
-  glossary:
-    - term: ""
-      definition: ""
+    - id: "NFR-002"
+      category: "security"
+      description: "API keys never logged or exposed in responses"
 
-  references:
-    - title: ""
-      url: ""
+    - id: "NFR-003"
+      category: "reliability"
+      description: "Graceful degradation when API is unavailable"
 
-  version_history:
-    - version: "1.0"
-      date: ""
-      author: ""
-      changes:
-        - "Initial PRD creation"
+# ----------------------------------------------------------------------------
+# SECURITY REQUIREMENTS
+# ----------------------------------------------------------------------------
+security:
+  # Credential Handling
+  credentials:
+    storage: "environment_variables"           # Never hardcode
+    required_env_vars:
+      - name: "EXAMPLE_API_KEY"
+        description: "API key for Example service"
+      - name: "EXAMPLE_CLIENT_SECRET"
+        description: "OAuth client secret"
+
+  # Data Handling
+  data_sensitivity:
+    pii_handling: false                        # Does this handle PII?
+    data_encryption: false                     # Encrypt data at rest?
+    audit_logging: true                        # Log all operations?
+
+  # Access Control
+  access_control:
+    require_user_confirmation: []              # Tools requiring user confirmation
+    restricted_operations: []                  # Operations with extra security
+
+# ----------------------------------------------------------------------------
+# TESTING REQUIREMENTS
+# ----------------------------------------------------------------------------
+testing:
+  # Unit Tests
+  unit_tests:
+    coverage_target: 80                        # Percentage
+    frameworks: ["jest"]                       # For TypeScript
+    key_areas:
+      - "Parameter validation"
+      - "API response parsing"
+      - "Error handling"
+
+  # Integration Tests
+  integration_tests:
+    - name: "End-to-end tool execution"
+      description: "Test full flow from MCP client to API and back"
+      mock_external: true                      # Use mocked API responses
+
+  # Manual Testing
+  manual_tests:
+    - "Test with Claude Desktop"
+    - "Test with MCP Inspector"
+    - "Verify error messages are helpful"
+
+# ----------------------------------------------------------------------------
+# DOCUMENTATION REQUIREMENTS
+# ----------------------------------------------------------------------------
+documentation:
+  required:
+    - type: "README.md"
+      contents:
+        - "Installation instructions"
+        - "Configuration (env vars)"
+        - "Available tools with examples"
+        - "Troubleshooting common issues"
+
+    - type: "CHANGELOG.md"
+      contents:
+        - "Version history"
+        - "Breaking changes"
+
+    - type: "inline_comments"
+      contents:
+        - "Complex logic explanation"
+        - "API quirks and workarounds"
+
+# ----------------------------------------------------------------------------
+# GRIMLOCK HANDOFF CHECKLIST
+# ----------------------------------------------------------------------------
+# Items that must be provided to Grimlock at Friday EOD handoff
+grimlock_handoff:
+  required_inputs:
+    - item: "This completed PRD"
+      status: "pending"                        # pending, ready
+
+    - item: "API documentation or OpenAPI spec"
+      status: "pending"
+      location: "[URL or file path]"
+
+    - item: "Sample API responses"
+      status: "pending"
+      notes: "Include success and error examples"
+
+    - item: "Test credentials (non-production)"
+      status: "pending"
+      notes: "Stored in .env.example format"
+
+    - item: "Example use cases"
+      status: "pending"
+      notes: "3-5 scenarios the MCP should handle"
+
+  context_files:
+    - "[List any relevant context files Grimlock should read]"
+
+  constraints:
+    - "Do not use deprecated API endpoints"
+    - "Follow TypeScript strict mode"
+    - "Use async/await for API calls"
+
+# ----------------------------------------------------------------------------
+# WEEK 2 REFINEMENT CHECKLIST
+# ----------------------------------------------------------------------------
+# Items for human review after Grimlock delivery
+week2_refinement:
+  security_review:
+    - "Verify no credentials in code"
+    - "Check input validation"
+    - "Review error messages for info leakage"
+    - "Test OAuth flow manually"
+
+  integration_testing:
+    - "Test with real API (production-like)"
+    - "Verify rate limit handling"
+    - "Test concurrent requests"
+    - "Validate with Claude Desktop"
+
+  production_hardening:
+    - "Add comprehensive logging"
+    - "Set up monitoring/alerting"
+    - "Configure for deployment target"
+    - "Performance optimization if needed"
+
+  documentation_review:
+    - "README accuracy"
+    - "Example commands work"
+    - "Troubleshooting section complete"
+
+# ----------------------------------------------------------------------------
+# SUCCESS METRICS
+# ----------------------------------------------------------------------------
+success_metrics:
+  grimlock_delivery:
+    - "All tools implemented and functional"
+    - "Basic tests passing"
+    - "Setup documentation complete"
+    - "Can be tested with MCP Inspector"
+
+  production_ready:
+    - "All acceptance criteria met"
+    - "Security review passed"
+    - "Documentation complete"
+    - "Deployed to target environment"
+    - "Monitoring in place"
+
+# ----------------------------------------------------------------------------
+# NOTES & CONTEXT
+# ----------------------------------------------------------------------------
+notes: |
+  Additional context for Grimlock or human reviewers.
+
+  Include:
+  - Known API quirks or limitations
+  - Design decisions and rationale
+  - Future enhancement ideas
+  - Related projects or dependencies

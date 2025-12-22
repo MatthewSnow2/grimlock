@@ -1,5 +1,10 @@
 # ============================================================================
-# GRIMLOCK PRD - Product Requirements Document
+# GRIMLOCK PRD - Product Requirements Document (V1 - HISTORICAL)
+# ============================================================================
+# NOTE: This is the original general-purpose PRD format used for Grimlock V1.
+# As of December 2024, Grimlock has pivoted to MCP Server Factory mode.
+# For new MCP server projects, use prds/TEMPLATE.yaml instead.
+# This file is preserved for historical reference.
 # ============================================================================
 # Autonomous Coding System for Marathon Development Sprints
 # Version: 1.0
