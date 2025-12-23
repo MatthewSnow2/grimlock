@@ -53,10 +53,39 @@ The PRD template (`prds/TEMPLATE.yaml`) includes:
 | `grimlock_handoff` | Required inputs for autonomous build |
 | `week2_refinement` | Post-delivery review checklist |
 
+## Design Wizard
+
+The `grimlock design` command (or `/grimlock design` in Slack) launches an interactive PRD design wizard that:
+
+1. Guides users through MCP definition questions
+2. Applies best practices for context efficiency
+3. Warns about high tool counts (10+, 15+)
+4. Recommends installation scope (project vs user)
+5. Generates production-ready PRD
+
+**Skill location:** `~/.claude/skills/grimlock-design/SKILL.md`
+
+**Configuration files:**
+- `config/design-wizard.yaml` - Question tree
+- `config/context-efficiency.yaml` - Token thresholds
+- `config/validation-rules.yaml` - Warning rules
+
+**Best practices reference:** `docs/MCP_BEST_PRACTICES.md`
+
+### Context Efficiency Guidelines
+
+| Tools | Tokens | Level | Recommendation |
+|-------|--------|-------|----------------|
+| 3-7 | ~3,500 | Optimal | Project level |
+| 8-10 | ~4,500 | Acceptable | Project or user |
+| 11-15 | ~7,000 | Concerning | Consider splitting |
+| 16+ | >7,000 | Problematic | Split required |
+
 ## Orchestration Workflows
 
 | Workflow | Purpose |
 |----------|---------|
+| Design Wizard | Guided PRD creation with best practices |
 | Sprint Initiator | Validate MCP PRD → Launch CC → Initialize state |
 | Heartbeat Monitor | 30-min health checks → Slack status |
 | Milestone Gate Checker | Validate milestones → Route pass/fail |

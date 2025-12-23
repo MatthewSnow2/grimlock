@@ -1,0 +1,338 @@
+{
+  "name": "GRIMLOCK - Design Wizard",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "grimlock/design",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-design",
+      "name": "Design Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "grimlock-design"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "text",
+              "name": "text",
+              "value": "={{ $json.body?.text || $json.event?.text || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "user_id",
+              "name": "user_id",
+              "value": "={{ $json.body?.user_id || $json.event?.user || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "thread_ts",
+              "name": "thread_ts",
+              "value": "={{ $json.body?.thread_ts || $json.event?.thread_ts || null }}",
+              "type": "string"
+            },
+            {
+              "id": "channel",
+              "name": "channel",
+              "value": "={{ $json.body?.channel_id || $json.event?.channel || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "timestamp",
+              "name": "timestamp",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            },
+            {
+              "id": "trigger_type",
+              "name": "trigger_type",
+              "value": "={{ $json.body?.command ? 'slash_command' : 'thread_reply' }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "normalize-input",
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Determine if this is a new design session or continuation\nconst threadTs = $input.first().json.thread_ts;\nconst triggerType = $input.first().json.trigger_type;\n\nif (triggerType === 'slash_command' && !threadTs) {\n  // New design session from /grimlock design\n  const sessionId = `design-${Date.now()}-${Math.random().toString(36).substr(2, 8)}`;\n  return [{\n    json: {\n      action: 'new_session',\n      session_id: sessionId,\n      ...$input.first().json\n    }\n  }];\n}\n\nif (threadTs) {\n  // Continuation - reply in existing thread\n  const sessionId = `design-${threadTs.replace('.', '-')}`;\n  return [{\n    json: {\n      action: 'continue_session',\n      session_id: sessionId,\n      ...$input.first().json\n    }\n  }];\n}\n\n// Unknown trigger\nreturn [{\n  json: {\n    action: 'unknown',\n    error: 'Could not determine session type'\n  }\n}];"
+      },
+      "id": "session-router",
+      "name": "Session Router",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "new-session-check",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "new_session",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "is-new-session",
+      "name": "New Session?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "cat > /home/ubuntu/projects/grimlock/designs/{{ $json.session_id }}.md << 'SESSIONEOF'\n---\nsession:\n  id: \"{{ $json.session_id }}\"\n  status: \"in_progress\"\n  started_at: \"{{ $json.timestamp }}\"\n  last_updated: \"{{ $json.timestamp }}\"\n  interface: \"slack\"\n  slack_channel: \"{{ $json.channel }}\"\n  slack_user: \"{{ $json.user_id }}\"\n\nconversation:\n  current_phase: \"intro\"\n  current_question_id: \"Q_INTRO_01\"\n  questions_answered: 0\n\nmcp_concept:\n  name: null\n  purpose: null\n  origin: null\n\ncollected_data:\n  integration:\n    service_name: null\n    auth_type: null\n    api_docs_url: null\n  tools: []\n\ncontext_efficiency:\n  estimated_tools: 0\n  estimated_tokens: 0\n  warnings: []\n---\n\n## Design Session Started\n\nSession ID: {{ $json.session_id }}\nStarted: {{ $json.timestamp }}\nUser: {{ $json.user_id }}\nSESSIONEOF"
+      },
+      "id": "create-session",
+      "name": "Create Session File",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [1100, 200],
+      "credentials": {
+        "sshPrivateKey": {
+          "id": "CREDENTIAL_ID",
+          "name": "ec2-grimlock"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "cat /home/ubuntu/projects/grimlock/designs/{{ $json.session_id }}.md 2>/dev/null || echo 'SESSION_NOT_FOUND'"
+      },
+      "id": "load-session",
+      "name": "Load Session",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [1100, 400],
+      "credentials": {
+        "sshPrivateKey": {
+          "id": "CREDENTIAL_ID",
+          "name": "ec2-grimlock"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Question Engine - Core logic for design wizard\nconst yaml = require('js-yaml');\n\n// Parse session state\nlet sessionContent = $input.first().json.stdout || '';\nconst userAnswer = $('Normalize Input').item.json.text;\nconst isNewSession = $('Session Router').item.json.action === 'new_session';\n\n// Question definitions\nconst QUESTIONS = {\n  'Q_INTRO_01': {\n    phase: 'intro',\n    text: 'What would you like to name your MCP server?\\n\\n_Use lowercase-with-hyphens format (e.g., notion-sync-mcp)_',\n    next: 'Q_INTRO_02',\n    validate: (answer) => /^[a-z][a-z0-9-]*(-mcp)?$/.test(answer),\n    error: 'Invalid format. Use lowercase letters, numbers, and hyphens (e.g., shopify-orders-mcp)',\n    map_to: 'mcp_concept.name',\n    transform: (answer) => answer.endsWith('-mcp') ? answer : `${answer}-mcp`\n  },\n  'Q_INTRO_02': {\n    phase: 'intro',\n    text: 'In one sentence, what problem does this MCP solve?\\n\\n_Focus on the VALUE (what Claude can do), not the mechanics._',\n    next: 'Q_INT_01',\n    validate: (answer) => answer.length >= 20,\n    error: 'Please provide a more detailed purpose (at least 20 characters)',\n    map_to: 'mcp_concept.purpose'\n  },\n  'Q_INT_01': {\n    phase: 'integration',\n    text: 'What service or API will this MCP connect to?\\n\\n_Examples: Notion, Shopify, GitHub, Custom REST API_',\n    next: 'Q_INT_02',\n    map_to: 'collected_data.integration.service_name'\n  },\n  'Q_INT_02': {\n    phase: 'integration',\n    text: 'What authentication method does this API use?\\n\\n1. API Key\\n2. OAuth 2.0\\n3. Bearer Token\\n4. Basic Auth\\n5. None',\n    next: 'Q_TOOLS_INTRO',\n    validate: (answer) => ['1', '2', '3', '4', '5', 'api_key', 'oauth2', 'bearer', 'basic', 'none'].includes(answer.toLowerCase()),\n    transform: (answer) => {\n      const map = { '1': 'api_key', '2': 'oauth2', '3': 'bearer', '4': 'basic', '5': 'none' };\n      return map[answer] || answer.toLowerCase();\n    },\n    map_to: 'collected_data.integration.auth_type'\n  },\n  'Q_TOOLS_INTRO': {\n    phase: 'tools_definition',\n    text: \"Now let's define the tools. *Best Practice:* Aim for 5-7 core tools - each adds ~450 tokens of context overhead.\\n\\n*What action should the first tool perform?*\\n\\n_Example: \\\"Get a customer by ID\\\" or \\\"Search products by name\\\"_\",\n    next: 'Q_TOOLS_NAME',\n    map_to: 'current_tool_description'\n  },\n  'Q_TOOLS_NAME': {\n    phase: 'tools_definition',\n    text: 'What should this tool be named?\\n\\n_Use snake_case (e.g., get_customer, search_products)_',\n    next: 'Q_TOOLS_PARAMS',\n    validate: (answer) => /^[a-z][a-z0-9_]*$/.test(answer),\n    error: 'Invalid format. Use snake_case (lowercase, underscores only)',\n    map_to: 'current_tool_name'\n  },\n  'Q_TOOLS_PARAMS': {\n    phase: 'tools_definition',\n    text: 'What parameters does this tool need?\\n\\n_Format: name:type (e.g., customer_id:string, limit:number)_\\n_Enter each on a new line, or type \"none\" if no parameters needed._',\n    next: 'Q_TOOLS_CONTINUE',\n    map_to: 'current_tool_params'\n  },\n  'Q_TOOLS_CONTINUE': {\n    phase: 'tools_definition',\n    text: 'Tool added! Add another tool?\\n\\n1. Yes - add another tool\\n2. No - review context efficiency',\n    next_map: {\n      'yes': 'Q_TOOLS_INTRO',\n      '1': 'Q_TOOLS_INTRO',\n      'no': 'Q_CONTEXT_REVIEW',\n      '2': 'Q_CONTEXT_REVIEW'\n    }\n  },\n  'Q_CONTEXT_REVIEW': {\n    phase: 'context_review',\n    dynamic: true,\n    text: 'DYNAMIC_CONTEXT_REPORT',\n    next: 'Q_FINALIZE'\n  },\n  'Q_FINALIZE': {\n    phase: 'finalize',\n    text: 'Ready to generate your PRD?\\n\\n1. Yes - generate PRD\\n2. No - save and exit',\n    next_map: {\n      'yes': 'GENERATE_PRD',\n      '1': 'GENERATE_PRD',\n      'no': 'SAVE_EXIT',\n      '2': 'SAVE_EXIT'\n    }\n  }\n};\n\n// If new session, return welcome message\nif (isNewSession) {\n  return [{\n    json: {\n      action: 'send_message',\n      message: `*GRIMLOCK Design Wizard*\\n\\nI'll help you transform your MCP idea into a production-ready PRD.\\n\\n${QUESTIONS['Q_INTRO_01'].text}`,\n      session_id: $('Session Router').item.json.session_id,\n      next_question: 'Q_INTRO_01'\n    }\n  }];\n}\n\n// Parse existing session\nlet session;\ntry {\n  const yamlMatch = sessionContent.match(/---\\n([\\s\\S]*?)\\n---/);\n  if (yamlMatch) {\n    session = yaml.load(yamlMatch[1]);\n  } else {\n    throw new Error('No YAML frontmatter found');\n  }\n} catch (e) {\n  return [{\n    json: {\n      action: 'error',\n      message: `Session parse error: ${e.message}`\n    }\n  }];\n}\n\n// Get current question\nconst currentQId = session.conversation.current_question_id;\nconst currentQ = QUESTIONS[currentQId];\n\nif (!currentQ) {\n  return [{\n    json: {\n      action: 'error',\n      message: `Unknown question: ${currentQId}`\n    }\n  }];\n}\n\n// Validate answer if needed\nif (currentQ.validate && !currentQ.validate(userAnswer)) {\n  return [{\n    json: {\n      action: 'send_message',\n      message: currentQ.error || 'Invalid answer. Please try again.',\n      session_id: session.session.id,\n      retry: true\n    }\n  }];\n}\n\n// Transform answer if needed\nconst processedAnswer = currentQ.transform ? currentQ.transform(userAnswer) : userAnswer;\n\n// Determine next question\nlet nextQId;\nif (currentQ.next_map) {\n  nextQId = currentQ.next_map[userAnswer.toLowerCase()] || currentQ.next_map['1'];\n} else {\n  nextQId = currentQ.next;\n}\n\n// Special handling for tool addition\nif (currentQId === 'Q_TOOLS_PARAMS') {\n  // Save current tool to session\n  const newTool = {\n    name: session.current_tool_name,\n    description: session.current_tool_description,\n    parameters: userAnswer === 'none' ? [] : userAnswer.split('\\n').map(p => {\n      const [name, type] = p.split(':');\n      return { name: name.trim(), type: (type || 'string').trim(), required: true };\n    })\n  };\n  session.collected_data.tools = session.collected_data.tools || [];\n  session.collected_data.tools.push(newTool);\n  \n  // Add tool count warning\n  const toolCount = session.collected_data.tools.length;\n  let warningMsg = '';\n  if (toolCount === 7) {\n    warningMsg = '\\n\\n_You have 7 tools - this is the optimal range for context efficiency._';\n  } else if (toolCount === 10) {\n    warningMsg = '\\n\\n*Warning:* You have 10 tools (~4,500 tokens overhead). Consider if all are essential.';\n  } else if (toolCount >= 15) {\n    warningMsg = '\\n\\n*Strong Warning:* 15+ tools significantly impacts context. Recommend splitting into Core + Advanced MCPs.';\n  }\n  \n  return [{\n    json: {\n      action: 'send_message',\n      message: QUESTIONS['Q_TOOLS_CONTINUE'].text + warningMsg,\n      session_id: session.session.id,\n      next_question: 'Q_TOOLS_CONTINUE',\n      session_update: session\n    }\n  }];\n}\n\n// Handle context review\nif (nextQId === 'Q_CONTEXT_REVIEW') {\n  const toolCount = session.collected_data.tools.length;\n  const tokenEstimate = toolCount * 450;\n  const scope = toolCount <= 5 ? 'project' : (toolCount <= 10 ? 'project or user' : 'user (consider splitting)');\n  \n  const report = `*Context Efficiency Report*\\n\\n*Tools:* ${toolCount}\\n*Est. Tokens:* ~${tokenEstimate} per call\\n*Scope:* ${scope}\\n\\n*Tools Defined:*\\n${session.collected_data.tools.map(t => `• ${t.name}`).join('\\n')}\\n\\n${QUESTIONS['Q_FINALIZE'].text}`;\n  \n  return [{\n    json: {\n      action: 'send_message',\n      message: report,\n      session_id: session.session.id,\n      next_question: 'Q_FINALIZE',\n      session_update: session\n    }\n  }];\n}\n\n// Handle PRD generation\nif (nextQId === 'GENERATE_PRD') {\n  return [{\n    json: {\n      action: 'generate_prd',\n      session: session,\n      session_id: session.session.id\n    }\n  }];\n}\n\n// Normal flow - get next question\nconst nextQ = QUESTIONS[nextQId];\nif (!nextQ) {\n  return [{\n    json: {\n      action: 'complete',\n      message: 'Design session complete!',\n      session_id: session.session.id\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    action: 'send_message',\n    message: nextQ.text,\n    session_id: session.session.id,\n    next_question: nextQId,\n    answer_received: processedAnswer,\n    map_to: currentQ.map_to,\n    session_update: session\n  }\n}];"
+      },
+      "id": "question-engine",
+      "name": "Question Engine",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1350, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "generate-check",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "generate_prd",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "is-generate-prd",
+      "name": "Generate PRD?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1550, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "cd /home/ubuntu/projects/grimlock && claude --dangerously-skip-permissions --print \"Generate a PRD from this design session. Use the TEMPLATE at prds/TEMPLATE.yaml as the base. Session data: $(cat designs/{{ $json.session_id }}.md). Write the PRD to prds/{{ $json.session.mcp_concept.name }}-PRD.yaml\""
+      },
+      "id": "generate-prd-cc",
+      "name": "Generate PRD (CC)",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [1800, 200],
+      "credentials": {
+        "sshPrivateKey": {
+          "id": "CREDENTIAL_ID",
+          "name": "ec2-grimlock"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "={{ $('Normalize Input').item.json.channel }}",
+        "text": "={{ $json.message }}",
+        "otherOptions": {
+          "thread_ts": "={{ $('Normalize Input').item.json.thread_ts || undefined }}"
+        }
+      },
+      "id": "send-slack-message",
+      "name": "Send Slack Message",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1800, 400],
+      "credentials": {
+        "slackApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "grimlock-slack-bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "cat > /home/ubuntu/projects/grimlock/designs/{{ $json.session_id }}.md << 'UPDATEEOF'\n{{ JSON.stringify($json.session_update, null, 2) }}\nUPDATEEOF"
+      },
+      "id": "update-session",
+      "name": "Update Session",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [2000, 400],
+      "credentials": {
+        "sshPrivateKey": {
+          "id": "CREDENTIAL_ID",
+          "name": "ec2-grimlock"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "={{ $('Normalize Input').item.json.channel }}",
+        "text": "={{ '*PRD Generated Successfully!*\\n\\n*File:* `prds/' + $json.session.mcp_concept.name + '-PRD.yaml`\\n\\n*Next Steps:*\\n1. Review: `cat prds/' + $json.session.mcp_concept.name + '-PRD.yaml`\\n2. Start sprint: `/grimlock start ' + $json.session.mcp_concept.name + '-PRD.yaml`' }}",
+        "otherOptions": {
+          "thread_ts": "={{ $('Normalize Input').item.json.thread_ts || undefined }}"
+        }
+      },
+      "id": "send-success",
+      "name": "Send Success",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [2050, 200],
+      "credentials": {
+        "slackApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "grimlock-slack-bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok', action: $json.action } }}"
+      },
+      "id": "respond-webhook",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2250, 300]
+    }
+  ],
+  "connections": {
+    "Design Webhook": {
+      "main": [
+        [{ "node": "Normalize Input", "type": "main", "index": 0 }]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [{ "node": "Session Router", "type": "main", "index": 0 }]
+      ]
+    },
+    "Session Router": {
+      "main": [
+        [{ "node": "New Session?", "type": "main", "index": 0 }]
+      ]
+    },
+    "New Session?": {
+      "main": [
+        [{ "node": "Create Session File", "type": "main", "index": 0 }],
+        [{ "node": "Load Session", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create Session File": {
+      "main": [
+        [{ "node": "Question Engine", "type": "main", "index": 0 }]
+      ]
+    },
+    "Load Session": {
+      "main": [
+        [{ "node": "Question Engine", "type": "main", "index": 0 }]
+      ]
+    },
+    "Question Engine": {
+      "main": [
+        [{ "node": "Generate PRD?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Generate PRD?": {
+      "main": [
+        [{ "node": "Generate PRD (CC)", "type": "main", "index": 0 }],
+        [{ "node": "Send Slack Message", "type": "main", "index": 0 }]
+      ]
+    },
+    "Generate PRD (CC)": {
+      "main": [
+        [{ "node": "Send Success", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Slack Message": {
+      "main": [
+        [{ "node": "Update Session", "type": "main", "index": 0 }]
+      ]
+    },
+    "Update Session": {
+      "main": [
+        [{ "node": "Respond OK", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Success": {
+      "main": [
+        [{ "node": "Respond OK", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "GRIMLOCK" },
+    { "name": "Design Wizard" }
+  ],
+  "meta": {
+    "instanceId": "grimlock-instance"
+  }
+}

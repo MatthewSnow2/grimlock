@@ -1,0 +1,63 @@
+{
+  "name": "GRIMLOCK - Context Analyzer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "grimlock/analyze-context",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-analyze",
+      "name": "Analyze Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "grimlock-analyze-context"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Context Efficiency Analyzer\n// Calculates token overhead, scope recommendation, and generates warnings\n\nconst tools = $input.first().json.tools || [];\nconst config = {\n  tokensPerTool: 450,\n  tokensPerParam: 30,\n  thresholds: {\n    optimal: { max: 7, level: 'optimal', color: 'green' },\n    acceptable: { max: 10, level: 'acceptable', color: 'yellow' },\n    concerning: { max: 15, level: 'concerning', color: 'orange' },\n    problematic: { min: 16, level: 'problematic', color: 'red' }\n  },\n  descriptionMaxLength: 150\n};\n\n// Calculate token estimate\nconst toolCount = tools.length;\nconst paramCount = tools.reduce((sum, t) => sum + (t.parameters?.length || 0), 0);\nconst tokenEstimate = (toolCount * config.tokensPerTool) + (paramCount * config.tokensPerParam);\n\n// Determine level\nlet level, color, message;\nif (toolCount <= config.thresholds.optimal.max) {\n  level = 'optimal';\n  color = 'green';\n  message = 'Excellent! Tool count is in the optimal range.';\n} else if (toolCount <= config.thresholds.acceptable.max) {\n  level = 'acceptable';\n  color = 'yellow';\n  message = 'Good, but consider if all tools are essential.';\n} else if (toolCount <= config.thresholds.concerning.max) {\n  level = 'concerning';\n  color = 'orange';\n  message = 'High context overhead. Consider splitting into variants.';\n} else {\n  level = 'problematic';\n  color = 'red';\n  message = 'Very high overhead. Splitting strongly recommended.';\n}\n\n// Determine scope recommendation\nlet scope, scopeRationale;\nif (toolCount <= 5) {\n  scope = 'project';\n  scopeRationale = 'Lightweight MCP - install at project level';\n} else if (toolCount <= 10) {\n  scope = 'project_or_user';\n  scopeRationale = 'Consider project scope unless used across many projects';\n} else {\n  scope = 'user_with_warning';\n  scopeRationale = 'High overhead - user level only, consider splitting';\n}\n\n// Generate warnings\nconst warnings = [];\n\n// Tool count warning\nif (toolCount > 10) {\n  warnings.push({\n    id: 'W001',\n    severity: toolCount >= 15 ? 'high' : 'medium',\n    message: `You have ${toolCount} tools. This adds ~${tokenEstimate} tokens of context overhead.`,\n    suggestion: 'Consider splitting into core + advanced MCPs'\n  });\n}\n\n// Description length warnings\ntools.forEach(tool => {\n  if (tool.description && tool.description.length > config.descriptionMaxLength) {\n    warnings.push({\n      id: 'W003',\n      severity: 'low',\n      message: `Tool '${tool.name}' description is ${tool.description.length} chars.`,\n      suggestion: 'Aim for under 150 characters'\n    });\n  }\n});\n\n// Parameter count warnings\ntools.forEach(tool => {\n  if (tool.parameters && tool.parameters.length > 8) {\n    warnings.push({\n      id: 'W005',\n      severity: 'medium',\n      message: `Tool '${tool.name}' has ${tool.parameters.length} parameters.`,\n      suggestion: 'Consider grouping into an object parameter'\n    });\n  }\n});\n\n// Calculate description stats\nconst descLengths = tools.map(t => (t.description || '').length);\nconst avgDescLength = descLengths.length > 0 ? Math.round(descLengths.reduce((a, b) => a + b, 0) / descLengths.length) : 0;\nconst maxDescLength = descLengths.length > 0 ? Math.max(...descLengths) : 0;\nconst overThreshold = descLengths.filter(l => l > config.descriptionMaxLength).length;\n\n// Calculate parameter stats\nconst paramCounts = tools.map(t => (t.parameters || []).length);\nconst avgParams = paramCounts.length > 0 ? Math.round(paramCounts.reduce((a, b) => a + b, 0) / paramCounts.length) : 0;\nconst maxParams = paramCounts.length > 0 ? Math.max(...paramCounts) : 0;\n\n// Generate report\nconst report = {\n  summary: {\n    tool_count: toolCount,\n    token_estimate: tokenEstimate,\n    level: level,\n    message: message\n  },\n  scope: {\n    recommendation: scope,\n    rationale: scopeRationale\n  },\n  description_stats: {\n    average_length: avgDescLength,\n    max_length: maxDescLength,\n    over_threshold: overThreshold\n  },\n  parameter_stats: {\n    average_per_tool: avgParams,\n    max_per_tool: maxParams\n  },\n  warnings: warnings,\n  tools_breakdown: tools.map(t => ({\n    name: t.name,\n    params: (t.parameters || []).length,\n    desc_length: (t.description || '').length,\n    tokens: config.tokensPerTool + ((t.parameters || []).length * config.tokensPerParam)\n  }))\n};\n\n// Format for display\nconst markdownReport = `## Context Efficiency Report\n\n### Summary\n| Metric | Value | Status |\n|--------|-------|--------|\n| Tools | ${toolCount} | ${level} |\n| Est. Tokens | ~${tokenEstimate} | ${tokenEstimate < 3500 ? 'optimal' : (tokenEstimate < 4500 ? 'acceptable' : 'high')} |\n| Scope | ${scope} | - |\n\n### Tool Breakdown\n${tools.map(t => `- **${t.name}**: ${(t.parameters || []).length} params, ~${config.tokensPerTool + ((t.parameters || []).length * config.tokensPerParam)} tokens`).join('\\n')}\n\n### Warnings\n${warnings.length > 0 ? warnings.map(w => `- [${w.id}] ${w.message}`).join('\\n') : 'None'}\n\n### Recommendations\n${scope === 'project' ? '- Install at project level for focused use' : ''}\n${scope === 'user_with_warning' ? '- Consider splitting into Core + Advanced MCPs' : ''}\n${toolCount > 7 ? '- Review tools for essentiality' : ''}\n`;\n\nreturn [{\n  json: {\n    report: report,\n    markdown: markdownReport,\n    slack_format: `*Context Efficiency Report*\\n\\n*Tools:* ${toolCount} (${level})\\n*Tokens:* ~${tokenEstimate} per call\\n*Scope:* ${scope}\\n\\n${warnings.length > 0 ? '*Warnings:*\\n' + warnings.map(w => `• ${w.message}`).join('\\n') : ''}`\n  }\n}];"
+      },
+      "id": "analyze-context",
+      "name": "Analyze Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-report",
+      "name": "Respond Report",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Analyze Webhook": {
+      "main": [
+        [{ "node": "Analyze Context", "type": "main", "index": 0 }]
+      ]
+    },
+    "Analyze Context": {
+      "main": [
+        [{ "node": "Respond Report", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "GRIMLOCK" },
+    { "name": "Design Wizard" }
+  ],
+  "meta": {
+    "instanceId": "grimlock-instance"
+  }
+}

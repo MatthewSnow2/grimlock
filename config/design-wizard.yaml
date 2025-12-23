@@ -1,0 +1,519 @@
+# ============================================================================
+# GRIMLOCK DESIGN WIZARD - QUESTION TREE CONFIGURATION
+# ============================================================================
+# Defines the guided conversation flow for transforming ideas into PRDs
+# Version: 1.0.0
+# ============================================================================
+
+version: "1.0"
+
+# ----------------------------------------------------------------------------
+# PHASE DEFINITIONS
+# ----------------------------------------------------------------------------
+phases:
+  # --------------------------------------------------------------------------
+  # INTRO PHASE - Gather basic MCP concept
+  # --------------------------------------------------------------------------
+  - id: "intro"
+    name: "Introduction"
+    description: "Understand the MCP concept and purpose"
+    questions:
+      - id: "Q_INTRO_01"
+        text: "What would you like to name your MCP server?"
+        type: "text"
+        required: true
+        validation:
+          pattern: "^[a-z][a-z0-9-]*(-mcp)?$"
+          max_length: 50
+        guidance: |
+          Use lowercase with hyphens. Examples:
+          - notion-sync-mcp
+          - shopify-orders-mcp
+          - github-issues-mcp
+        example: "notion-sync-mcp"
+        maps_to: "mcp_concept.name"
+        auto_suffix: "-mcp"  # Add if missing
+
+      - id: "Q_INTRO_02"
+        text: "In one sentence, what problem does this MCP solve?"
+        type: "text"
+        required: true
+        validation:
+          min_length: 20
+          max_length: 200
+        guidance: |
+          Focus on VALUE, not mechanics.
+
+          Good: "Enable Claude to manage customer orders in Shopify"
+          Bad: "Make API calls to Shopify order endpoints"
+
+          Good: "Let Claude read and update Notion pages during conversations"
+          Bad: "Connect to Notion API"
+        maps_to: "mcp_concept.purpose"
+
+      - id: "Q_INTRO_03"
+        text: "Is this a new MCP or extending an existing one?"
+        type: "choice"
+        required: true
+        options:
+          - value: "new"
+            label: "New MCP server"
+            description: "Building from scratch"
+          - value: "extend"
+            label: "Extending existing MCP"
+            description: "Adding tools to an existing server"
+          - value: "variant"
+            label: "Creating a variant"
+            description: "Lite or specialized version of existing MCP"
+        maps_to: "mcp_concept.origin"
+        conditional_flow:
+          "extend": "phase:extend_existing"
+          "variant": "phase:variant_planning"
+
+  # --------------------------------------------------------------------------
+  # INTEGRATION PHASE - Service and auth details
+  # --------------------------------------------------------------------------
+  - id: "integration"
+    name: "Integration Details"
+    description: "Identify target service and authentication"
+    questions:
+      - id: "Q_INT_01"
+        text: "What service or API will this MCP connect to?"
+        type: "text"
+        required: true
+        guidance: |
+          Examples:
+          - Notion
+          - Shopify
+          - GitHub
+          - Custom REST API
+          - Local database
+        maps_to: "collected_data.integration.service_name"
+
+      - id: "Q_INT_02"
+        text: "What authentication method does this API use?"
+        type: "choice"
+        required: true
+        options:
+          - value: "api_key"
+            label: "API Key"
+            description: "Simple header-based authentication (X-API-Key, Authorization: ApiKey, etc.)"
+          - value: "oauth2"
+            label: "OAuth 2.0"
+            description: "User authorization flow (Google, Notion, Slack, etc.)"
+          - value: "bearer"
+            label: "Bearer Token"
+            description: "Static token in Authorization header"
+          - value: "basic"
+            label: "Basic Auth"
+            description: "Username/password encoded in header"
+          - value: "none"
+            label: "No authentication"
+            description: "Public API or local service"
+        maps_to: "collected_data.integration.auth_type"
+        follow_up:
+          "oauth2":
+            question: "Do you know the OAuth scopes required?"
+            type: "text"
+            optional: true
+            maps_to: "collected_data.integration.oauth_scopes"
+
+      - id: "Q_INT_03"
+        text: "Do you have the API documentation URL?"
+        type: "url"
+        required: false
+        guidance: |
+          Having API docs helps Grimlock build accurate tools.
+          Examples:
+          - https://developers.notion.com/reference
+          - https://shopify.dev/docs/api
+        maps_to: "collected_data.integration.api_docs_url"
+
+      - id: "Q_INT_04"
+        text: "Are there known rate limits for this API?"
+        type: "structured"
+        required: false
+        fields:
+          - name: "requests_per_minute"
+            type: "number"
+            label: "Requests per minute"
+          - name: "requests_per_day"
+            type: "number"
+            label: "Requests per day"
+        guidance: |
+          If unknown, leave blank. Grimlock will implement conservative defaults.
+        maps_to: "collected_data.integration.rate_limits"
+
+  # --------------------------------------------------------------------------
+  # TOOLS DEFINITION PHASE - Core MCP functionality
+  # --------------------------------------------------------------------------
+  - id: "tools_definition"
+    name: "Tools Specification"
+    description: "Define the MCP tools (actions Claude can perform)"
+    dynamic: true  # Questions repeat per tool
+
+    intro_message: |
+      Now let's define the tools your MCP will expose to Claude.
+
+      **Best Practices:**
+      - Aim for 5-7 core tools (each adds ~450 tokens of context overhead)
+      - Focus on high-value operations first
+      - You can always add more tools later
+
+      Think about what Claude NEEDS to do, not everything it COULD do.
+
+    questions:
+      - id: "Q_TOOLS_01"
+        text: "What action should this tool perform?"
+        type: "text"
+        required: true
+        guidance: |
+          Use action verbs: get, create, update, delete, list, search
+
+          Examples:
+          - "Get a customer by ID"
+          - "Create a new order"
+          - "Search products by name"
+          - "Update page content"
+        validation:
+          min_length: 10
+          max_length: 150
+        maps_to: "collected_data.tools[*].description"
+
+      - id: "Q_TOOLS_02"
+        text: "What's a good name for this tool?"
+        type: "text"
+        required: true
+        guidance: |
+          Use snake_case: get_customer, create_order, search_products
+        validation:
+          pattern: "^[a-z][a-z0-9_]*$"
+          max_length: 50
+        maps_to: "collected_data.tools[*].name"
+        auto_suggest: true  # Generate from description
+
+      - id: "Q_TOOLS_03"
+        text: "What parameters does this tool need?"
+        type: "structured_list"
+        required: true
+        item_fields:
+          - name: "param_name"
+            type: "text"
+            label: "Parameter name (snake_case)"
+            validation:
+              pattern: "^[a-z][a-z0-9_]*$"
+          - name: "param_type"
+            type: "choice"
+            label: "Type"
+            options: ["string", "number", "boolean", "array", "object"]
+          - name: "required"
+            type: "boolean"
+            label: "Required?"
+          - name: "description"
+            type: "text"
+            label: "Brief description"
+        min_items: 0
+        max_items: 12
+        maps_to: "collected_data.tools[*].parameters"
+
+      - id: "Q_TOOLS_04"
+        text: "Does this tool need pagination or filtering?"
+        type: "choice"
+        required: false
+        condition: "tool_appears_to_list"  # Auto-detect from description
+        options:
+          - value: "pagination"
+            label: "Yes, pagination"
+            description: "Returns paginated results (limit, offset, cursor)"
+          - value: "filtering"
+            label: "Yes, filtering"
+            description: "Supports filter parameters"
+          - value: "both"
+            label: "Both pagination and filtering"
+          - value: "none"
+            label: "No, returns all results"
+        maps_to: "collected_data.tools[*].pagination"
+
+      - id: "Q_TOOLS_CONTINUE"
+        text: "Add another tool?"
+        type: "confirm"
+        required: true
+
+        # Dynamic warnings based on tool count
+        warnings:
+          - condition: "collected_data.tools.length == 7"
+            level: "info"
+            message: "You've defined 7 tools - this is the optimal range for context efficiency."
+          - condition: "collected_data.tools.length == 10"
+            level: "warning"
+            message: |
+              You have 10 tools. This adds ~4,500 tokens of context overhead per call.
+              Consider: Are all these tools essential for the core use case?
+          - condition: "collected_data.tools.length >= 15"
+            level: "strong_warning"
+            message: |
+              15+ tools significantly impacts context. Recommend splitting into:
+              - Core MCP (5-7 essential tools)
+              - Advanced MCP (remaining tools)
+
+        conditional_flow:
+          true: "question:Q_TOOLS_01"  # Loop back
+          false: "phase:context_review"
+
+  # --------------------------------------------------------------------------
+  # CONTEXT REVIEW PHASE - Efficiency analysis
+  # --------------------------------------------------------------------------
+  - id: "context_review"
+    name: "Context Efficiency Review"
+    description: "Analyze and optimize context overhead"
+
+    computed_display:
+      template: |
+        ## Context Efficiency Report
+
+        **Tools Defined:** {tool_count}
+        **Estimated Token Overhead:** ~{token_estimate} tokens per Claude call
+        **Recommended Scope:** {scope_recommendation}
+
+        {warnings_section}
+
+        ### Tool Summary
+        {tool_list}
+
+    questions:
+      - id: "Q_CTX_01"
+        text: "How would you like to proceed?"
+        type: "choice"
+        required: true
+        options:
+          - value: "proceed"
+            label: "Proceed with current tools"
+            description: "Generate PRD as-is"
+          - value: "reduce"
+            label: "Help me reduce tool count"
+            description: "Guided tool elimination"
+          - value: "split"
+            label: "Create core + advanced variants"
+            description: "Split into multiple MCPs"
+        conditional_flow:
+          "proceed": "phase:finalize"
+          "reduce": "phase:tools_reduction"
+          "split": "phase:variant_planning"
+
+  # --------------------------------------------------------------------------
+  # TOOLS REDUCTION PHASE - Guided elimination
+  # --------------------------------------------------------------------------
+  - id: "tools_reduction"
+    name: "Tool Reduction"
+    description: "Identify and remove non-essential tools"
+
+    questions:
+      - id: "Q_RED_01"
+        text: "Which tools are ESSENTIAL for the minimum viable MCP?"
+        type: "multi_select"
+        required: true
+        options_from: "collected_data.tools"
+        display_field: "name"
+        guidance: |
+          Select only tools needed for the core use case.
+          Other tools can be added in a future version or advanced variant.
+        min_selections: 3
+        max_selections: 7
+        maps_to: "collected_data.essential_tools"
+
+      - id: "Q_RED_02"
+        text: "Remove non-essential tools from this MCP?"
+        type: "confirm"
+        required: true
+        preview: |
+          **Keeping:** {essential_tools}
+          **Removing:** {non_essential_tools}
+        conditional_flow:
+          true:
+            action: "remove_non_essential"
+            next: "phase:context_review"
+          false: "phase:context_review"
+
+  # --------------------------------------------------------------------------
+  # VARIANT PLANNING PHASE - Core/Advanced split
+  # --------------------------------------------------------------------------
+  - id: "variant_planning"
+    name: "Variant Planning"
+    description: "Split into multiple MCP variants"
+
+    intro_message: |
+      Let's split your tools into variants:
+
+      **Core/Lite MCP** (5-7 tools)
+      - Essential operations
+      - Low context overhead
+      - Good for most use cases
+
+      **Advanced MCP** (remaining tools)
+      - Power user features
+      - Batch operations
+      - Administrative functions
+
+    questions:
+      - id: "Q_VAR_01"
+        text: "Which tools belong in the CORE variant?"
+        type: "multi_select"
+        required: true
+        options_from: "collected_data.tools"
+        display_field: "name"
+        guidance: |
+          Core should include:
+          - Most frequently used operations
+          - Essential CRUD (create, read, update, delete)
+          - Basic search/list
+        min_selections: 3
+        max_selections: 7
+        maps_to: "collected_data.core_tools"
+
+      - id: "Q_VAR_02"
+        text: "Confirm variant split?"
+        type: "confirm"
+        required: true
+        preview: |
+          **Core MCP** ({mcp_name}-core): {core_tools}
+          (~{core_tokens} tokens)
+
+          **Advanced MCP** ({mcp_name}-advanced): {advanced_tools}
+          (~{advanced_tokens} tokens)
+        conditional_flow:
+          true:
+            action: "create_variants"
+            next: "phase:finalize"
+          false: "phase:context_review"
+
+  # --------------------------------------------------------------------------
+  # FINALIZE PHASE - Generate PRD
+  # --------------------------------------------------------------------------
+  - id: "finalize"
+    name: "Finalize & Generate"
+    description: "Review and generate PRD"
+
+    computed_display:
+      template: |
+        ## Design Summary
+
+        **MCP Name:** {mcp_name}
+        **Purpose:** {purpose}
+        **Target Service:** {service_name}
+        **Authentication:** {auth_type}
+
+        **Tools:** {tool_count} ({token_estimate} tokens)
+        {tool_list}
+
+        **Installation Scope:** {scope_recommendation}
+        {variants_section}
+
+    questions:
+      - id: "Q_FIN_01"
+        text: "Ready to generate your PRD?"
+        type: "confirm"
+        required: true
+        conditional_flow:
+          true:
+            action: "generate_prd"
+            next: "phase:success"
+          false:
+            message: "Design session saved. You can resume later."
+            action: "save_session"
+
+  # --------------------------------------------------------------------------
+  # SUCCESS PHASE - Completion
+  # --------------------------------------------------------------------------
+  - id: "success"
+    name: "Success"
+    description: "PRD generated successfully"
+
+    completion_message:
+      template: |
+        ## PRD Generated Successfully!
+
+        **File:** `prds/{mcp_name}-PRD.yaml`
+
+        ### Context Efficiency Report
+        - **Tools:** {tool_count}
+        - **Tokens:** ~{token_estimate} per call
+        - **Scope:** {scope_recommendation}
+        {warnings_acknowledged}
+
+        ### Next Steps
+
+        1. Review the PRD: `cat prds/{mcp_name}-PRD.yaml`
+        2. Gather required materials (see grimlock_handoff section)
+        3. Start the sprint: `/grimlock start {mcp_name}-PRD.yaml`
+
+        {variants_next_steps}
+
+# ----------------------------------------------------------------------------
+# VALIDATION FUNCTIONS
+# ----------------------------------------------------------------------------
+validation_functions:
+  tool_appears_to_list:
+    description: "Check if tool description suggests a list operation"
+    patterns:
+      - "list"
+      - "search"
+      - "find all"
+      - "get all"
+      - "fetch all"
+      - "query"
+
+  calculate_tokens:
+    description: "Estimate token overhead for tools"
+    formula: "tools.length * 450 + sum(tools.parameters.length * 30)"
+
+  recommend_scope:
+    description: "Suggest installation scope based on tool count"
+    rules:
+      - condition: "tools.length <= 5"
+        result: "project"
+        reason: "Lightweight MCP, install at project level"
+      - condition: "tools.length <= 10"
+        result: "project_or_user"
+        reason: "Consider project scope unless used across many projects"
+      - condition: "tools.length > 10"
+        result: "user_with_warning"
+        reason: "High overhead - consider splitting or user-level only"
+
+# ----------------------------------------------------------------------------
+# MESSAGE TEMPLATES
+# ----------------------------------------------------------------------------
+message_templates:
+  welcome_slack: |
+    Hey! I'm the GRIMLOCK Design Wizard.
+
+    I'll help you transform your MCP idea into a production-ready PRD through a series of questions.
+
+    **Best Practices Baked In:**
+    - Context efficiency (aim for 5-7 tools)
+    - Clear tool descriptions
+    - Proper authentication patterns
+
+    Let's start! Reply to this thread to answer questions.
+
+  welcome_cli: |
+    GRIMLOCK Design Wizard
+    =======================
+
+    Transform your MCP idea into a production-ready PRD.
+
+    I'll guide you through:
+    1. MCP concept and purpose
+    2. Integration details
+    3. Tool definitions (with best practices)
+    4. Context efficiency review
+
+    Type 'quit' at any time to save and exit.
+
+  session_saved: |
+    Design session saved!
+
+    **Session ID:** {session_id}
+
+    To resume:
+    - Slack: Reply to this thread
+    - CLI: `grimlock design --resume {session_id}`

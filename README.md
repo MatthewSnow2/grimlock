@@ -39,7 +39,33 @@ Friday handoff          Monday delivery          Deploy & monitor
 - Slack workspace with GRIMLOCK bot
 - GitHub repository for code output
 
-### Creating an MCP Server PRD
+### Design Wizard (Recommended)
+
+Transform your MCP idea into a PRD through guided questions:
+
+**Via Slack:**
+```
+/grimlock design
+```
+
+**Via Claude Code:**
+```
+grimlock design
+```
+
+The wizard guides you through:
+1. MCP name and purpose
+2. Integration details (service, auth)
+3. Tool definitions with best practices
+4. Context efficiency review
+
+**Best Practices Built In:**
+- Aims for 5-7 tools (optimal context overhead)
+- Warns at 10+ tools, strongly warns at 15+
+- Recommends installation scope (project vs user)
+- Suggests variant splitting for large MCPs
+
+### Manual PRD Creation
 
 1. Copy the template: `cp prds/TEMPLATE.yaml prds/MY-MCP-PRD.yaml`
 2. Fill in all sections:
@@ -52,6 +78,8 @@ Friday handoff          Monday delivery          Deploy & monitor
    - API documentation or OpenAPI spec
    - Sample API responses (success and error)
    - Test credentials (sandbox/non-production)
+
+See [MCP Best Practices](docs/MCP_BEST_PRACTICES.md) for tool design guidelines.
 
 ### Starting a Sprint
 
@@ -70,6 +98,7 @@ Heartbeats post to `#grimlock-ops` every 30 minutes with:
 
 | Command | Description |
 |---------|-------------|
+| `/grimlock design` | Start Design Wizard (guided PRD creation) |
 | `/grimlock start {prd}` | Start a new sprint |
 | `/grimlock status` | Get current state |
 | `/grimlock resume` | Continue after pause |
@@ -116,15 +145,24 @@ grimlock/
 ├── GRIMLOCK_STATE.md      # Current sprint state
 ├── README.md              # This file
 ├── CLAUDE.md              # AI guidance
+├── config/                # Configuration files
+│   ├── design-wizard.yaml # Question tree for Design Wizard
+│   ├── context-efficiency.yaml # Token thresholds
+│   └── validation-rules.yaml   # PRD validation rules
+├── designs/               # Design wizard sessions
 ├── prds/                  # PRD specifications
 │   ├── TEMPLATE.yaml      # MCP PRD template
 │   └── GRIMLOCK-PRD.yaml  # V1 PRD (historical)
 ├── docs/                  # Documentation
 │   ├── ARCHITECTURE.md
 │   ├── RUNBOOK.md
-│   └── LESSONS_LEARNED.md
+│   ├── LESSONS_LEARNED.md
+│   └── MCP_BEST_PRACTICES.md  # Tool design guidelines
 ├── n8n/                   # Workflow backups
 │   └── workflow-exports/
+│       ├── sprint-initiator.json
+│       ├── design-wizard.json     # Design Wizard workflow
+│       └── context-analyzer.json  # Context analysis
 └── templates/             # File templates
     ├── STATE_TEMPLATE.md
     └── COMPLETION_REPORT.md

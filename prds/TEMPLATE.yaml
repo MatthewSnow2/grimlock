@@ -355,3 +355,67 @@ notes: |
   - Design decisions and rationale
   - Future enhancement ideas
   - Related projects or dependencies
+
+# ============================================================================
+# CONTEXT EFFICIENCY SECTION
+# ============================================================================
+# Populated by Design Wizard or manually calculated
+# See docs/MCP_BEST_PRACTICES.md for guidelines
+context_efficiency:
+  # Tool metrics
+  tool_count: 0                           # Number of tools defined
+  estimated_tokens_per_call: 0            # ~450 per tool + 30 per param
+
+  # Scope recommendation
+  scope_recommendation:
+    level: "project"                      # Options: project, user, split_required
+    rationale: |
+      [Why this scope was recommended]
+
+  # Description efficiency
+  description_stats:
+    average_length: 0                     # Average chars per description
+    max_length: 0                         # Longest description
+    over_threshold: 0                     # Count of descriptions > 150 chars
+
+  # Parameter efficiency
+  parameter_stats:
+    average_per_tool: 0                   # Average params per tool
+    max_per_tool: 0                       # Most params on single tool
+
+  # Variant information (if split)
+  variant_strategy:
+    type: "single"                        # Options: single, core_lite, core_plus_advanced
+    variants: []                          # List of variant names if split
+
+  # Warnings acknowledged during design
+  warnings_acknowledged: []
+  # Format:
+  # - id: "W001"
+  #   message: "Tool count warning"
+  #   acknowledged_at: "2024-12-23T10:30:00Z"
+  #   user_response: "Proceed - all tools essential"
+
+# ============================================================================
+# DESIGN ORIGIN SECTION
+# ============================================================================
+# Tracks how this PRD was created
+design_origin:
+  source: "manual"                        # Options: design_wizard, manual, template_clone
+  session_id: null                        # Design session ID if from wizard
+  interface: null                         # slack, claude_code, or null if manual
+
+  # Summary of design conversation (auto-populated by wizard)
+  conversation_summary: |
+    [How this PRD was created - key decisions made]
+
+  # Design metadata
+  design_duration_minutes: null           # How long the design session took
+  designed_at: null                       # When design was completed
+
+  # Post-design modifications
+  human_refinements: []
+  # Format:
+  # - date: "2024-12-24"
+  #   change: "Added error handling for rate limits"
+  #   reason: "Discovered during testing"

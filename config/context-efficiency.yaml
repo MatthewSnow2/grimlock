@@ -1,0 +1,321 @@
+# ============================================================================
+# GRIMLOCK CONTEXT EFFICIENCY CONFIGURATION
+# ============================================================================
+# Token thresholds, scope recommendations, and efficiency guidelines
+# Version: 1.0.0
+# ============================================================================
+
+version: "1.0"
+
+# ----------------------------------------------------------------------------
+# TOKEN ESTIMATION
+# ----------------------------------------------------------------------------
+# Research-based estimates for MCP context overhead
+token_estimates:
+  # Base tokens per tool definition (name, description, schema)
+  per_tool_base: 450
+
+  # Additional tokens per parameter
+  per_parameter: 30
+
+  # Average description contribution
+  tool_description_avg: 100
+
+  # Example calculation:
+  # 6 tools with avg 3 params each = (6 * 450) + (18 * 30) = 2700 + 540 = 3240 tokens
+
+# ----------------------------------------------------------------------------
+# TOOL COUNT THRESHOLDS
+# ----------------------------------------------------------------------------
+thresholds:
+  optimal:
+    min_tools: 3
+    max_tools: 7
+    max_tokens: 3500
+    level: "optimal"
+    message: "Excellent! This is the sweet spot for context efficiency."
+    color: "green"
+
+  acceptable:
+    min_tools: 8
+    max_tools: 10
+    max_tokens: 4500
+    level: "acceptable"
+    message: "Good, but consider if all tools are essential."
+    color: "yellow"
+    warning: |
+      You have {tool_count} tools (~{token_estimate} tokens).
+      This is acceptable, but consider:
+      - Are all these tools used frequently?
+      - Could any be combined?
+      - Would a lite variant help?
+
+  concerning:
+    min_tools: 11
+    max_tools: 15
+    max_tokens: 7000
+    level: "concerning"
+    message: "High context overhead. Recommend reviewing tool necessity."
+    color: "orange"
+    warning: |
+      **Warning:** {tool_count} tools adds ~{token_estimate} tokens of overhead.
+
+      This significantly reduces available context for conversations.
+
+      Recommendations:
+      1. Split into Core (5-7) + Advanced variants
+      2. Remove rarely-used tools
+      3. Combine related operations
+
+  problematic:
+    min_tools: 16
+    max_tools: null  # No upper limit
+    max_tokens: null
+    level: "problematic"
+    message: "Very high overhead. Splitting strongly recommended."
+    color: "red"
+    warning: |
+      **Strong Warning:** {tool_count} tools is problematic.
+
+      At ~{token_estimate} tokens, this consumes a significant portion
+      of Claude's context window before any conversation begins.
+
+      Recommended Actions:
+      1. **Split Required:** Create Core + Advanced MCPs
+      2. Review each tool: Is it essential for the primary use case?
+      3. Consider lazy loading patterns for advanced features
+
+# ----------------------------------------------------------------------------
+# DESCRIPTION GUIDELINES
+# ----------------------------------------------------------------------------
+description_guidelines:
+  optimal_length: 100
+  max_length: 150
+  warning_threshold: 150
+
+  rules:
+    - id: "DESC_001"
+      name: "Concise descriptions"
+      check: "description.length <= 100"
+      level: "optimal"
+
+    - id: "DESC_002"
+      name: "Acceptable length"
+      check: "description.length <= 150"
+      level: "acceptable"
+
+    - id: "DESC_003"
+      name: "Too verbose"
+      check: "description.length > 150"
+      level: "warning"
+      message: "Description for '{tool_name}' is {length} chars. Aim for under 150."
+
+  guidance: |
+    Tool descriptions should be:
+    - Concise (under 150 characters ideal)
+    - Action-focused (what it DOES, not how)
+    - Include when to use it (disambiguation from similar tools)
+
+    **Good Examples:**
+    - "Get a Notion page by ID. Use for fetching page content."
+    - "Search products by name or SKU. Returns paginated results."
+    - "Create a new order from cart items."
+
+    **Bad Examples:**
+    - "This function retrieves a Notion page from the Notion API using the page identifier parameter which must be a valid UUID format string representing the unique page ID."
+    - "Create order" (too vague)
+
+# ----------------------------------------------------------------------------
+# PARAMETER GUIDELINES
+# ----------------------------------------------------------------------------
+parameter_guidelines:
+  optimal_per_tool: 4
+  max_per_tool: 8
+  warning_threshold: 8
+
+  rules:
+    - id: "PARAM_001"
+      name: "Optimal parameters"
+      check: "parameters.length <= 4"
+      level: "optimal"
+
+    - id: "PARAM_002"
+      name: "Acceptable parameters"
+      check: "parameters.length <= 8"
+      level: "acceptable"
+
+    - id: "PARAM_003"
+      name: "Too many parameters"
+      check: "parameters.length > 8"
+      level: "warning"
+      message: "Tool '{tool_name}' has {count} parameters. Consider grouping into objects."
+      suggestion: "Group related parameters into a single object parameter."
+
+  guidance: |
+    Parameter best practices:
+    - Under 8 parameters per tool
+    - Group related params as objects (e.g., 'options' object)
+    - Use clear, descriptive names (snake_case)
+    - Always include descriptions
+    - Mark truly optional params as optional with defaults
+
+# ----------------------------------------------------------------------------
+# SCOPE RECOMMENDATIONS
+# ----------------------------------------------------------------------------
+scope_recommendations:
+  project:
+    tool_range: [1, 5]
+    tokens_max: 2500
+    description: "Lightweight MCPs for specific project needs"
+    rationale: |
+      With 1-5 tools, this MCP has low context overhead.
+      Install at project level for focused use cases.
+    examples:
+      - "Project-specific API integration"
+      - "Local development tools"
+      - "Specialized task automation"
+
+  project_or_user:
+    tool_range: [6, 10]
+    tokens_max: 4500
+    description: "Moderate MCPs - scope depends on usage pattern"
+    rationale: |
+      6-10 tools has moderate overhead. Consider:
+      - Project level if used for specific projects only
+      - User level if used across multiple projects frequently
+    decision_factors:
+      - "How many projects will use this MCP?"
+      - "Is the context overhead worth always-on availability?"
+
+  user:
+    tool_range: [11, 15]
+    tokens_max: 7000
+    description: "Heavy MCPs - user level if truly needed"
+    rationale: |
+      11+ tools has significant overhead.
+      Only install at user level if:
+      - Truly used across many projects
+      - The functionality justifies the context cost
+    recommendation: "Consider splitting into variants"
+
+  split_recommended:
+    tool_range: [16, null]
+    tokens_max: null
+    description: "Too heavy for single MCP - split required"
+    rationale: |
+      16+ tools should be split into multiple MCPs:
+      - Core MCP (5-7 essential tools)
+      - Advanced MCP (power user features)
+      - Admin MCP (administrative operations)
+
+# ----------------------------------------------------------------------------
+# VARIANT PATTERNS
+# ----------------------------------------------------------------------------
+variant_patterns:
+  core_lite:
+    name: "Core/Lite"
+    max_tools: 5
+    purpose: "Essential operations only"
+    typical_tools:
+      - "get_{resource}"
+      - "list_{resources}"  # or "search_{resources}"
+      - "create_{resource}"
+      - "update_{resource}"
+      - "delete_{resource}"
+    token_target: 2500
+    use_case: "Most users, most of the time"
+
+  core_standard:
+    name: "Core/Standard"
+    max_tools: 7
+    purpose: "Essential + common operations"
+    typical_tools:
+      - "All CRUD operations"
+      - "Search with filters"
+      - "Batch get"
+    token_target: 3500
+    use_case: "Regular users with moderate needs"
+
+  advanced:
+    name: "Advanced"
+    max_tools: 10
+    purpose: "Power user operations"
+    typical_tools:
+      - "batch_*" operations
+      - "bulk_*" operations
+      - "export_*" / "import_*"
+      - "advanced_search"
+    token_target: 4500
+    use_case: "Power users, automation pipelines"
+    note: "Often installed alongside Core"
+
+  admin:
+    name: "Admin"
+    max_tools: 8
+    purpose: "Administrative operations"
+    typical_tools:
+      - "admin_*" operations
+      - "manage_*" operations
+      - "configure_*"
+    token_target: 4000
+    use_case: "Administrators only"
+    note: "Usually project-level, admin workspaces only"
+
+# ----------------------------------------------------------------------------
+# EFFICIENCY REPORT TEMPLATE
+# ----------------------------------------------------------------------------
+report_template:
+  markdown: |
+    ## Context Efficiency Report
+
+    ### Summary
+    | Metric | Value | Status |
+    |--------|-------|--------|
+    | Tools | {tool_count} | {tool_status} |
+    | Est. Tokens | ~{token_estimate} | {token_status} |
+    | Scope | {scope} | {scope_rationale} |
+
+    ### Tool Breakdown
+    {tool_breakdown}
+
+    ### Recommendations
+    {recommendations}
+
+    ---
+    *Generated by GRIMLOCK Design Wizard*
+
+  slack: |
+    *Context Efficiency Report*
+
+    *Tools:* {tool_count} ({tool_status})
+    *Tokens:* ~{token_estimate} per call
+    *Scope:* {scope}
+
+    {warnings}
+
+    {recommendations}
+
+# ----------------------------------------------------------------------------
+# COMPARISON BENCHMARKS
+# ----------------------------------------------------------------------------
+# Real-world MCP token overhead examples
+benchmarks:
+  - name: "Perceptor MCP"
+    tools: 5
+    estimated_tokens: 2500
+    note: "Efficient, focused tool set"
+
+  - name: "n8n-mcp (full)"
+    tools: 20
+    estimated_tokens: 9000
+    note: "Comprehensive but heavy"
+
+  - name: "GitHub MCP (official)"
+    tools: 12
+    estimated_tokens: 5500
+    note: "Moderate, covers main use cases"
+
+  - name: "Slack MCP (typical)"
+    tools: 8
+    estimated_tokens: 3800
+    note: "Good balance"

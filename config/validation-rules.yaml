@@ -1,0 +1,268 @@
+# ============================================================================
+# GRIMLOCK VALIDATION RULES
+# ============================================================================
+# Warning and error rules for PRD design validation
+# Philosophy: Warn, don't block (aligned with Anthropic approach)
+# Version: 1.0.0
+# ============================================================================
+
+version: "1.0"
+
+# ----------------------------------------------------------------------------
+# VALIDATION PHILOSOPHY
+# ----------------------------------------------------------------------------
+philosophy:
+  approach: "warn_not_block"
+  rationale: |
+    Like Claude Code's --dangerously-skip-permissions, we inform users
+    of potential issues but respect their autonomy to proceed.
+
+    - ERRORS: Block only for truly broken configurations
+    - WARNINGS: Inform about suboptimal choices, allow proceeding
+    - INFO: Educational messages, no action required
+
+# ----------------------------------------------------------------------------
+# ERROR RULES (Block PRD generation)
+# ----------------------------------------------------------------------------
+errors:
+  - id: "E001"
+    name: "Missing MCP Name"
+    category: "required_field"
+    condition: "not mcp_concept.name"
+    message: "MCP name is required"
+    fix: "Provide a name in format: lowercase-with-hyphens-mcp"
+
+  - id: "E002"
+    name: "Invalid MCP Name Format"
+    category: "format"
+    condition: "not mcp_concept.name.match(/^[a-z][a-z0-9-]*(-mcp)?$/)"
+    message: "MCP name '{name}' must be lowercase with hyphens (e.g., notion-sync-mcp)"
+    fix: "Rename to follow pattern: [a-z][a-z0-9-]*-mcp"
+
+  - id: "E003"
+    name: "Missing Purpose"
+    category: "required_field"
+    condition: "not mcp_concept.purpose or mcp_concept.purpose.length < 10"
+    message: "MCP purpose is required (minimum 10 characters)"
+    fix: "Describe what problem this MCP solves"
+
+  - id: "E004"
+    name: "No Tools Defined"
+    category: "required_field"
+    condition: "collected_data.tools.length == 0"
+    message: "At least one tool must be defined"
+    fix: "Define at least one MCP tool"
+
+  - id: "E005"
+    name: "Missing Tool Name"
+    category: "required_field"
+    condition: "any(tools, t => not t.name)"
+    message: "All tools must have a name"
+    fix: "Provide snake_case name for each tool"
+
+  - id: "E006"
+    name: "Invalid Tool Name Format"
+    category: "format"
+    condition: "any(tools, t => not t.name.match(/^[a-z][a-z0-9_]*$/))"
+    message: "Tool name '{name}' must be snake_case (e.g., get_customer)"
+    fix: "Rename to follow pattern: [a-z][a-z0-9_]*"
+
+  - id: "E007"
+    name: "Duplicate Tool Names"
+    category: "uniqueness"
+    condition: "tools.names.length != tools.names.unique.length"
+    message: "Tool names must be unique. Duplicates: {duplicates}"
+    fix: "Rename duplicate tools to be unique"
+
+  - id: "E008"
+    name: "Missing Service Name"
+    category: "required_field"
+    condition: "not collected_data.integration.service_name"
+    message: "Target service name is required"
+    fix: "Specify which service/API this MCP integrates with"
+
+# ----------------------------------------------------------------------------
+# WARNING RULES (Inform but allow proceeding)
+# ----------------------------------------------------------------------------
+warnings:
+  # --- Tool Count Warnings ---
+  - id: "W001"
+    name: "High Tool Count"
+    category: "context_efficiency"
+    condition: "tools.length > 10"
+    severity: "medium"
+    message: |
+      You have {count} tools. This adds ~{tokens} tokens of context overhead.
+      Consider splitting into core + advanced MCPs.
+    suggestion: "Review tools for essentiality or split into variants"
+    threshold: 10
+
+  - id: "W002"
+    name: "Very High Tool Count"
+    category: "context_efficiency"
+    condition: "tools.length >= 15"
+    severity: "high"
+    message: |
+      {count} tools significantly impacts available context.
+      Strongly recommend splitting into multiple MCPs.
+    suggestion: "Split into Core (5-7) + Advanced + Admin variants"
+    threshold: 15
+
+  # --- Description Warnings ---
+  - id: "W003"
+    name: "Long Tool Description"
+    category: "efficiency"
+    condition: "tool.description.length > 150"
+    severity: "low"
+    message: "Tool '{name}' description is {length} chars. Recommended: under 150."
+    suggestion: "Focus on WHAT and WHEN, not HOW"
+    per_tool: true
+
+  - id: "W004"
+    name: "Very Short Description"
+    category: "clarity"
+    condition: "tool.description.length < 20"
+    severity: "low"
+    message: "Tool '{name}' description is very short ({length} chars)."
+    suggestion: "Add more context about when to use this tool"
+    per_tool: true
+
+  # --- Parameter Warnings ---
+  - id: "W005"
+    name: "Too Many Parameters"
+    category: "usability"
+    condition: "tool.parameters.length > 8"
+    severity: "medium"
+    message: "Tool '{name}' has {count} parameters. Complex tools are harder to use."
+    suggestion: "Group related parameters into an object parameter"
+    per_tool: true
+
+  - id: "W006"
+    name: "Missing Parameter Description"
+    category: "clarity"
+    condition: "any(tool.parameters, p => not p.description)"
+    severity: "low"
+    message: "Tool '{name}' has parameters without descriptions"
+    suggestion: "Add descriptions to help Claude use parameters correctly"
+    per_tool: true
+
+  # --- Pattern Warnings ---
+  - id: "W007"
+    name: "Similar Tool Names"
+    category: "clarity"
+    condition: "levenshtein(tool1.name, tool2.name) < 3"
+    severity: "medium"
+    message: "Tools '{name1}' and '{name2}' have similar names."
+    suggestion: "Use more distinctive names to avoid confusion"
+
+  - id: "W008"
+    name: "Missing Batch Operation"
+    category: "efficiency"
+    condition: "has_single_op and has_list_op and not has_batch_op"
+    severity: "low"
+    message: "You have single and list operations but no batch operation."
+    suggestion: "Consider adding batch_{operation} for efficiency"
+
+  - id: "W009"
+    name: "No Error Handling Specified"
+    category: "robustness"
+    condition: "not tool.behavior.error_handling"
+    severity: "low"
+    message: "Tool '{name}' has no error handling defined."
+    suggestion: "Define at least 'not_found' and 'rate_limited' responses"
+    per_tool: true
+
+  - id: "W010"
+    name: "No Examples Provided"
+    category: "usability"
+    condition: "tool.examples.length == 0"
+    severity: "medium"
+    message: "Tool '{name}' has no usage examples."
+    suggestion: "Add examples to help Claude use the tool correctly"
+    per_tool: true
+
+  # --- Scope Warnings ---
+  - id: "W011"
+    name: "User-Level Scope with Many Tools"
+    category: "context_efficiency"
+    condition: "scope == 'user' and tools.length > 10"
+    severity: "medium"
+    message: |
+      Installing {count} tools at user level adds ~{tokens} tokens to EVERY conversation.
+    suggestion: "Consider project-level installation or splitting into variants"
+
+  # --- Auth Warnings ---
+  - id: "W012"
+    name: "OAuth Without Scopes"
+    category: "completeness"
+    condition: "auth.type == 'oauth2' and not auth.scopes"
+    severity: "low"
+    message: "OAuth2 authentication specified but no scopes defined."
+    suggestion: "Define required OAuth scopes for documentation"
+
+# ----------------------------------------------------------------------------
+# INFO RULES (Educational, no action needed)
+# ----------------------------------------------------------------------------
+info:
+  - id: "I001"
+    name: "Optimal Tool Count"
+    condition: "tools.length >= 3 and tools.length <= 7"
+    message: "Tool count ({count}) is in the optimal range for context efficiency."
+
+  - id: "I002"
+    name: "Good Description Length"
+    condition: "all(tools, t => t.description.length >= 20 and t.description.length <= 100)"
+    message: "All tool descriptions are well-sized."
+
+  - id: "I003"
+    name: "Variant Created"
+    condition: "variants.length > 1"
+    message: "Created {count} MCP variants: {variant_names}"
+
+# ----------------------------------------------------------------------------
+# ACKNOWLEDGMENT TRACKING
+# ----------------------------------------------------------------------------
+# When user proceeds despite warnings, track acknowledgment
+acknowledgment:
+  required_for: ["W001", "W002", "W011"]  # High-impact warnings
+  format:
+    id: "string"
+    message: "string"
+    user_response: "string"  # "Proceed" or custom
+    timestamp: "ISO8601"
+
+  storage:
+    location: "prd.context_efficiency.warnings_acknowledged"
+    template: |
+      - id: "{warning_id}"
+        message: "{warning_message}"
+        acknowledged_at: "{timestamp}"
+        user_response: "{response}"
+
+# ----------------------------------------------------------------------------
+# VALIDATION REPORT TEMPLATE
+# ----------------------------------------------------------------------------
+report:
+  summary_template: |
+    ## Validation Results
+
+    | Type | Count |
+    |------|-------|
+    | Errors | {error_count} |
+    | Warnings | {warning_count} |
+    | Info | {info_count} |
+
+  errors_section: |
+    ### Errors (Must Fix)
+    {error_list}
+
+  warnings_section: |
+    ### Warnings (Review Recommended)
+    {warning_list}
+
+    *Proceed with 'Y' to acknowledge warnings*
+
+  clean_result: |
+    Validation passed with no errors.
+
+    {info_messages}
