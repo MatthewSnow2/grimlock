@@ -33,6 +33,20 @@ project:
     transport: "stdio"                         # Options: stdio, http, sse
     containerized: false                       # Docker deployment?
 
+  # Delivery Configuration
+  # See docs/DELIVERY_WORKFLOW.md for details
+  delivery:
+    method: "customer_repo"                    # Options: customer_repo, staging_transfer, artifact
+
+    # For customer_repo method (recommended)
+    customer_repo_url: ""                      # e.g., "https://github.com/customer-org/project.git"
+
+    # For staging_transfer method
+    customer_github_username: ""               # GitHub username to transfer repo to
+
+    # For artifact method
+    artifact_retention_days: 30                # Days to keep artifact before deletion
+
 # ----------------------------------------------------------------------------
 # TARGET INTEGRATION
 # ----------------------------------------------------------------------------

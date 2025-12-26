@@ -18,12 +18,18 @@ GRIMLOCK is an **Autonomous MCP Server Factory** - a system that builds producti
 - **prds/TEMPLATE.yaml** - MCP PRD template (tools, resources, prompts, acceptance criteria)
 - **n8n/workflow-exports/** - Backup JSON exports of orchestration workflows
 
+## MCP Server Output Directory
+
+**Output Location:** `/home/ubuntu/projects/mcp/`
+
+All MCP servers built by GRIMLOCK are created in the central MCP directory, not inside the grimlock workspace. This keeps the GRIMLOCK system clean and organizes all deliverables in one place.
+
 ## MCP Server Output Structure
 
 When Grimlock builds an MCP server, it creates:
 
 ```
-<project-name>/
+/home/ubuntu/projects/mcp/<project-name>/
 ├── package.json              # Node.js project (TypeScript)
 ├── tsconfig.json             # TypeScript configuration
 ├── src/
@@ -130,15 +136,52 @@ The `grimlock design` command (or `/grimlock design` in Slack) launches an inter
 
 ## Files Claude Code May Create
 
-- MCP server source files (`.ts`, `.py`)
+- MCP server source files in `/home/ubuntu/projects/mcp/<project>/` (`.ts`, `.py`)
 - Test files (`.test.ts`, `test_*.py`)
 - Configuration files (`package.json`, `tsconfig.json`, `pyproject.toml`)
 - Documentation (`.md` files)
-- PRD files in `/prds/`
+- PRD files in `/home/ubuntu/projects/grimlock/prds/`
+- State updates in `/home/ubuntu/projects/grimlock/GRIMLOCK_STATE.md`
 
 ## Files Claude Code May NOT Create
 
-- Files outside project directory
+- Files outside grimlock or mcp directories
 - `.env` files with real credentials (only `.env.example`)
 - Executable deployment scripts without approval
 - CI/CD pipelines (Week 2 human task)
+
+## Known Issues & Troubleshooting
+
+### Shell Session Breaks After Directory Deletion
+
+**Problem:** If a project directory that was the shell's working directory gets deleted (e.g., after moving a project to a new location), ALL subsequent Bash commands will fail with exit code 1, even basic commands like `pwd` or `echo`.
+
+**Symptoms:**
+- Every Bash command returns exit code 1
+- No output or error message
+- Affects main session AND agent subprocesses
+
+**Solution:** User must restart Claude Code session:
+```bash
+# Exit current session
+exit
+# Or use Ctrl+C multiple times
+
+# Start fresh session
+claude
+```
+
+**Prevention:** When moving/deleting project directories, ensure the shell's working directory is changed BEFORE the deletion:
+```bash
+cd /home/ubuntu  # Move to safe directory first
+rm -rf /path/to/old/project  # Then delete
+```
+
+### Workarounds When Shell is Broken
+
+When shell commands fail, Claude Code can still:
+- Read and write files using Read/Edit/Write tools
+- Use n8n MCP tools for workflow management
+- Provide commands for user to run manually
+
+The user should run shell commands in a separate terminal when this occurs.

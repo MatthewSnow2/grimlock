@@ -15,13 +15,61 @@ integration:
 
 tools:
   - name: "get_device_status"
-    description: "Get current status of a Dyson deviceset_fan_speed: Set the fan speed (1-10 or auto)set_oscillation: Enable or disable oscillationget_air_quality: Get current air quality readingsset_night_mode: Enable or disable night mode"
-    parameters: []
-    returns: "Response data"
+    description: "Get current status of a Dyson device"
+    parameters:
+      - name: "device_id"
+        type: "string"
+        required: false
+        description: "Device ID (optional, defaults to first device)"
+    returns: "Device status object with power state, fan speed, oscillation, air quality"
+  - name: "set_fan_speed"
+    description: "Set the fan speed (1-10 or auto)"
+    parameters:
+      - name: "device_id"
+        type: "string"
+        required: false
+        description: "Device ID (optional, defaults to first device)"
+      - name: "speed"
+        type: "string"
+        required: true
+        description: "Fan speed: 1-10 or 'auto'"
+    returns: "Updated device status"
+  - name: "set_oscillation"
+    description: "Enable or disable oscillation"
+    parameters:
+      - name: "device_id"
+        type: "string"
+        required: false
+        description: "Device ID (optional, defaults to first device)"
+      - name: "enabled"
+        type: "boolean"
+        required: true
+        description: "true to enable, false to disable"
+    returns: "Updated device status"
+  - name: "get_air_quality"
+    description: "Get current air quality readings"
+    parameters:
+      - name: "device_id"
+        type: "string"
+        required: false
+        description: "Device ID (optional, defaults to first device)"
+    returns: "Air quality data (PM2.5, PM10, VOC, NO2, humidity, temperature)"
+  - name: "set_night_mode"
+    description: "Enable or disable night mode"
+    parameters:
+      - name: "device_id"
+        type: "string"
+        required: false
+        description: "Device ID (optional, defaults to first device)"
+      - name: "enabled"
+        type: "boolean"
+        required: true
+        description: "true to enable, false to disable"
+    returns: "Updated device status"
 
 context_efficiency:
-  tool_count: 1
-  estimated_tokens: 510
+  tool_count: 5
+  estimated_tokens: 2550
   level: "optimal"
   scope_recommendation: "project"
 

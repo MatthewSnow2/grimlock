@@ -1,0 +1,611 @@
+# ============================================================================
+# GRIMLOCK MCP SERVER PRD
+# ============================================================================
+# Project: mirage-brandextract-mcp
+# Purpose: Extract brand identity from websites and recreate programmatically
+# Generated: 2024-12-24 via Design Wizard
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# PROJECT METADATA
+# ----------------------------------------------------------------------------
+project:
+  name: "mirage-brandextract-mcp"
+  version: "0.1.0"
+  description: |
+    Extract brand identity from any website and recreate it programmatically.
+    Uses Firecrawl for web scraping/extraction and Google Generative AI (Gemini)
+    for intelligent brand analysis and code generation.
+
+  # Sprint Planning
+  sprint:
+    week_1_start: "2024-12-23"
+    grimlock_handoff: "2024-12-27 17:00"
+    grimlock_delivery: "2024-12-30 09:00"
+    week_2_end: "2025-01-03"
+
+  # Technical Stack
+  sdk: "python"
+  python_version: "3.11+"
+
+  # Deployment Target
+  deployment:
+    type: "local"
+    transport: "stdio"
+    containerized: false
+
+# ----------------------------------------------------------------------------
+# TARGET INTEGRATION
+# ----------------------------------------------------------------------------
+integration:
+  service_name: "Firecrawl + Google Generative AI"
+  service_type: "api"
+
+  # Primary API: Firecrawl
+  apis:
+    - name: "Firecrawl"
+      base_url: "https://api.firecrawl.dev/v1"
+      documentation_url: "https://docs.firecrawl.dev"
+      rate_limits:
+        requests_per_minute: 60
+        pages_per_month: 500  # Free tier
+      purpose: "Web scraping and brand extraction"
+
+    - name: "Google Generative AI"
+      base_url: "https://generativelanguage.googleapis.com/v1"
+      documentation_url: "https://ai.google.dev/docs"
+      rate_limits:
+        requests_per_minute: 60
+      purpose: "Brand analysis and HTML/CSS generation"
+
+  # Authentication
+  auth:
+    type: "api_key"
+    api_keys:
+      - service: "Firecrawl"
+        env_variable: "FIRECRAWL_API_KEY"
+        header_name: "Authorization"
+        format: "Bearer {key}"
+
+      - service: "Google Generative AI"
+        env_variable: "GOOGLE_API_KEY"
+        header_name: "x-goog-api-key"
+
+# ----------------------------------------------------------------------------
+# MCP TOOLS SPECIFICATION
+# ----------------------------------------------------------------------------
+tools:
+  - name: "extract_brand"
+    description: |
+      Extract complete brand identity from a website.
+      Use when you need to analyze a website's visual design system.
+
+    parameters:
+      - name: "url"
+        type: "string"
+        required: true
+        description: "Target website URL to extract brand from"
+        validation:
+          pattern: "^https?://.+"
+
+      - name: "include_screenshots"
+        type: "boolean"
+        required: false
+        default: false
+        description: "Include visual screenshots in the response"
+
+    behavior:
+      workflow: |
+        1. Call Firecrawl API with branding=true
+        2. Parse and structure design tokens
+        3. Return organized brand data
+      returns: "object"
+      return_schema:
+        colors:
+          primary: "#hex"
+          secondary: "#hex"
+          palette: ["#hex1", "#hex2"]
+        typography:
+          headings: "Font Family"
+          body: "Font Family"
+          weights: [400, 600, 700]
+        spacing:
+          grid: "8px"
+          margins: {}
+          padding: {}
+        buttons:
+          primary:
+            bg: "#hex"
+            text: "#hex"
+            border_radius: "4px"
+            padding: "12px 24px"
+        url: "original_url"
+
+    examples:
+      - input:
+          url: "https://airbnb.com"
+          include_screenshots: false
+        expected_output: |
+          Returns Airbnb's brand colors, typography (Cereal font),
+          spacing system, and button styles.
+
+  - name: "generate_replica"
+    description: |
+      Generate HTML/CSS using extracted brand data.
+      Use when you have brand data and want to create matching components.
+
+    parameters:
+      - name: "brand_data"
+        type: "object"
+        required: true
+        description: "Output from extract_brand tool"
+
+      - name: "component_type"
+        type: "string"
+        required: false
+        default: "landing_page"
+        description: "What to generate"
+        validation:
+          enum: ["landing_page", "email", "button", "card"]
+
+      - name: "customization"
+        type: "string"
+        required: false
+        default: ""
+        description: "Additional instructions for generation"
+
+    behavior:
+      workflow: |
+        1. Construct Gemini prompt with brand tokens
+        2. Specify component type and customization
+        3. Generate HTML/CSS
+        4. Validate and return code
+      returns: "object"
+      return_schema:
+        html: "<html>...</html>"
+        css: "/* styles */"
+        preview_url: "data:text/html;base64,..."
+
+    examples:
+      - input:
+          brand_data: {"colors": {"primary": "#FF5A5F"}}
+          component_type: "button"
+          customization: "Make it rounded"
+        expected_output: |
+          Returns HTML button with Airbnb-style colors and rounded corners.
+
+  - name: "replicate_website"
+    description: |
+      Complete workflow: extract brand + generate replica.
+      Use when you want to create a component matching a website in one step.
+
+    parameters:
+      - name: "url"
+        type: "string"
+        required: true
+        description: "Target website URL"
+        validation:
+          pattern: "^https?://.+"
+
+      - name: "component_type"
+        type: "string"
+        required: false
+        default: "landing_page"
+        description: "What to generate"
+        validation:
+          enum: ["landing_page", "email", "button", "card"]
+
+      - name: "customization"
+        type: "string"
+        required: false
+        default: ""
+        description: "Additional instructions"
+
+    behavior:
+      workflow: |
+        1. Extract brand (Firecrawl)
+        2. Generate replica (Gemini)
+        3. Return both brand data and generated code
+      returns: "object"
+      return_schema:
+        brand_data: {}
+        generated:
+          html: "..."
+          css: "..."
+
+    examples:
+      - input:
+          url: "https://notion.so"
+          component_type: "landing_page"
+          customization: "Focus on the hero section"
+        expected_output: |
+          Returns Notion's brand data and a landing page hero with
+          matching typography and colors.
+
+  - name: "compare_brands"
+    description: |
+      Extract and compare brand identities from two websites.
+      Use for competitive analysis or brand consistency checks.
+
+    parameters:
+      - name: "url1"
+        type: "string"
+        required: true
+        description: "First website URL"
+        validation:
+          pattern: "^https?://.+"
+
+      - name: "url2"
+        type: "string"
+        required: true
+        description: "Second website URL"
+        validation:
+          pattern: "^https?://.+"
+
+    behavior:
+      workflow: |
+        1. Extract brand from url1
+        2. Extract brand from url2
+        3. Compare and score similarity
+        4. Identify differences
+      returns: "object"
+      return_schema:
+        site1: {}
+        site2: {}
+        comparison:
+          color_similarity: 0.85
+          font_overlap: ["Inter"]
+          differences: []
+
+    examples:
+      - input:
+          url1: "https://airbnb.com"
+          url2: "https://vrbo.com"
+        expected_output: |
+          Returns brand data for both sites with similarity scores
+          and list of key differences.
+
+  - name: "apply_brand_to_template"
+    description: |
+      Extract brand and apply to common templates.
+      Use when you want pre-built components with specific branding.
+
+    parameters:
+      - name: "url"
+        type: "string"
+        required: true
+        description: "Source website for branding"
+        validation:
+          pattern: "^https?://.+"
+
+      - name: "template_type"
+        type: "string"
+        required: true
+        description: "Template to apply brand to"
+        validation:
+          enum: ["hero_section", "pricing_table", "feature_grid", "testimonial", "cta"]
+
+    behavior:
+      workflow: |
+        1. Extract brand from URL
+        2. Load template structure
+        3. Apply brand tokens to template
+        4. Return styled component
+      returns: "object"
+      return_schema:
+        html: "..."
+        css: "..."
+        template_type: "hero_section"
+
+    examples:
+      - input:
+          url: "https://airbnb.com"
+          template_type: "hero_section"
+        expected_output: |
+          Returns a hero section component styled with Airbnb's
+          brand colors, fonts, and button styles.
+
+# ----------------------------------------------------------------------------
+# MCP RESOURCES SPECIFICATION
+# ----------------------------------------------------------------------------
+resources: []
+  # No resources needed for this MCP
+
+# ----------------------------------------------------------------------------
+# MCP PROMPTS SPECIFICATION
+# ----------------------------------------------------------------------------
+prompts: []
+  # No prompts needed for this MCP
+
+# ----------------------------------------------------------------------------
+# ACCEPTANCE CRITERIA
+# ----------------------------------------------------------------------------
+acceptance_criteria:
+  functional:
+    - id: "AC-001"
+      description: "extract_brand successfully extracts colors from valid URL"
+      test_method: "automated"
+      priority: "must-have"
+
+    - id: "AC-002"
+      description: "extract_brand returns typography information"
+      test_method: "automated"
+      priority: "must-have"
+
+    - id: "AC-003"
+      description: "generate_replica produces valid HTML/CSS"
+      test_method: "automated"
+      priority: "must-have"
+
+    - id: "AC-004"
+      description: "replicate_website combines extraction and generation"
+      test_method: "automated"
+      priority: "must-have"
+
+    - id: "AC-005"
+      description: "compare_brands calculates meaningful similarity scores"
+      test_method: "manual"
+      priority: "should-have"
+
+    - id: "AC-006"
+      description: "apply_brand_to_template generates all template types"
+      test_method: "automated"
+      priority: "must-have"
+
+    - id: "AC-007"
+      description: "All tools return helpful errors for invalid URLs"
+      test_method: "automated"
+      priority: "must-have"
+
+  non_functional:
+    - id: "NFR-001"
+      category: "performance"
+      description: "extract_brand completes within 30 seconds"
+
+    - id: "NFR-002"
+      category: "security"
+      description: "API keys never logged or exposed in responses"
+
+    - id: "NFR-003"
+      category: "reliability"
+      description: "Graceful degradation when Firecrawl or Gemini unavailable"
+
+# ----------------------------------------------------------------------------
+# SECURITY REQUIREMENTS
+# ----------------------------------------------------------------------------
+security:
+  credentials:
+    storage: "environment_variables"
+    required_env_vars:
+      - name: "FIRECRAWL_API_KEY"
+        description: "API key for Firecrawl web scraping service"
+      - name: "GOOGLE_API_KEY"
+        description: "API key for Google Generative AI (Gemini)"
+
+  data_sensitivity:
+    pii_handling: false
+    data_encryption: false
+    audit_logging: true
+
+  access_control:
+    require_user_confirmation: []
+    restricted_operations: []
+
+# ----------------------------------------------------------------------------
+# TESTING REQUIREMENTS
+# ----------------------------------------------------------------------------
+testing:
+  unit_tests:
+    coverage_target: 80
+    frameworks: ["pytest"]
+    key_areas:
+      - "URL validation"
+      - "Brand data parsing"
+      - "HTML/CSS generation validation"
+      - "Error handling"
+
+  integration_tests:
+    - name: "End-to-end brand extraction"
+      description: "Test full flow from URL to brand data"
+      mock_external: true
+
+    - name: "End-to-end replica generation"
+      description: "Test brand data to HTML/CSS generation"
+      mock_external: true
+
+  manual_tests:
+    - "Test with Claude Desktop"
+    - "Test with MCP Inspector"
+    - "Verify generated HTML renders correctly in browser"
+    - "Verify error messages are helpful"
+
+# ----------------------------------------------------------------------------
+# DOCUMENTATION REQUIREMENTS
+# ----------------------------------------------------------------------------
+documentation:
+  required:
+    - type: "README.md"
+      contents:
+        - "Installation instructions"
+        - "Configuration (FIRECRAWL_API_KEY, GOOGLE_API_KEY)"
+        - "Available tools with examples"
+        - "Troubleshooting common issues"
+
+    - type: "CHANGELOG.md"
+      contents:
+        - "Version history"
+        - "Breaking changes"
+
+    - type: "inline_comments"
+      contents:
+        - "Firecrawl API integration notes"
+        - "Gemini prompt construction logic"
+        - "Brand data schema documentation"
+
+# ----------------------------------------------------------------------------
+# GRIMLOCK HANDOFF CHECKLIST
+# ----------------------------------------------------------------------------
+grimlock_handoff:
+  required_inputs:
+    - item: "This completed PRD"
+      status: "ready"
+
+    - item: "Firecrawl API documentation"
+      status: "ready"
+      location: "https://docs.firecrawl.dev"
+
+    - item: "Google Generative AI documentation"
+      status: "ready"
+      location: "https://ai.google.dev/docs"
+
+    - item: "Test credentials (non-production)"
+      status: "pending"
+      notes: "FIRECRAWL_API_KEY and GOOGLE_API_KEY in .env.example"
+
+    - item: "Example use cases"
+      status: "ready"
+      notes: |
+        1. Extract Airbnb branding and create matching hero section
+        2. Compare two competitor websites' brand identities
+        3. Generate email template with Notion's styling
+        4. Create pricing table with Stripe's design language
+        5. Quick button generation matching any website
+
+  context_files:
+    - "Firecrawl API reference for branding extraction"
+    - "Gemini prompt engineering best practices"
+
+  constraints:
+    - "Use Python MCP SDK"
+    - "Async/await for all API calls"
+    - "Structured error handling with helpful messages"
+    - "Generated HTML must be valid and self-contained"
+
+# ----------------------------------------------------------------------------
+# WEEK 2 REFINEMENT CHECKLIST
+# ----------------------------------------------------------------------------
+week2_refinement:
+  security_review:
+    - "Verify no API keys in code or logs"
+    - "Check URL validation prevents SSRF"
+    - "Review error messages for info leakage"
+
+  integration_testing:
+    - "Test with real Firecrawl API"
+    - "Test with real Gemini API"
+    - "Verify rate limit handling"
+    - "Validate with Claude Desktop"
+
+  production_hardening:
+    - "Add request caching for repeated URLs"
+    - "Implement retry logic for API failures"
+    - "Add comprehensive logging"
+
+  documentation_review:
+    - "README accuracy"
+    - "Example commands work"
+    - "Troubleshooting section complete"
+
+# ----------------------------------------------------------------------------
+# SUCCESS METRICS
+# ----------------------------------------------------------------------------
+success_metrics:
+  grimlock_delivery:
+    - "All 5 tools implemented and functional"
+    - "Basic tests passing"
+    - "Setup documentation complete"
+    - "Can be tested with MCP Inspector"
+
+  production_ready:
+    - "All acceptance criteria met"
+    - "Security review passed"
+    - "Documentation complete"
+    - "Tested with multiple real websites"
+
+# ----------------------------------------------------------------------------
+# NOTES & CONTEXT
+# ----------------------------------------------------------------------------
+notes: |
+  Design Notes:
+  - Firecrawl provides structured brand extraction capabilities
+  - Gemini handles intelligent code generation from brand tokens
+  - Combined approach leverages best of both services
+
+  Workflow Details:
+
+  Extract Brand Workflow:
+  1. User provides URL
+  2. Mirage calls Firecrawl API with branding=true
+  3. Firecrawl returns JSON with design tokens
+  4. Mirage structures and returns data
+
+  Generate Replica Workflow:
+  1. User provides brand data + instructions
+  2. Mirage constructs Gemini prompt with brand tokens
+  3. Specify component type and customization
+  4. Gemini generates HTML/CSS
+  5. Mirage validates and returns code
+
+  Complete Replication Workflow:
+  1. Extract brand (Firecrawl)
+  2. Generate replica (Gemini)
+  3. Return both brand data and generated code
+
+  Future Enhancements:
+  - Logo extraction and SVG conversion
+  - Animation/transition extraction
+  - Full page replication
+  - Brand guideline PDF generation
+
+# ============================================================================
+# CONTEXT EFFICIENCY SECTION
+# ============================================================================
+context_efficiency:
+  tool_count: 5
+  estimated_tokens_per_call: 2610   # (5 * 450) + (12 * 30)
+
+  scope_recommendation:
+    level: "project"
+    rationale: |
+      5 tools with ~2,610 tokens is well within optimal range.
+      Project-level installation recommended as this is likely
+      used for specific design/development projects.
+
+  description_stats:
+    average_length: 85
+    max_length: 120
+    over_threshold: 0
+
+  parameter_stats:
+    average_per_tool: 2.4
+    max_per_tool: 3
+
+  variant_strategy:
+    type: "single"
+    variants: []
+
+  warnings_acknowledged: []
+
+# ============================================================================
+# DESIGN ORIGIN SECTION
+# ============================================================================
+design_origin:
+  source: "design_wizard"
+  session_id: "design-20241224-mirage"
+  interface: "claude_code"
+
+  conversation_summary: |
+    Created via GRIMLOCK Design Wizard in Claude Code.
+
+    Key decisions:
+    - Dual-API architecture: Firecrawl for extraction, Gemini for generation
+    - 5 tools covering extraction, generation, and convenience wrappers
+    - Python SDK selected
+    - Project-level scope recommended
+
+    User provided detailed tool specifications with return schemas.
+
+  design_duration_minutes: 15
+  designed_at: "2024-12-24T00:30:00Z"
+
+  human_refinements: []

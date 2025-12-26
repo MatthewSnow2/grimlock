@@ -15,21 +15,45 @@ integration:
 
 tools:
   - name: "get_lights"
-    description: "List all lights"
+    description: "List all lights connected to the Hue Bridge"
     parameters: []
-    returns: "Response data"
+    returns: "Array of light objects with id, name, state (on/off, brightness, color)"
   - name: "set_brightness"
-    description: "Set light brightness"
-    parameters: []
-    returns: "Response data"
+    description: "Set light brightness level"
+    parameters:
+      - name: "light_id"
+        type: "string"
+        required: true
+        description: "Light ID or 'all' for all lights"
+      - name: "brightness"
+        type: "number"
+        required: true
+        description: "Brightness level 0-254 (0=off, 254=max)"
+    returns: "Updated light state"
   - name: "set_color"
-    description: "Change light color"
-    parameters: []
-    returns: "Response data"
+    description: "Change light color using various color modes"
+    parameters:
+      - name: "light_id"
+        type: "string"
+        required: true
+        description: "Light ID or 'all' for all lights"
+      - name: "color"
+        type: "string"
+        required: true
+        description: "Color as hex (#FF0000), name (red), or temperature (warm/cool/2700K)"
+    returns: "Updated light state"
   - name: "toggle_light"
-    description: "Turn light on/off"
-    parameters: []
-    returns: "Response data"
+    description: "Turn light on or off"
+    parameters:
+      - name: "light_id"
+        type: "string"
+        required: true
+        description: "Light ID or 'all' for all lights"
+      - name: "state"
+        type: "boolean"
+        required: true
+        description: "true=on, false=off"
+    returns: "Updated light state"
 
 context_efficiency:
   tool_count: 4

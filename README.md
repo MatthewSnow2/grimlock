@@ -55,15 +55,46 @@ grimlock design
 
 The wizard guides you through:
 1. MCP name and purpose
-2. Integration details (service, auth)
-3. Tool definitions with best practices
-4. Context efficiency review
+2. **Language selection** (TypeScript or Python)
+3. Integration details (service, auth)
+4. Tool definitions with best practices
+5. Context efficiency review
 
 **Best Practices Built In:**
 - Aims for 5-7 tools (optimal context overhead)
 - Warns at 10+ tools, strongly warns at 15+
 - Recommends installation scope (project vs user)
 - Suggests variant splitting for large MCPs
+
+### Web Form Wizard (NEW)
+
+For non-technical users or quick PRD generation, use the web form:
+
+**URL:** `https://{your-n8n-instance}/form/grimlock-wizard`
+
+The form collects:
+- Project name and purpose
+- Language preference (TypeScript/Python)
+- Target service and authentication
+- Tool descriptions (one per line)
+
+Returns a complete PRD YAML with context efficiency analysis.
+
+### n8n Workflow Debugging (NEW)
+
+Debug n8n workflows using the `n8n debug` skill:
+
+```
+n8n debug {workflow-id}
+```
+
+Features:
+- Fetches workflow structure and recent executions
+- Analyzes error patterns and root causes
+- Suggests specific fixes with code examples
+- Can apply fixes via `n8n_update_partial_workflow`
+
+See `~/.claude/skills/n8n-debugger/` for patterns and examples.
 
 ### Manual PRD Creation
 
@@ -157,11 +188,13 @@ grimlock/
 │   ├── ARCHITECTURE.md
 │   ├── RUNBOOK.md
 │   ├── LESSONS_LEARNED.md
-│   └── MCP_BEST_PRACTICES.md  # Tool design guidelines
+│   ├── MCP_BEST_PRACTICES.md  # Tool design guidelines
+│   └── ROADMAP.md             # Phase 1-4 milestones (NEW)
 ├── n8n/                   # Workflow backups
 │   └── workflow-exports/
 │       ├── sprint-initiator.json
 │       ├── design-wizard.json     # Design Wizard workflow
+│       ├── form-wizard.json       # Form-based PRD wizard (NEW)
 │       └── context-analyzer.json  # Context analysis
 └── templates/             # File templates
     ├── STATE_TEMPLATE.md
@@ -190,11 +223,19 @@ See `/home/ubuntu/projects/ratchet/` for Ratchet project details.
 
 ## Documentation
 
+- [Roadmap](docs/ROADMAP.md) - **Phase 1-4 milestones and success criteria**
 - [Architecture](docs/ARCHITECTURE.md) - System design details
 - [Runbook](docs/RUNBOOK.md) - Operational procedures
 - [Lessons Learned](docs/LESSONS_LEARNED.md) - Post-sprint retrospectives
+- [MCP Best Practices](docs/MCP_BEST_PRACTICES.md) - Tool design guidelines
 
 ## Version
+
+**V2.1** - December 2024 (Hackathon MVP)
+- Language selection in Design Wizard
+- Web Form Wizard via n8n
+- n8n Debugging Skill
+- Roadmap documentation
 
 **V2.0** - December 2024 (MCP Server Factory)
 **V1.0** - December 2024 (General Purpose - Historical)
