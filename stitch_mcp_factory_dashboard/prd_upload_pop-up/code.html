@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PRD Upload Modal</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                        "surface-dark": "#161b26",
+                        "border-dark": "#2d3442",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "sans": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #101622;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d3442;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b4354;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white antialiased h-screen overflow-hidden flex flex-col">
+<!-- App Background Simulation (Blurry Backdrop Content) -->
+<div aria-hidden="true" class="flex-1 flex overflow-hidden opacity-30 pointer-events-none select-none filter blur-[2px]">
+<!-- Sidebar -->
+<div class="w-64 bg-surface-dark border-r border-border-dark flex flex-col">
+<div class="h-16 flex items-center px-6 border-b border-border-dark">
+<div class="h-8 w-8 rounded bg-primary flex items-center justify-center text-white font-bold">A</div>
+<span class="ml-3 font-bold text-lg tracking-tight">AutoFactory</span>
+</div>
+<div class="p-4 space-y-2">
+<div class="flex items-center gap-3 px-3 py-2 bg-primary/10 text-primary rounded-lg">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 text-gray-400 hover:bg-white/5 rounded-lg">
+<span class="material-symbols-outlined">factory</span>
+<span class="text-sm font-medium">Pipelines</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 text-gray-400 hover:bg-white/5 rounded-lg">
+<span class="material-symbols-outlined">description</span>
+<span class="text-sm font-medium">Documents</span>
+</div>
+</div>
+</div>
+<!-- Main Content -->
+<div class="flex-1 flex flex-col bg-background-dark">
+<header class="h-16 border-b border-border-dark flex items-center justify-between px-8 bg-surface-dark">
+<h1 class="text-xl font-bold">New Project Setup</h1>
+<div class="h-8 w-8 rounded-full bg-gray-700"></div>
+</header>
+<main class="flex-1 p-8">
+<div class="grid grid-cols-3 gap-6">
+<div class="h-32 rounded-xl bg-surface-dark border border-border-dark"></div>
+<div class="h-32 rounded-xl bg-surface-dark border border-border-dark"></div>
+<div class="h-32 rounded-xl bg-surface-dark border border-border-dark"></div>
+<div class="col-span-2 h-64 rounded-xl bg-surface-dark border border-border-dark"></div>
+<div class="h-64 rounded-xl bg-surface-dark border border-border-dark"></div>
+</div>
+</main>
+</div>
+</div>
+<!-- Modal Overlay -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm transition-opacity duration-300">
+<!-- Modal Card -->
+<div class="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-[#161b26] border border-[#2d3442] shadow-2xl transition-all relative">
+<!-- Header -->
+<div class="flex items-center justify-between border-b border-[#2d3442] px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+<span class="material-symbols-outlined">upload_file</span>
+</div>
+<div>
+<h2 class="text-xl font-bold leading-none text-white tracking-tight">Upload Your PRD</h2>
+<p class="mt-1 text-xs font-medium text-gray-400 uppercase tracking-wider">Project Requirements Document</p>
+</div>
+</div>
+<button aria-label="Close modal" class="group flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-white/10 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Body Content -->
+<div class="p-8">
+<!-- Upload Area -->
+<div class="relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#3b4354] bg-[#101622] px-6 py-12 transition-all hover:border-primary/50 hover:bg-[#101622]/80 group cursor-pointer">
+<!-- Icon & Main Text -->
+<div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#1c2333] shadow-inner group-hover:scale-110 transition-transform duration-200">
+<span class="material-symbols-outlined text-4xl text-gray-400 group-hover:text-primary transition-colors">cloud_upload</span>
+</div>
+<h3 class="mb-2 text-lg font-semibold text-white">Drag &amp; drop your file here</h3>
+<p class="mb-6 max-w-xs text-center text-sm text-gray-400">
+                        Limit 10MB per file. Supports PDF, DOCX, or MD files.
+                    </p>
+<!-- Browse Button Overlay -->
+<button class="relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-lg bg-primary/10 px-6 py-2.5 text-sm font-semibold text-primary transition-all duration-200 hover:bg-primary hover:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[#161b26]">
+<span class="material-symbols-outlined text-[18px]">folder_open</span>
+                        Browse Files
+                    </button>
+<!-- Hidden Input -->
+<input accept=".pdf,.docx,.md" aria-label="File upload" class="absolute inset-0 h-full w-full cursor-pointer opacity-0" type="file"/>
+</div>
+<!-- Recent Files / Example Uploaded File (Conditional UI example) -->
+<!-- <div class="mt-6 flex items-center justify-between rounded-lg border border-[#2d3442] bg-[#1c2333] p-3">
+                    <div class="flex items-center gap-3">
+                        <div class="flex h-10 w-10 items-center justify-center rounded bg-red-500/20 text-red-500">
+                            <span class="material-symbols-outlined">picture_as_pdf</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium text-white">product_spec_v2.pdf</span>
+                            <span class="text-xs text-gray-500">2.4 MB • Just now</span>
+                        </div>
+                    </div>
+                    <button class="rounded p-1.5 text-gray-400 hover:bg-white/10 hover:text-white">
+                        <span class="material-symbols-outlined text-[20px]">delete</span>
+                    </button>
+                </div> -->
+</div>
+<!-- Footer / Actions -->
+<div class="flex items-center justify-between border-t border-[#2d3442] bg-[#131720] px-6 py-4">
+<div class="flex items-center gap-2 text-sm text-gray-500">
+<span class="material-symbols-outlined text-[16px]">lock</span>
+<span>Secure end-to-end encryption</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="rounded-lg border border-[#3b4354] bg-transparent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-[#161b26]">
+                        Cancel
+                    </button>
+<button class="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 hover:shadow-primary/40 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[#161b26]">
+<span class="material-symbols-outlined text-[18px]">upload</span>
+                        Upload PRD
+                    </button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MCP Factory - Build Progress Dashboard</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#135bec",
+                        "primary-hover": "#1d6bf5",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101622",
+                        "card-dark": "#1e293b",
+                        "card-dark-lighter": "#283447",
+                        "border-dark": "#334155",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "mono": ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for terminal and main content */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #101622; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569; 
+        }
+        
+        .conic-gauge {
+            background: conic-gradient(#135bec 0% 94%, #334155 94% 100%);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display overflow-hidden selection:bg-primary selection:text-white">
+<div class="flex h-screen w-full">
+<!-- SIDEBAR -->
+<aside class="flex w-[280px] flex-col border-r border-slate-200 dark:border-border-dark bg-white dark:bg-[#111318] flex-shrink-0 transition-all duration-300">
+<div class="flex h-full flex-col justify-between p-4">
+<div class="flex flex-col gap-6">
+<!-- Brand -->
+<div class="flex items-center gap-3 px-2">
+<div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-blue-600 shadow-lg shadow-blue-900/20">
+<span class="material-symbols-outlined text-white" style="font-size: 24px;">precision_manufacturing</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-base font-bold leading-tight">MCP Factory</h1>
+<p class="text-slate-500 dark:text-[#9da6b9] text-xs font-medium">Admin Console</p>
+</div>
+</div>
+<!-- Navigation -->
+<nav class="flex flex-col gap-1">
+<a class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-slate-100 dark:hover:bg-[#282e39] text-primary dark:bg-[#282e39] dark:text-white" href="#">
+<span class="material-symbols-outlined" style="font-size: 22px;">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-[#9da6b9] transition-colors hover:bg-slate-100 dark:hover:bg-[#282e39] dark:hover:text-white" href="#">
+<span class="material-symbols-outlined" style="font-size: 22px;">factory</span>
+<span>Builds</span>
+</a>
+<a class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-[#9da6b9] transition-colors hover:bg-slate-100 dark:hover:bg-[#282e39] dark:hover:text-white" href="#">
+<span class="material-symbols-outlined" style="font-size: 22px;">settings_suggest</span>
+<span>Configuration</span>
+</a>
+<a class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-[#9da6b9] transition-colors hover:bg-slate-100 dark:hover:bg-[#282e39] dark:hover:text-white" href="#">
+<span class="material-symbols-outlined" style="font-size: 22px;">description</span>
+<span>Logs</span>
+</a>
+<a class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-[#9da6b9] transition-colors hover:bg-slate-100 dark:hover:bg-[#282e39] dark:hover:text-white" href="#">
+<span class="material-symbols-outlined" style="font-size: 22px;">analytics</span>
+<span>Analytics</span>
+</a>
+</nav>
+</div>
+<!-- Bottom Actions -->
+<div class="flex flex-col gap-2 border-t border-slate-200 dark:border-border-dark pt-4">
+<a class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-[#9da6b9] transition-colors hover:bg-slate-100 dark:hover:bg-[#282e39] dark:hover:text-white" href="#">
+<span class="material-symbols-outlined" style="font-size: 22px;">settings</span>
+<span>Settings</span>
+</a>
+<div class="mt-2 flex items-center gap-3 rounded-xl bg-slate-100 dark:bg-[#1e293b] p-3">
+<div class="h-9 w-9 overflow-hidden rounded-full bg-slate-300 bg-cover bg-center" data-alt="User avatar of a man looking forward" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBtA4O6HtgkWPZb7kUmRcp9aDvcMZlcwxnU42T98kucywepZhOAHkejEVO7IYkypp-YGpPp2KzFcFoqWDFYLaguipiFeX-zV4XTTgA88CmyovlsB6VD5TDI0GltK1lPY-LhJV1N8XHeh-tffoP2qJneVU9afILZet2FxbetB2r9BB9G-yiMF2NHGdFVJ2JxXVGVUTUgGW7Huvlf4x1pm3PmtooydymxKFxcFMAJQARARp8tVml96B49BG0SbnLZUXCnOnUn9g0V_EI");'></div>
+<div class="flex flex-col overflow-hidden">
+<span class="truncate text-sm font-semibold dark:text-white">Alex Morgan</span>
+<span class="truncate text-xs text-slate-500 dark:text-[#9da6b9]">Lead Engineer</span>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- MAIN CONTENT -->
+<main class="flex h-full flex-1 flex-col overflow-hidden bg-background-light dark:bg-background-dark">
+<!-- TOP HEADER -->
+<header class="flex h-16 items-center justify-between border-b border-slate-200 dark:border-border-dark bg-white dark:bg-[#111318] px-8">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-slate-400" style="font-size: 24px;">search</span>
+<input class="h-full w-64 bg-transparent text-sm text-slate-900 placeholder-slate-400 focus:outline-none dark:text-white dark:placeholder-slate-500" placeholder="Search builds, logs, or artifacts..." type="text"/>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4">
+<a class="text-sm font-medium text-slate-600 hover:text-primary dark:text-[#9da6b9] dark:hover:text-white transition-colors" href="#">Documentation</a>
+<a class="text-sm font-medium text-slate-600 hover:text-primary dark:text-[#9da6b9] dark:hover:text-white transition-colors" href="#">Support</a>
+</div>
+<div class="h-6 w-px bg-slate-200 dark:bg-border-dark"></div>
+<button class="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-600 hover:shadow-blue-500/40">
+<span class="material-symbols-outlined" style="font-size: 20px;">add</span>
+<span>New Build</span>
+</button>
+</div>
+</header>
+<!-- SCROLLABLE DASHBOARD AREA -->
+<div class="custom-scrollbar flex-1 overflow-y-auto p-8">
+<div class="mx-auto flex max-w-7xl flex-col gap-8">
+<!-- HEADING SECTION -->
+<div class="flex flex-wrap items-end justify-between gap-4">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-3">
+<h2 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Build #4092: Payment Module</h2>
+<span class="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+</span>
+                                    Running
+                                </span>
+</div>
+<div class="flex items-center gap-4 text-sm text-slate-500 dark:text-[#9da6b9]">
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined" style="font-size: 18px;">schedule</span>
+                                    Started 2m ago
+                                </span>
+<span class="h-1 w-1 rounded-full bg-slate-400"></span>
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined" style="font-size: 18px;">call_split</span>
+                                    Branch: <span class="font-mono text-slate-700 dark:text-slate-300">main/feature-payment</span>
+</span>
+<span class="h-1 w-1 rounded-full bg-slate-400"></span>
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined" style="font-size: 18px;">person</span>
+                                    Triggered by <span class="font-medium text-slate-700 dark:text-slate-300">AM</span>
+</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 dark:border-border-dark dark:bg-card-dark dark:text-white dark:hover:bg-card-dark-lighter">
+<span class="material-symbols-outlined" style="font-size: 20px;">pause</span>
+                                Pause
+                            </button>
+<button class="flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-rose-600 transition-colors hover:bg-rose-50 dark:border-border-dark dark:bg-card-dark dark:text-rose-400 dark:hover:bg-card-dark-lighter">
+<span class="material-symbols-outlined" style="font-size: 20px;">cancel</span>
+                                Cancel
+                            </button>
+<button class="flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 dark:border-border-dark dark:bg-card-dark dark:text-white dark:hover:bg-card-dark-lighter">
+<span class="material-symbols-outlined" style="font-size: 20px;">download</span>
+                                Logs
+                            </button>
+</div>
+</div>
+<!-- STEPPER & PROGRESS -->
+<div class="flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-border-dark dark:bg-card-dark">
+<div class="flex flex-col gap-2">
+<div class="flex justify-between text-sm font-medium">
+<span class="text-slate-900 dark:text-white">Overall Progress</span>
+<span class="text-primary">65%</span>
+</div>
+<div class="h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+<div class="h-full w-[65%] rounded-full bg-primary transition-all duration-500 ease-out shadow-[0_0_12px_rgba(19,91,236,0.6)]"></div>
+</div>
+</div>
+<!-- Stepper Visual -->
+<div class="relative flex justify-between">
+<!-- Line behind steps -->
+<div class="absolute left-0 top-1/2 h-0.5 w-full -translate-y-1/2 bg-slate-200 dark:bg-slate-700"></div>
+<div class="absolute left-0 top-1/2 h-0.5 w-[65%] -translate-y-1/2 bg-primary/30"></div>
+<!-- Steps -->
+<div class="relative z-10 flex flex-col items-center gap-2">
+<div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white ring-4 ring-white dark:ring-card-dark">
+<span class="material-symbols-outlined" style="font-size: 16px;">check</span>
+</div>
+<span class="text-xs font-semibold text-primary">Analysis</span>
+</div>
+<div class="relative z-10 flex flex-col items-center gap-2">
+<div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white ring-4 ring-white dark:ring-card-dark">
+<span class="material-symbols-outlined" style="font-size: 16px;">check</span>
+</div>
+<span class="text-xs font-semibold text-primary">Spec Gen</span>
+</div>
+<div class="relative z-10 flex flex-col items-center gap-2">
+<div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-blue-500/50 ring-4 ring-white dark:ring-card-dark">
+<span class="material-symbols-outlined animate-spin" style="font-size: 16px;">sync</span>
+</div>
+<span class="text-xs font-bold text-primary">Code Gen</span>
+</div>
+<div class="relative z-10 flex flex-col items-center gap-2">
+<div class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-slate-500 ring-4 ring-white dark:bg-slate-700 dark:text-slate-400 dark:ring-card-dark">
+<span class="material-symbols-outlined" style="font-size: 16px;">rule</span>
+</div>
+<span class="text-xs font-medium text-slate-400 dark:text-slate-500">Validation</span>
+</div>
+<div class="relative z-10 flex flex-col items-center gap-2">
+<div class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-slate-500 ring-4 ring-white dark:bg-slate-700 dark:text-slate-400 dark:ring-card-dark">
+<span class="material-symbols-outlined" style="font-size: 16px;">rocket_launch</span>
+</div>
+<span class="text-xs font-medium text-slate-400 dark:text-slate-500">Deploy</span>
+</div>
+</div>
+</div>
+<!-- METRICS GRID -->
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+<div class="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-border-dark dark:bg-card-dark">
+<div class="flex items-center gap-2 text-slate-500 dark:text-[#9da6b9]">
+<span class="material-symbols-outlined" style="font-size: 20px;">folder_open</span>
+<span class="text-xs font-semibold uppercase tracking-wide">Files Processed</span>
+</div>
+<span class="text-2xl font-black text-slate-900 dark:text-white">1,248</span>
+</div>
+<div class="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-border-dark dark:bg-card-dark">
+<div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+<span class="material-symbols-outlined" style="font-size: 20px;">verified</span>
+<span class="text-xs font-semibold uppercase tracking-wide">Best Practices</span>
+</div>
+<span class="text-2xl font-black text-slate-900 dark:text-white">98.2%</span>
+</div>
+<div class="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-border-dark dark:bg-card-dark">
+<div class="flex items-center gap-2 text-amber-500">
+<span class="material-symbols-outlined" style="font-size: 20px;">warning</span>
+<span class="text-xs font-semibold uppercase tracking-wide">Warnings</span>
+</div>
+<span class="text-2xl font-black text-slate-900 dark:text-white">3</span>
+</div>
+<div class="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-border-dark dark:bg-card-dark">
+<div class="flex items-center gap-2 text-rose-500">
+<span class="material-symbols-outlined" style="font-size: 20px;">error</span>
+<span class="text-xs font-semibold uppercase tracking-wide">Errors</span>
+</div>
+<span class="text-2xl font-black text-slate-900 dark:text-white">0</span>
+</div>
+</div>
+<!-- MAIN DASHBOARD CONTENT -->
+<div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
+<!-- LEFT COLUMN: Charts & Info -->
+<div class="flex flex-col gap-6 lg:col-span-2">
+<!-- PRD CONFIDENCE & STATS -->
+<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+<!-- PRD Confidence -->
+<div class="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-border-dark dark:bg-card-dark">
+<div class="mb-4 flex items-center justify-between">
+<h3 class="text-base font-bold text-slate-900 dark:text-white">PRD Confidence</h3>
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined" style="font-size: 20px;">info</span>
+</button>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative flex h-28 w-28 items-center justify-center rounded-full conic-gauge">
+<div class="absolute h-24 w-24 rounded-full bg-white dark:bg-card-dark"></div>
+<div class="relative z-10 flex flex-col items-center">
+<span class="text-2xl font-black text-slate-900 dark:text-white">94%</span>
+<span class="text-[10px] font-bold uppercase text-slate-400">Match</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2 text-xs">
+<div class="h-2 w-2 rounded-full bg-primary"></div>
+<span class="text-slate-500 dark:text-slate-400">Requirements Met</span>
+</div>
+<div class="flex items-center gap-2 text-xs">
+<div class="h-2 w-2 rounded-full bg-slate-700"></div>
+<span class="text-slate-500 dark:text-slate-400">Pending Review</span>
+</div>
+<div class="mt-2 text-xs text-slate-400">
+                                                Based on 142 checks against <br/> original specification doc.
+                                            </div>
+</div>
+</div>
+</div>
+<!-- Best Practices Checklist -->
+<div class="flex flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-border-dark dark:bg-card-dark">
+<div class="mb-4 flex items-center justify-between">
+<h3 class="text-base font-bold text-slate-900 dark:text-white">Audit Summary</h3>
+<span class="text-xs font-semibold text-emerald-500">Passing</span>
+</div>
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 dark:bg-[#111318]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-emerald-500" style="font-size: 18px;">check_circle</span>
+<span class="text-sm font-medium text-slate-700 dark:text-slate-300">Security Policies</span>
+</div>
+<span class="text-xs font-mono text-slate-500">12/12</span>
+</div>
+<div class="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 dark:bg-[#111318]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-emerald-500" style="font-size: 18px;">check_circle</span>
+<span class="text-sm font-medium text-slate-700 dark:text-slate-300">Type Safety</span>
+</div>
+<span class="text-xs font-mono text-slate-500">45/45</span>
+</div>
+<div class="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 dark:bg-[#111318]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-emerald-500" style="font-size: 18px;">check_circle</span>
+<span class="text-sm font-medium text-slate-700 dark:text-slate-300">Performance</span>
+</div>
+<span class="text-xs font-mono text-slate-500">8/8</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Resource Graph Placeholder -->
+<div class="flex flex-1 flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-border-dark dark:bg-card-dark">
+<div class="mb-6 flex items-center justify-between">
+<h3 class="text-base font-bold text-slate-900 dark:text-white">Build Velocity &amp; Throughput</h3>
+<select class="rounded-lg border-none bg-slate-100 py-1 pl-3 pr-8 text-xs font-medium text-slate-700 focus:ring-0 dark:bg-[#111318] dark:text-slate-300">
+<option>Last hour</option>
+<option>Last 24 hours</option>
+</select>
+</div>
+<!-- Fake Chart Visual -->
+<div class="flex h-48 w-full items-end justify-between gap-2">
+<div class="w-full rounded-t-sm bg-primary/20 hover:bg-primary/40 transition-all h-[40%]"></div>
+<div class="w-full rounded-t-sm bg-primary/20 hover:bg-primary/40 transition-all h-[65%]"></div>
+<div class="w-full rounded-t-sm bg-primary/20 hover:bg-primary/40 transition-all h-[50%]"></div>
+<div class="w-full rounded-t-sm bg-primary/20 hover:bg-primary/40 transition-all h-[75%]"></div>
+<div class="w-full rounded-t-sm bg-primary/20 hover:bg-primary/40 transition-all h-[60%]"></div>
+<div class="w-full rounded-t-sm bg-primary/20 hover:bg-primary/40 transition-all h-[85%]"></div>
+<div class="w-full rounded-t-sm bg-primary/20 hover:bg-primary/40 transition-all h-[70%]"></div>
+<div class="w-full rounded-t-sm bg-primary/20 hover:bg-primary/40 transition-all h-[90%]"></div>
+<div class="w-full rounded-t-sm bg-primary/20 hover:bg-primary/40 transition-all h-[65%]"></div>
+<div class="w-full rounded-t-sm bg-primary/40 hover:bg-primary/60 transition-all h-[80%] relative group">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 rounded bg-slate-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity">Current</div>
+</div>
+<div class="w-full rounded-t-sm bg-slate-100 dark:bg-slate-700/30 h-[0%]"></div>
+<div class="w-full rounded-t-sm bg-slate-100 dark:bg-slate-700/30 h-[0%]"></div>
+</div>
+<div class="mt-2 flex justify-between text-[10px] font-medium uppercase text-slate-400">
+<span>Analysis</span>
+<span>Specification</span>
+<span>Code Gen</span>
+<span>Validation</span>
+</div>
+</div>
+</div>
+<!-- RIGHT COLUMN: Console Logs -->
+<div class="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-900 shadow-sm dark:border-border-dark dark:bg-[#0f1115] lg:h-auto h-[500px]">
+<div class="flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-400" style="font-size: 16px;">terminal</span>
+<h3 class="text-xs font-bold uppercase tracking-wider text-slate-300">Live Console</h3>
+</div>
+<div class="flex gap-1.5">
+<div class="h-2.5 w-2.5 rounded-full bg-rose-500/50"></div>
+<div class="h-2.5 w-2.5 rounded-full bg-amber-500/50"></div>
+<div class="h-2.5 w-2.5 rounded-full bg-emerald-500/50"></div>
+</div>
+</div>
+<div class="custom-scrollbar flex-1 overflow-y-auto p-4 font-mono text-xs leading-relaxed">
+<div class="flex flex-col gap-1">
+<span class="text-slate-500">[10:42:01] <span class="text-blue-400">INFO</span> Initializing build environment...</span>
+<span class="text-slate-500">[10:42:02] <span class="text-blue-400">INFO</span> Loading MCP configuration v2.1.0</span>
+<span class="text-slate-500">[10:42:05] <span class="text-blue-400">INFO</span> PRD analysis complete. Confidence: 94%</span>
+<span class="text-slate-500">[10:42:06] <span class="text-emerald-400">SUCCESS</span> Schema validation passed for 12 models.</span>
+<span class="text-slate-500">[10:42:08] <span class="text-blue-400">INFO</span> Starting Code Generation Module...</span>
+<span class="text-slate-500">[10:42:15] <span class="text-blue-400">INFO</span> Generating payment_gateway.ts...</span>
+<span class="text-slate-500">[10:42:18] <span class="text-blue-400">INFO</span> Generating transaction_logger.ts...</span>
+<span class="text-slate-500">[10:42:22] <span class="text-amber-400">WARN</span> Deprecated method usage detected in auth_utils.ts:45</span>
+<span class="text-slate-500">[10:42:22] <span class="text-blue-400">INFO</span> Auto-correcting deprecation... <span class="text-emerald-400">DONE</span></span>
+<span class="text-slate-500">[10:42:25] <span class="text-blue-400">INFO</span> Running unit tests (Batch 1/4)...</span>
+<span class="text-slate-500">[10:42:28] <span class="text-emerald-400">PASS</span> PaymentControllerTest.createOrder</span>
+<span class="text-slate-500">[10:42:29] <span class="text-emerald-400">PASS</span> PaymentControllerTest.validateCard</span>
+<span class="text-slate-500">[10:42:31] <span class="text-blue-400">INFO</span> Generating invoice_generator.ts...</span>
+<span class="text-slate-500">[10:42:35] <span class="text-blue-400">INFO</span> Compressing assets...</span>
+<div class="flex items-center gap-2 text-primary animate-pulse mt-2">
+<span class="material-symbols-outlined" style="font-size: 14px;">chevron_right</span>
+<span>Executing post-build hooks...</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
