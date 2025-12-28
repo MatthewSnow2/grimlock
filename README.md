@@ -30,6 +30,17 @@ Friday handoff          Monday delivery          Deploy & monitor
                         └─────────────────┘     └─────────────────┘
 ```
 
+## Completed Projects
+
+MCPs built autonomously by GRIMLOCK:
+
+| Project | Description | Status |
+|---------|-------------|--------|
+| [mcp-dyson-appliances](https://github.com/MatthewSnow2/mcp-dyson-appliances) | Dyson air purifier control (5 tools) | Production |
+| [mcp-philips-hue](https://github.com/MatthewSnow2/mcp-philips-hue) | Philips Hue smart lighting (4 tools) | Production |
+| [mcp-mirage](https://github.com/MatthewSnow2/mcp-mirage) | Brand extraction from websites (5 tools) | Production |
+| [mcp-pointcare-ratchet](https://github.com/MatthewSnow2/mcp-pointcare-ratchet) | EMR integration for home health (3 tools) | Development |
+
 ## Quick Start
 
 ### Prerequisites
@@ -70,7 +81,7 @@ The wizard guides you through:
 
 For non-technical users or quick PRD generation, use the web form:
 
-**URL:** `https://{your-n8n-instance}/form/grimlock-wizard`
+**URL:** [`https://im4tlai.app.n8n.cloud/form/grimlock-wizard`](https://im4tlai.app.n8n.cloud/form/grimlock-wizard)
 
 The form collects:
 - Project name and purpose
@@ -79,22 +90,6 @@ The form collects:
 - Tool descriptions (one per line)
 
 Returns a complete PRD YAML with context efficiency analysis.
-
-### n8n Workflow Debugging (NEW)
-
-Debug n8n workflows using the `n8n debug` skill:
-
-```
-n8n debug {workflow-id}
-```
-
-Features:
-- Fetches workflow structure and recent executions
-- Analyzes error patterns and root causes
-- Suggests specific fixes with code examples
-- Can apply fixes via `n8n_update_partial_workflow`
-
-See `~/.claude/skills/n8n-debugger/` for patterns and examples.
 
 ### Manual PRD Creation
 
@@ -211,15 +206,13 @@ GRIMLOCK implements multiple safety layers:
 4. **Escalation Routing** - Graduated response by severity
 5. **Audit Logging** - All escalations logged to Google Sheets
 
-## First MCP: Ratchet
+## Current Development
 
-The first MCP server Grimlock will build is **Ratchet** - a PointCare EMR integration for home health nursing:
+**[mcp-pointcare-ratchet](https://github.com/MatthewSnow2/mcp-pointcare-ratchet)** - PointCare EMR integration for home health nursing:
 
 - **Purpose**: Enable Claude to document patient visits directly into EMR
 - **Origin**: Evolution of M2AI NurseCall workflow
-- **Status**: PRD in progress (awaiting PointCare API documentation)
-
-See `/home/ubuntu/projects/ratchet/` for Ratchet project details.
+- **Status**: Working in mock mode, pending PointCare API access
 
 ## Documentation
 
@@ -231,14 +224,15 @@ See `/home/ubuntu/projects/ratchet/` for Ratchet project details.
 
 ## Version
 
-**V2.1** - December 2024 (Hackathon MVP)
+**V2.1** - December 2025 (Hackathon MVP)
+- 4 MCP servers built autonomously
 - Language selection in Design Wizard
 - Web Form Wizard via n8n
-- n8n Debugging Skill
 - Roadmap documentation
 
-**V2.0** - December 2024 (MCP Server Factory)
-**V1.0** - December 2024 (General Purpose - Historical)
+**V2.0** - December 2025 (MCP Server Factory Pivot)
+
+**V1.0** - December 2025 (Initial Release)
 
 ---
 
