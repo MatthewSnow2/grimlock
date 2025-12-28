@@ -24,6 +24,20 @@ GRIMLOCK is an **Autonomous MCP Server Factory** - a system that builds producti
 
 All MCP servers built by GRIMLOCK are created in the central MCP directory, not inside the grimlock workspace. This keeps the GRIMLOCK system clean and organizes all deliverables in one place.
 
+## GitHub Repository Routing
+
+**Internal MCPs (built by GRIMLOCK for M2AI):**
+- Organization: `https://github.com/m2ai-mcp-servers/`
+- Naming: `mcp-<project-name>`
+- Example: `m2ai-mcp-servers/mcp-philips-hue`
+
+**Customer MCPs:**
+- Pushed to customer-provided repository URL
+- Or transferred from staging repo
+
+**Non-MCP projects:**
+- Personal account: `https://github.com/MatthewSnow2/`
+
 ## MCP Server Output Structure
 
 When Grimlock builds an MCP server, it creates:

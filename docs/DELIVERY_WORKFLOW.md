@@ -280,15 +280,12 @@ rm -rf /workspace/$PROJECT_NAME
 
 For this session, you are both GRIMLOCK operator and customer:
 
-- **GRIMLOCK workspace**: `/home/ubuntu/projects/grimlock/philips-hue-mcp/`
-- **Customer repo**: `https://github.com/MatthewSnow2/philips-hue-mcp`
-- **Delivery method**: Customer-owned repo (you own the repo)
+- **GRIMLOCK workspace**: `/home/ubuntu/projects/mcp/<project-name>/`
+- **Internal MCP repo**: `https://github.com/m2ai-mcp-servers/<project-name>`
+- **Customer repo**: Customer-provided repository URL
+- **Delivery method**: Customer-owned repo or m2ai-mcp-servers org
 
-After confirming delivery, cleanup:
-
-```bash
-rm -rf /home/ubuntu/projects/grimlock/philips-hue-mcp
-```
+After confirming delivery, cleanup the local workspace if needed.
 
 ---
 

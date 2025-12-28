@@ -36,10 +36,10 @@ MCPs built autonomously by GRIMLOCK:
 
 | Project | Description | Status |
 |---------|-------------|--------|
-| [mcp-dyson-appliances](https://github.com/MatthewSnow2/mcp-dyson-appliances) | Dyson air purifier control (5 tools) | Production |
-| [mcp-philips-hue](https://github.com/MatthewSnow2/mcp-philips-hue) | Philips Hue smart lighting (4 tools) | Production |
+| [mcp-dyson-appliances](https://github.com/m2ai-mcp-servers/mcp-dyson-appliances) | Dyson air purifier control (5 tools) | Production |
+| [mcp-philips-hue](https://github.com/m2ai-mcp-servers/mcp-philips-hue) | Philips Hue smart lighting (4 tools) | Production |
 | [mcp-mirage](https://github.com/MatthewSnow2/mcp-mirage) | Brand extraction from websites (5 tools) | Production |
-| [mcp-pointcare-ratchet](https://github.com/MatthewSnow2/mcp-pointcare-ratchet) | EMR integration for home health (3 tools) | Development |
+| [mcp-pointcare-ratchet](https://github.com/m2ai-mcp-servers/mcp-pointcare-ratchet) | EMR integration for home health (3 tools) | Development |
 
 ## Quick Start
 
@@ -208,7 +208,7 @@ GRIMLOCK implements multiple safety layers:
 
 ## Current Development
 
-**[mcp-pointcare-ratchet](https://github.com/MatthewSnow2/mcp-pointcare-ratchet)** - PointCare EMR integration for home health nursing:
+**[mcp-pointcare-ratchet](https://github.com/m2ai-mcp-servers/mcp-pointcare-ratchet)** - PointCare EMR integration for home health nursing:
 
 - **Purpose**: Enable Claude to document patient visits directly into EMR
 - **Origin**: Evolution of M2AI NurseCall workflow
