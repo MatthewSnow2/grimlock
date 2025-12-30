@@ -37,7 +37,9 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list[str] = [
         "http://localhost:3000",
+        "http://localhost:5173",        # Vite dev server
         "https://grimlockfactory.netlify.app",
+        "https://54.225.171.108",       # For direct access (if needed)
     ]
 
     # Build logs (for migration)

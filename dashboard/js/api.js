@@ -4,8 +4,10 @@
  */
 
 // API Configuration
+// Using relative URLs so requests go through Netlify proxy (solves self-signed cert issue)
+// Netlify _redirects file routes /api/* to https://54.225.171.108/api/*
 const API_CONFIG = {
-    baseUrl: 'https://54.225.171.108',
+    baseUrl: '',  // Empty = relative URLs (proxied by Netlify)
     defaultTimeout: 10000,      // 10 seconds
     defaultCacheTTL: 30000,     // 30 seconds
     maxRetries: 3,

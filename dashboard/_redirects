@@ -1,4 +1,9 @@
-# Netlify SPA redirect fallback
-# All routes serve index.html for client-side routing
+# API Proxy Rules - Route API calls through Netlify's HTTPS
+# This solves the self-signed certificate issue by proxying through Netlify
 
+# Proxy all /api/* requests to FastAPI via Caddy (HTTPS)
+/api/* https://54.225.171.108:443/api/:splat 200
+
+# SPA redirect fallback
+# All non-API routes serve index.html for client-side routing
 /*    /index.html   200
