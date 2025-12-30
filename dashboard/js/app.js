@@ -1700,16 +1700,17 @@ function initEventListeners() {
                 const result = await response.json();
                 console.log('[Upload] Response:', result);
 
-                if (!response.ok || !result.success) {
-                    throw new Error(result.message || 'Failed to submit PRD');
+                if (!response.ok) {
+                    throw new Error(result.detail || result.message || 'Failed to submit PRD');
                 }
 
                 // Store PRD content for progress tracking
+                // API returns: { id, filename, uploaded_at, build_triggered, build_id }
                 window.uploadedPRD = {
                     filename: filename,
                     content: content,
-                    projectName: result.projectName,
-                    uploadedAt: new Date().toISOString()
+                    projectName: result.id?.split('-')[0] || filename.replace(/\.(yaml|yml|md|txt)$/i, ''),
+                    uploadedAt: result.uploaded_at || new Date().toISOString()
                 };
 
                 closeUploadModal();
