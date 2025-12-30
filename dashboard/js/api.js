@@ -5,7 +5,7 @@
 
 // API Configuration
 const API_CONFIG = {
-    baseUrl: 'https://im4tlai.app.n8n.cloud/webhook',
+    baseUrl: 'http://54.225.171.108:8000',
     defaultTimeout: 10000,      // 10 seconds
     defaultCacheTTL: 30000,     // 30 seconds
     maxRetries: 3,
@@ -13,16 +13,17 @@ const API_CONFIG = {
     retryBackoffMultiplier: 2   // Exponential backoff
 };
 
-// Endpoint definitions
+// Endpoint definitions - FastAPI routes
 const ENDPOINTS = {
-    BUILD_STATUS: '/grimlock/build-status',
-    BUILD_HISTORY: '/grimlock/build-history',
-    BUILD_DETAILS: '/grimlock/build-details',
-    ANALYTICS: '/grimlock/analytics',
-    SYSTEM_HEALTH: '/grimlock/system-health',
-    MCP_PROJECTS: '/grimlock/mcp-projects',
-    LATEST_PRD: '/grimlock/latest-prd',
-    BUILD_OUTPUT: '/grimlock/build-output'
+    BUILD_STATUS: '/api/builds/current',
+    BUILD_HISTORY: '/api/builds/history',
+    BUILD_DETAILS: '/api/builds',           // /{id} appended dynamically
+    BUILD_LOGS: '/api/builds',              // /{id}/logs appended dynamically
+    ANALYTICS: '/api/analytics',
+    SYSTEM_HEALTH: '/api/health',
+    MCP_PROJECTS: '/api/projects',
+    LATEST_PRD: '/api/prd/latest',
+    BUILD_OUTPUT: '/api/builds'             // /{id} appended dynamically
 };
 
 // Polling intervals by endpoint type
@@ -530,7 +531,20 @@ class APIClient {
      * @returns {Promise<object>}
      */
     async getBuildDetails(buildId) {
-        return this.request(`${ENDPOINTS.BUILD_DETAILS}?id=${buildId}`);
+        return this.request(`${ENDPOINTS.BUILD_DETAILS}/${buildId}`);
+    }
+
+    /**
+     * Get build logs by ID
+     * @param {string} buildId - Build ID
+     * @param {object} options - Query options
+     * @returns {Promise<object>}
+     */
+    async getBuildLogs(buildId, options = {}) {
+        const { limit = 100, offset = 0 } = options;
+        return this.request(`${ENDPOINTS.BUILD_LOGS}/${buildId}/logs`, {
+            params: { limit, offset }
+        });
     }
 
     /**
@@ -566,12 +580,13 @@ class APIClient {
     }
 
     /**
-     * Get build output/artifacts
+     * Get build output/artifacts (same as build details with logs)
      * @param {string} buildId - Build ID
      * @returns {Promise<object>}
      */
     async getBuildOutput(buildId) {
-        return this.request(`${ENDPOINTS.BUILD_OUTPUT}/${buildId}`);
+        // For now, build output is the same as build logs
+        return this.getBuildLogs(buildId);
     }
 
     // ==========================================
@@ -643,6 +658,7 @@ window.GrimlockAPI = {
     getBuildStatus: () => api.getBuildStatus(),
     getBuildHistory: (opts) => api.getBuildHistory(opts),
     getBuildDetails: (id) => api.getBuildDetails(id),
+    getBuildLogs: (id, opts) => api.getBuildLogs(id, opts),
     getAnalytics: () => api.getAnalytics(),
     getSystemHealth: () => api.getSystemHealth(),
     getMCPProjects: () => api.getMCPProjects(),

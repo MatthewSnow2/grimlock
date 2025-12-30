@@ -7,8 +7,8 @@
 const CONFIG = {
     // External PRD Design Wizard URL (n8n form)
     wizardUrl: 'https://im4tlai.app.n8n.cloud/form/grimlock-wizard',
-    // API base URL for dashboard integration
-    apiUrl: 'https://im4tlai.app.n8n.cloud'
+    // API base URL for dashboard integration (FastAPI backend)
+    apiUrl: 'http://54.225.171.108:8000'
 };
 
 // Track active confirm callback
@@ -320,7 +320,7 @@ This is a demo manifest. In production, the actual package would be downloaded.`
  */
 const DEFAULT_CONFIG = {
     wizardUrl: 'https://im4tlai.app.n8n.cloud/form/grimlock-wizard',
-    apiUrl: 'https://im4tlai.app.n8n.cloud',
+    apiUrl: 'http://54.225.171.108:8000',
     defaultSdk: 'typescript',
     githubTarget: 'm2ai-mcp-servers',
     customGithubUrl: '',
@@ -459,15 +459,18 @@ function initConfigEventListeners() {
             Toast.info('Testing connection...');
 
             try {
-                // Try to fetch the n8n health endpoint
-                const response = await fetch(`${apiUrl}/healthz`, {
-                    method: 'GET',
-                    mode: 'no-cors' // n8n may not have CORS headers
+                // Try to fetch the FastAPI health endpoint
+                const response = await fetch(`${apiUrl}/api/health`, {
+                    method: 'GET'
                 });
-                // With no-cors, we can't read the response but if it doesn't throw, connection exists
-                Toast.success('Connection successful (n8n reachable)');
+                if (response.ok) {
+                    const data = await response.json();
+                    Toast.success(`Connection successful (API v${data.version || 'unknown'})`);
+                } else {
+                    Toast.warning('API returned non-OK status');
+                }
             } catch (error) {
-                Toast.warning('Could not verify connection (CORS may be blocking)');
+                Toast.warning('Could not connect to API: ' + error.message);
             }
         });
     }
@@ -584,8 +587,8 @@ function initProgressPage() {
 
     console.log('[Progress] Starting real-time data polling...');
 
-    // Start polling for build status
-    GrimlockAPI.startPolling('/grimlock/build-status', (response, error) => {
+    // Start polling for build status (FastAPI endpoint)
+    GrimlockAPI.startPolling('/api/builds/current', (response, error) => {
         if (error) {
             console.error('[Progress] API error:', error);
             Toast.error('Failed to fetch build status');
@@ -606,7 +609,7 @@ function initProgressPage() {
  */
 function cleanupProgressPage() {
     if (typeof GrimlockAPI !== 'undefined') {
-        GrimlockAPI.stopPolling('/grimlock/build-status');
+        GrimlockAPI.stopPolling('/api/builds/current');
         console.log('[Progress] Stopped polling');
     }
 }
@@ -614,20 +617,48 @@ function cleanupProgressPage() {
 /**
  * Update Progress page UI with API data
  * @param {object} data - Build status data from API
- * Supports both legacy complex format and new simple format:
+ * Supports multiple formats:
+ * FastAPI: { running: [{id, name, status, phase, started_at, ...}], count }
  * Simple: { project, status, progress, startedAt, phase }
  * Legacy: { sprint, currentPosition, progress, successCriteria, escalations }
  */
 function updateProgressUI(data) {
     if (!data) return;
 
-    // Handle both simple and legacy formats
+    // Detect format
+    const isFastAPIFormat = data.running !== undefined;
     const isSimpleFormat = data.project !== undefined || data.status !== undefined;
 
     let projectName, status, startedAt, progressPercent, phase;
 
-    if (isSimpleFormat) {
-        // New simple format from /grimlock/build-status
+    if (isFastAPIFormat) {
+        // FastAPI format from /api/builds/current
+        if (data.running && data.running.length > 0) {
+            const build = data.running[0]; // Get first running build
+            projectName = build.name;
+            status = build.status || 'running';
+            startedAt = build.started_at;
+            phase = build.phase;
+            // Estimate progress based on phase
+            const phaseProgress = {
+                'prd_uploaded': 10,
+                'analysis': 25,
+                'specGen': 40,
+                'codeGen': 60,
+                'validation': 80,
+                'complete': 100
+            };
+            progressPercent = phaseProgress[phase] || 0;
+        } else {
+            // No running builds
+            projectName = null;
+            status = 'idle';
+            startedAt = null;
+            phase = null;
+            progressPercent = 0;
+        }
+    } else if (isSimpleFormat) {
+        // Simple format from old /grimlock/build-status
         projectName = data.project;
         status = (data.status || 'idle').replace(/"/g, ''); // Remove quotes if present
         startedAt = data.startedAt ? data.startedAt.replace(/"/g, '') : null;
@@ -1035,7 +1066,8 @@ function createLogEntryHtml(build) {
     };
 
     const config = statusConfig[build.status] || statusConfig.success;
-    const dateInfo = formatLogDate(build.startedAt || build.stoppedAt);
+    // Support both camelCase (legacy) and snake_case (FastAPI)
+    const dateInfo = formatLogDate(build.startedAt || build.started_at || build.stoppedAt || build.stopped_at);
     const duration = build.duration ? `${Math.round(build.duration)}s` : '--';
     const buildName = build.name || build.workflowName || 'Unknown Build';
     const shortId = (build.id || '').substring(0, 8);
@@ -1209,11 +1241,42 @@ function showDemoComplete() {
 /**
  * Update Complete page UI with API data
  * @param {object} data - Build details data from API
+ * Supports FastAPI format (flat) and legacy format (nested)
  */
 function updateCompleteUI(data) {
     if (!data) return;
 
-    const { execution, project, artifacts } = data;
+    // Detect format - FastAPI returns flat structure, legacy uses nested
+    const isFastAPIFormat = data.id !== undefined && data.execution === undefined;
+
+    let execution, project, artifacts;
+
+    if (isFastAPIFormat) {
+        // FastAPI format: flat structure from /api/builds/{id}
+        execution = {
+            id: data.id,
+            status: data.status,
+            startedAt: data.started_at,
+            stoppedAt: data.stopped_at,
+            mode: 'automated',
+            workflowName: data.name,
+            finished: data.status === 'success' || data.status === 'error'
+        };
+        project = {
+            name: data.name,
+            status: data.status,
+            projectName: data.name
+        };
+        artifacts = {
+            mcpProjects: [data.name],
+            projectPath: '/home/ubuntu/projects/mcp/'
+        };
+    } else {
+        // Legacy format: nested structure
+        execution = data.execution;
+        project = data.project;
+        artifacts = data.artifacts;
+    }
 
     // Update MCP Name
     const mcpName = document.getElementById('complete-mcp-name');
@@ -1618,11 +1681,11 @@ function initEventListeners() {
                 processFileBtn.disabled = true;
                 processFileBtn.textContent = 'Processing...';
 
-                // Submit PRD to n8n webhook
-                const webhookUrl = `${CONFIG.apiUrl}/webhook/grimlock/prd-upload`;
-                console.log('[Upload] Submitting to:', webhookUrl);
+                // Submit PRD to FastAPI endpoint
+                const uploadUrl = `${CONFIG.apiUrl}/api/prd/upload`;
+                console.log('[Upload] Submitting to:', uploadUrl);
 
-                const response = await fetch(webhookUrl, {
+                const response = await fetch(uploadUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1896,13 +1959,14 @@ function initEventListeners() {
                     </div>
                 `);
 
-                // Fetch real logs from API
+                // Fetch real logs from FastAPI
                 try {
-                    const response = await fetch(`${CONFIG.apiUrl}/webhook/grimlock/build-logs?id=${encodeURIComponent(buildId)}`);
+                    const response = await fetch(`${CONFIG.apiUrl}/api/builds/${encodeURIComponent(buildId)}/logs`);
                     const result = await response.json();
 
-                    if (result.success && result.data?.logs && result.data.logs.length > 0) {
-                        const logsHtml = formatBuildLogs(result.data.logs);
+                    // FastAPI returns logs directly in result.logs (not wrapped in data)
+                    if (result.logs && result.logs.length > 0) {
+                        const logsHtml = formatBuildLogs(result.logs);
                         showInfoModal('Build Logs', logsHtml);
                     } else {
                         showInfoModal('Build Logs', `
