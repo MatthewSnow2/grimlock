@@ -1839,9 +1839,92 @@ async function initBuildActivityChart() {
 }
 
 /**
+ * Initialize authentication and show/hide login overlay
+ */
+function initAuth() {
+    const loginOverlay = document.getElementById('login-overlay');
+    const googleLoginBtn = document.getElementById('google-login-btn');
+
+    // Initialize auth module
+    const isAuthenticated = Auth.init();
+
+    if (isAuthenticated) {
+        // Hide login overlay
+        if (loginOverlay) loginOverlay.classList.add('hidden');
+
+        // Update user profile in sidebar
+        updateUserProfile();
+
+        console.log('[Auth] User authenticated:', Auth.getUser()?.email);
+    } else {
+        // Show login overlay
+        if (loginOverlay) loginOverlay.classList.remove('hidden');
+
+        console.log('[Auth] User not authenticated, showing login');
+    }
+
+    // Google login button handler
+    if (googleLoginBtn) {
+        googleLoginBtn.addEventListener('click', () => {
+            Auth.login();
+        });
+    }
+}
+
+/**
+ * Update user profile in sidebar with real user data
+ */
+function updateUserProfile() {
+    const user = Auth.getUser();
+    if (!user) return;
+
+    // Find the user profile container in sidebar
+    const profileContainer = document.querySelector('.mt-2.flex.items-center.gap-3.rounded-xl.bg-slate-100');
+    if (!profileContainer) return;
+
+    // Update with real user info
+    profileContainer.innerHTML = `
+        <div class="h-9 w-9 overflow-hidden rounded-full flex-shrink-0">
+            ${user.picture
+                ? `<img src="${user.picture}" alt="${user.name}" class="h-full w-full object-cover" referrerpolicy="no-referrer" />`
+                : `<div class="h-full w-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
+                     <span class="text-white text-sm font-bold">${user.name?.charAt(0) || 'U'}</span>
+                   </div>`
+            }
+        </div>
+        <div class="flex flex-col overflow-hidden flex-1">
+            <span class="truncate text-sm font-semibold dark:text-white">${user.name || 'User'}</span>
+            <span class="truncate text-xs text-slate-500 dark:text-text-secondary">${user.email || ''}</span>
+        </div>
+        <button id="logout-btn" class="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-surface-dark transition-colors" title="Sign out">
+            <span class="material-symbols-outlined text-slate-500 dark:text-text-secondary text-lg">logout</span>
+        </button>
+    `;
+
+    // Add logout handler
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showConfirmModal(
+                'Sign Out',
+                'Are you sure you want to sign out?',
+                () => {
+                    Auth.logout();
+                }
+            );
+        });
+    }
+}
+
+/**
  * Initialize the application
  */
 function init() {
+    // Initialize authentication first
+    initAuth();
+
     // Apply stored configuration first
     applyStoredConfig();
 

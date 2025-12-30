@@ -358,12 +358,19 @@ class APIClient {
         const timeoutId = setTimeout(() => controller.abort(), timeout);
 
         try {
+            const headers = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            };
+
+            // Add auth token if available
+            if (window.Auth && window.Auth.getToken()) {
+                headers['Authorization'] = `Bearer ${window.Auth.getToken()}`;
+            }
+
             const fetchOptions = {
                 method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
+                headers,
                 signal: controller.signal
             };
 
