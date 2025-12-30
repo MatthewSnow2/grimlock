@@ -276,38 +276,38 @@
                         </div>
                     </div>
                     <!-- Stepper Visual -->
-                    <div class="relative flex justify-between">
+                    <div id="stepper-container" class="relative flex justify-between">
                         <div class="absolute left-0 top-1/2 h-0.5 w-full -translate-y-1/2 bg-slate-200 dark:bg-slate-700"></div>
-                        <div class="absolute left-0 top-1/2 h-0.5 w-[65%] -translate-y-1/2 bg-primary/30"></div>
-                        <div class="relative z-10 flex flex-col items-center gap-2">
-                            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white ring-4 ring-white dark:ring-card-dark">
-                                <span class="material-symbols-outlined" style="font-size: 16px;">check</span>
+                        <div id="stepper-progress-line" class="absolute left-0 top-1/2 h-0.5 w-0 -translate-y-1/2 bg-primary/30 transition-all duration-500"></div>
+                        <div id="step-analysis" data-step="0" class="stepper-step relative z-10 flex flex-col items-center gap-2">
+                            <div class="step-circle flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-slate-500 ring-4 ring-white dark:bg-slate-700 dark:text-slate-400 dark:ring-card-dark">
+                                <span class="step-icon material-symbols-outlined" style="font-size: 16px;">search</span>
                             </div>
-                            <span class="text-xs font-semibold text-primary">Analysis</span>
+                            <span class="step-label text-xs font-medium text-slate-400 dark:text-slate-500">Analysis</span>
                         </div>
-                        <div class="relative z-10 flex flex-col items-center gap-2">
-                            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white ring-4 ring-white dark:ring-card-dark">
-                                <span class="material-symbols-outlined" style="font-size: 16px;">check</span>
+                        <div id="step-specGen" data-step="1" class="stepper-step relative z-10 flex flex-col items-center gap-2">
+                            <div class="step-circle flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-slate-500 ring-4 ring-white dark:bg-slate-700 dark:text-slate-400 dark:ring-card-dark">
+                                <span class="step-icon material-symbols-outlined" style="font-size: 16px;">description</span>
                             </div>
-                            <span class="text-xs font-semibold text-primary">Spec Gen</span>
+                            <span class="step-label text-xs font-medium text-slate-400 dark:text-slate-500">Spec Gen</span>
                         </div>
-                        <div class="relative z-10 flex flex-col items-center gap-2">
-                            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-blue-500/50 ring-4 ring-white dark:ring-card-dark">
-                                <span class="material-symbols-outlined animate-spin" style="font-size: 16px;">sync</span>
+                        <div id="step-codeGen" data-step="2" class="stepper-step relative z-10 flex flex-col items-center gap-2">
+                            <div class="step-circle flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-slate-500 ring-4 ring-white dark:bg-slate-700 dark:text-slate-400 dark:ring-card-dark">
+                                <span class="step-icon material-symbols-outlined" style="font-size: 16px;">code</span>
                             </div>
-                            <span class="text-xs font-bold text-primary">Code Gen</span>
+                            <span class="step-label text-xs font-medium text-slate-400 dark:text-slate-500">Code Gen</span>
                         </div>
-                        <div class="relative z-10 flex flex-col items-center gap-2">
-                            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-slate-500 ring-4 ring-white dark:bg-slate-700 dark:text-slate-400 dark:ring-card-dark">
-                                <span class="material-symbols-outlined" style="font-size: 16px;">rule</span>
+                        <div id="step-validation" data-step="3" class="stepper-step relative z-10 flex flex-col items-center gap-2">
+                            <div class="step-circle flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-slate-500 ring-4 ring-white dark:bg-slate-700 dark:text-slate-400 dark:ring-card-dark">
+                                <span class="step-icon material-symbols-outlined" style="font-size: 16px;">rule</span>
                             </div>
-                            <span class="text-xs font-medium text-slate-400 dark:text-slate-500">Validation</span>
+                            <span class="step-label text-xs font-medium text-slate-400 dark:text-slate-500">Validation</span>
                         </div>
-                        <div class="relative z-10 flex flex-col items-center gap-2">
-                            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-slate-500 ring-4 ring-white dark:bg-slate-700 dark:text-slate-400 dark:ring-card-dark">
-                                <span class="material-symbols-outlined" style="font-size: 16px;">rocket_launch</span>
+                        <div id="step-deploy" data-step="4" class="stepper-step relative z-10 flex flex-col items-center gap-2">
+                            <div class="step-circle flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-slate-500 ring-4 ring-white dark:bg-slate-700 dark:text-slate-400 dark:ring-card-dark">
+                                <span class="step-icon material-symbols-outlined" style="font-size: 16px;">rocket_launch</span>
                             </div>
-                            <span class="text-xs font-medium text-slate-400 dark:text-slate-500">Deploy</span>
+                            <span class="step-label text-xs font-medium text-slate-400 dark:text-slate-500">Deploy</span>
                         </div>
                     </div>
                 </div>
@@ -996,30 +996,12 @@
                                     <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Avg Time</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-100 dark:divide-border-dark">
-                                <tr class="hover:bg-slate-50 dark:hover:bg-surface-darker">
-                                    <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">Payment Gateway</td>
-                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">42</td>
-                                    <td class="px-6 py-4"><span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">98%</span></td>
-                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">14.2s</td>
-                                </tr>
-                                <tr class="hover:bg-slate-50 dark:hover:bg-surface-darker">
-                                    <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">Auth Service</td>
-                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">38</td>
-                                    <td class="px-6 py-4"><span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">95%</span></td>
-                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">22.1s</td>
-                                </tr>
-                                <tr class="hover:bg-slate-50 dark:hover:bg-surface-darker">
-                                    <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">Data Pipeline</td>
-                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">31</td>
-                                    <td class="px-6 py-4"><span class="text-sm font-medium text-amber-600 dark:text-amber-400">89%</span></td>
-                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">31.5s</td>
-                                </tr>
-                                <tr class="hover:bg-slate-50 dark:hover:bg-surface-darker">
-                                    <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">Email Notifications</td>
-                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">28</td>
-                                    <td class="px-6 py-4"><span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">96%</span></td>
-                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">18.7s</td>
+                            <tbody id="mcps-table-body" class="divide-y divide-slate-100 dark:divide-border-dark">
+                                <tr>
+                                    <td colspan="4" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                                        <span class="material-symbols-outlined text-2xl mb-2">hourglass_empty</span>
+                                        <p>Loading MCP data...</p>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>

@@ -699,9 +699,13 @@ function updateProgressUI(data) {
         progressBar.style.width = `${progressPercent}%`;
     }
 
-    // Update phase indicator if available
+    // Update phase indicator and stepper
     if (phase) {
         console.log(`[Progress] Current phase: ${phase}`);
+        updateStepperUI(phase, status);
+    } else if (status === 'idle' || status === 'completed') {
+        // Reset stepper when no active build
+        updateStepperUI('complete', status);
     }
 
     // Handle legacy format metrics (if present)
@@ -745,6 +749,127 @@ function updateProgressUI(data) {
     }
 
     console.log(`[Progress] Updated UI: ${projectName || 'No project'} - ${status}`);
+}
+
+/**
+ * Update the stepper UI based on current build phase
+ * @param {string} phase - Current phase (prd_uploaded, analysis, specGen, codeGen, validation, complete)
+ * @param {string} status - Current build status (running, idle, completed, etc.)
+ */
+function updateStepperUI(phase, status) {
+    // Map phase names to step indices
+    const phaseMap = {
+        'prd_uploaded': 0,
+        'prd_reviewed': 0,
+        'analysis': 0,
+        'specGen': 1,
+        'codeGen': 2,
+        'validation': 3,
+        'deploy': 4,
+        'complete': 5
+    };
+
+    // Icons for each step
+    const stepIcons = ['search', 'description', 'code', 'rule', 'rocket_launch'];
+
+    // Get current step index (-1 if not started)
+    let currentStep = phaseMap[phase];
+    if (currentStep === undefined) currentStep = -1;
+    if (status === 'idle' || status === 'not_started') currentStep = -1;
+    if (status === 'completed' || phase === 'complete') currentStep = 5;
+
+    // Update progress line width
+    const progressLine = document.getElementById('stepper-progress-line');
+    if (progressLine) {
+        const progressPercent = currentStep >= 5 ? 100 : Math.max(0, (currentStep / 4) * 100);
+        progressLine.style.width = `${progressPercent}%`;
+    }
+
+    // Update each step
+    const steps = document.querySelectorAll('.stepper-step');
+    steps.forEach((step, index) => {
+        const circle = step.querySelector('.step-circle');
+        const icon = step.querySelector('.step-icon');
+        const label = step.querySelector('.step-label');
+
+        if (!circle || !icon || !label) return;
+
+        // Reset classes
+        circle.className = 'step-circle flex h-8 w-8 items-center justify-center rounded-full ring-4 ring-white dark:ring-card-dark';
+        icon.className = 'step-icon material-symbols-outlined';
+        icon.style.fontSize = '16px';
+        label.className = 'step-label text-xs';
+
+        if (index < currentStep || currentStep >= 5) {
+            // Completed step
+            circle.classList.add('bg-primary', 'text-white');
+            icon.textContent = 'check';
+            label.classList.add('font-semibold', 'text-primary');
+        } else if (index === currentStep && currentStep < 5) {
+            // Current/active step
+            circle.classList.add('bg-primary', 'text-white', 'shadow-lg', 'shadow-blue-500/50');
+            icon.classList.add('animate-spin');
+            icon.textContent = 'sync';
+            label.classList.add('font-bold', 'text-primary');
+        } else {
+            // Pending step
+            circle.classList.add('bg-slate-200', 'text-slate-500', 'dark:bg-slate-700', 'dark:text-slate-400');
+            icon.textContent = stepIcons[index] || 'circle';
+            label.classList.add('font-medium', 'text-slate-400', 'dark:text-slate-500');
+        }
+    });
+
+    console.log(`[Stepper] Updated to phase: ${phase}, step: ${currentStep}`);
+}
+
+/**
+ * Format build logs array into HTML for the modal
+ * @param {Array} logs - Array of log entries with ts, event, phase, msg, level
+ * @returns {string} Formatted HTML string
+ */
+function formatBuildLogs(logs) {
+    const levelColors = {
+        'info': 'text-emerald-400',
+        'warn': 'text-amber-400',
+        'warning': 'text-amber-400',
+        'error': 'text-rose-400',
+        'success': 'text-emerald-400',
+        'debug': 'text-slate-500'
+    };
+
+    const levelIcons = {
+        'info': 'info',
+        'warn': 'warning',
+        'warning': 'warning',
+        'error': 'error',
+        'success': 'check_circle',
+        'debug': 'bug_report'
+    };
+
+    const logsHtml = logs.map(log => {
+        const timestamp = log.ts ? new Date(log.ts).toLocaleTimeString() : '--:--:--';
+        const level = (log.level || 'info').toLowerCase();
+        const color = levelColors[level] || 'text-slate-400';
+        const icon = levelIcons[level] || 'circle';
+        const phase = log.phase ? `[${log.phase}]` : '';
+        const message = log.msg || log.message || 'No message';
+
+        return `
+            <div class="flex items-start gap-2 py-1 border-b border-slate-800 last:border-0">
+                <span class="text-slate-600 text-[10px] min-w-[65px]">${timestamp}</span>
+                <span class="material-symbols-outlined ${color}" style="font-size: 14px;">${icon}</span>
+                <span class="${color} text-[10px] uppercase font-semibold min-w-[45px]">${level}</span>
+                ${phase ? `<span class="text-blue-400 text-[10px]">${phase}</span>` : ''}
+                <span class="text-slate-300 flex-1">${message}</span>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div class="font-mono text-xs bg-slate-900 rounded-lg p-4 max-h-96 overflow-y-auto">
+            ${logsHtml || '<div class="text-slate-500 text-center py-4">No log entries</div>'}
+        </div>
+    `;
 }
 
 /**
@@ -1755,22 +1880,53 @@ function initEventListeners() {
     // View Logs button
     const viewLogsBtn = document.getElementById('view-logs-btn');
     if (viewLogsBtn) {
-        viewLogsBtn.addEventListener('click', () => {
+        viewLogsBtn.addEventListener('click', async () => {
             // Show actual build logs if available, otherwise show empty state
             const buildIdValue = document.getElementById('build-id-value');
-            const buildId = buildIdValue ? buildIdValue.textContent : null;
+            const buildId = currentBuildId || (buildIdValue ? buildIdValue.textContent : null);
 
             if (buildId && buildId !== '--') {
-                // TODO: Fetch real logs from API using buildId
+                // Show loading state
                 showInfoModal('Build Logs', `
                     <div class="font-mono text-xs bg-slate-900 rounded-lg p-4 max-h-80 overflow-y-auto text-slate-300">
                         <div class="text-center py-8 text-slate-500">
-                            <span class="material-symbols-outlined text-2xl mb-2">terminal</span>
+                            <span class="material-symbols-outlined text-2xl mb-2 animate-spin">sync</span>
                             <p>Loading logs for build ${buildId}...</p>
-                            <p class="text-xs mt-2">Log retrieval will be available once the API endpoint is configured.</p>
                         </div>
                     </div>
                 `);
+
+                // Fetch real logs from API
+                try {
+                    const response = await fetch(`${CONFIG.apiUrl}/webhook/grimlock/build-logs?id=${encodeURIComponent(buildId)}`);
+                    const result = await response.json();
+
+                    if (result.success && result.data?.logs && result.data.logs.length > 0) {
+                        const logsHtml = formatBuildLogs(result.data.logs);
+                        showInfoModal('Build Logs', logsHtml);
+                    } else {
+                        showInfoModal('Build Logs', `
+                            <div class="font-mono text-xs bg-slate-900 rounded-lg p-4 max-h-80 overflow-y-auto text-slate-300">
+                                <div class="text-center py-8 text-slate-500">
+                                    <span class="material-symbols-outlined text-2xl mb-2">terminal</span>
+                                    <p>No logs found for this build.</p>
+                                    <p class="text-xs mt-2">Logs may not have been recorded yet.</p>
+                                </div>
+                            </div>
+                        `);
+                    }
+                } catch (error) {
+                    console.error('[ViewLogs] API error:', error);
+                    showInfoModal('Build Logs', `
+                        <div class="font-mono text-xs bg-slate-900 rounded-lg p-4 max-h-80 overflow-y-auto text-slate-300">
+                            <div class="text-center py-8 text-rose-400">
+                                <span class="material-symbols-outlined text-2xl mb-2">error</span>
+                                <p>Failed to load logs</p>
+                                <p class="text-xs mt-2">${error.message}</p>
+                            </div>
+                        </div>
+                    `);
+                }
             } else {
                 showInfoModal('Build Logs', `
                     <div class="font-mono text-xs bg-slate-900 rounded-lg p-4 max-h-80 overflow-y-auto text-slate-300">
@@ -2081,7 +2237,10 @@ async function initAnalyticsData() {
             const avgTimeEl = document.getElementById('analytics-avg-time');
             const timeChangeEl = document.getElementById('analytics-time-change');
             if (avgTimeEl) {
-                avgTimeEl.textContent = (data.avgDuration || 0) + 'm';
+                const avgSecs = data.avgDuration || 0;
+                const mins = Math.floor(avgSecs / 60);
+                const secs = avgSecs % 60;
+                avgTimeEl.textContent = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
             }
             if (timeChangeEl && data.avgDuration > 0) {
                 timeChangeEl.textContent = '-3.2m';
@@ -2092,6 +2251,13 @@ async function initAnalyticsData() {
             const donutTotalEl = document.getElementById('analytics-donut-total');
             if (donutTotalEl) {
                 donutTotalEl.textContent = data.totalBuilds || 0;
+            }
+
+            // Update Most Built MCPs table
+            if (data.mcps && data.mcps.length > 0) {
+                updateMCPsTable(data.mcps);
+            } else {
+                updateMCPsTable([]);
             }
 
             console.log('[Analytics] Loaded analytics:', data);
@@ -2117,6 +2283,63 @@ async function initAnalyticsData() {
     } catch (error) {
         console.error('[Analytics] Failed to load data:', error);
     }
+}
+
+/**
+ * Update the Most Built MCPs table with real data
+ * @param {Array} mcps - Array of MCP objects with name, builds, successRate, avgTime
+ */
+function updateMCPsTable(mcps) {
+    const tbody = document.getElementById('mcps-table-body');
+    if (!tbody) return;
+
+    // Show empty state if no data
+    if (!mcps || mcps.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                    <span class="material-symbols-outlined text-2xl mb-2">inventory_2</span>
+                    <p>No MCP build data yet</p>
+                    <p class="text-xs mt-1">Data will appear after builds complete</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    // Generate table rows
+    const rows = mcps.map(mcp => {
+        const name = mcp.name || 'Unknown';
+        const builds = mcp.builds || 0;
+        const successRate = mcp.successRate || 0;
+        const avgTime = mcp.avgTime || 0;
+
+        // Format average time
+        const mins = Math.floor(avgTime / 60);
+        const secs = avgTime % 60;
+        const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+
+        // Color code success rate
+        let rateColor = 'text-emerald-600 dark:text-emerald-400';
+        if (successRate < 90) rateColor = 'text-amber-600 dark:text-amber-400';
+        if (successRate < 70) rateColor = 'text-rose-600 dark:text-rose-400';
+
+        // Format name nicely
+        const displayName = name.replace(/-/g, ' ').replace(/_/g, ' ')
+            .split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+        return `
+            <tr class="hover:bg-slate-50 dark:hover:bg-surface-darker">
+                <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">${displayName}</td>
+                <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">${builds}</td>
+                <td class="px-6 py-4"><span class="text-sm font-medium ${rateColor}">${successRate}%</span></td>
+                <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">${timeStr}</td>
+            </tr>
+        `;
+    }).join('');
+
+    tbody.innerHTML = rows;
+    console.log('[MCPs Table] Updated with', mcps.length, 'entries');
 }
 
 /**

@@ -1,0 +1,6 @@
+{"ts":"2025-12-30T12:00:00Z","event":"build_start","phase":"prd_uploaded","msg":"Test PRD uploaded for end-to-end testing","level":"info"}
+{"ts":"2025-12-30T12:01:00Z","event":"phase_change","phase":"analysis","msg":"Analyzing PRD requirements","level":"info"}
+{"ts":"2025-12-30T12:02:00Z","event":"phase_change","phase":"specGen","msg":"Generating specifications","level":"info"}
+{"ts":"2025-12-30T12:03:00Z","event":"phase_change","phase":"codeGen","msg":"Generating MCP server code","level":"info"}
+{"ts":"2025-12-30T12:04:00Z","event":"phase_change","phase":"validation","msg":"Running test suite","level":"info"}
+{"ts":"2025-12-30T12:05:00Z","event":"build_complete","phase":"complete","msg":"Build completed successfully","level":"success"}

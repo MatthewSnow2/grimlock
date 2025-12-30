@@ -1,0 +1,15 @@
+{
+  "builds": [
+    {
+      "id": "test-build-20251230",
+      "name": "test",
+      "status": "success",
+      "phase": "complete",
+      "startedAt": "2025-12-30T12:00:00Z",
+      "stoppedAt": "2025-12-30T12:05:00Z",
+      "duration": 300,
+      "logCount": 6
+    }
+  ],
+  "lastUpdated": "2025-12-30T17:52:13.737Z"
+}
