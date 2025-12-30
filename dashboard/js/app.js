@@ -767,18 +767,13 @@ async function initLogsPage() {
 }
 
 /**
- * Show demo/fallback logs data
+ * Show empty state when no logs data is available
  */
 function showDemoLogs() {
-    const demoData = [
-        { id: '4092', name: 'Payment Module', status: 'success', duration: 14, startedAt: new Date().toISOString() },
-        { id: '4091', name: 'Auth Service', status: 'success', duration: 22, startedAt: new Date(Date.now() - 86400000).toISOString() },
-        { id: '4090', name: 'Data Sync', status: 'warning', duration: 18, startedAt: new Date(Date.now() - 86400000 * 2).toISOString() },
-        { id: '4089', name: 'Email Service', status: 'error', duration: 8, startedAt: new Date(Date.now() - 86400000 * 3).toISOString() },
-        { id: '4088', name: 'Analytics MCP', status: 'success', duration: 31, startedAt: new Date(Date.now() - 86400000 * 4).toISOString() }
-    ];
-    currentLogsData = demoData;
-    updateLogsUI(demoData);
+    // Show empty state instead of fake demo data
+    currentLogsData = [];
+    updateLogsUI([]);
+    console.log('[Logs] No build history available - showing empty state');
 }
 
 /**
@@ -1723,23 +1718,32 @@ function initEventListeners() {
     const viewLogsBtn = document.getElementById('view-logs-btn');
     if (viewLogsBtn) {
         viewLogsBtn.addEventListener('click', () => {
-            showInfoModal('Build Logs', `
-                <div class="font-mono text-xs bg-slate-900 rounded-lg p-4 max-h-80 overflow-y-auto text-slate-300 space-y-1">
-                    <div><span class="text-blue-400">[10:42:01] INFO</span> Initializing build environment...</div>
-                    <div><span class="text-blue-400">[10:42:02] INFO</span> Loading MCP configuration v2.1.0</div>
-                    <div><span class="text-blue-400">[10:42:05] INFO</span> PRD analysis complete. Confidence: 94%</div>
-                    <div><span class="text-emerald-400">[10:42:06] SUCCESS</span> Schema validation passed for 12 models.</div>
-                    <div><span class="text-blue-400">[10:42:08] INFO</span> Starting Code Generation Module...</div>
-                    <div><span class="text-blue-400">[10:42:15] INFO</span> Generating payment_gateway.ts...</div>
-                    <div><span class="text-blue-400">[10:42:18] INFO</span> Generating transaction_logger.ts...</div>
-                    <div><span class="text-amber-400">[10:42:22] WARN</span> Deprecated method usage in auth_utils.ts:45</div>
-                    <div><span class="text-blue-400">[10:42:22] INFO</span> Auto-correcting deprecation... <span class="text-emerald-400">DONE</span></div>
-                    <div><span class="text-blue-400">[10:42:25] INFO</span> Running unit tests (Batch 1/4)...</div>
-                    <div><span class="text-emerald-400">[10:42:28] PASS</span> PaymentControllerTest.createOrder</div>
-                    <div><span class="text-emerald-400">[10:42:29] PASS</span> PaymentControllerTest.validateCard</div>
-                    <div><span class="text-emerald-400">[10:42:40] SUCCESS</span> Build completed successfully!</div>
-                </div>
-            `);
+            // Show actual build logs if available, otherwise show empty state
+            const buildIdValue = document.getElementById('build-id-value');
+            const buildId = buildIdValue ? buildIdValue.textContent : null;
+
+            if (buildId && buildId !== '--') {
+                // TODO: Fetch real logs from API using buildId
+                showInfoModal('Build Logs', `
+                    <div class="font-mono text-xs bg-slate-900 rounded-lg p-4 max-h-80 overflow-y-auto text-slate-300">
+                        <div class="text-center py-8 text-slate-500">
+                            <span class="material-symbols-outlined text-2xl mb-2">terminal</span>
+                            <p>Loading logs for build ${buildId}...</p>
+                            <p class="text-xs mt-2">Log retrieval will be available once the API endpoint is configured.</p>
+                        </div>
+                    </div>
+                `);
+            } else {
+                showInfoModal('Build Logs', `
+                    <div class="font-mono text-xs bg-slate-900 rounded-lg p-4 max-h-80 overflow-y-auto text-slate-300">
+                        <div class="text-center py-8 text-slate-500">
+                            <span class="material-symbols-outlined text-2xl mb-2">terminal</span>
+                            <p>No build logs available.</p>
+                            <p class="text-xs mt-2">Logs will appear here after a build completes.</p>
+                        </div>
+                    </div>
+                `);
+            }
         });
     }
 
