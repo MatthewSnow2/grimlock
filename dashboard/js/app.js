@@ -7,8 +7,9 @@
 const CONFIG = {
     // External PRD Design Wizard URL (n8n form)
     wizardUrl: 'https://im4tlai.app.n8n.cloud/form/grimlock-wizard',
-    // API base URL for dashboard integration (FastAPI backend via Caddy HTTPS)
-    apiUrl: 'https://54.225.171.108'
+    // API base URL - empty string for relative URLs (proxied through Netlify)
+    // Netlify _redirects routes /api/* to EC2 backend, solving self-signed cert issue
+    apiUrl: ''
 };
 
 // Track active confirm callback
@@ -320,7 +321,7 @@ This is a demo manifest. In production, the actual package would be downloaded.`
  */
 const DEFAULT_CONFIG = {
     wizardUrl: 'https://im4tlai.app.n8n.cloud/form/grimlock-wizard',
-    apiUrl: 'https://54.225.171.108',
+    apiUrl: '',  // Empty = relative URLs (proxied through Netlify)
     defaultSdk: 'typescript',
     githubTarget: 'm2ai-mcp-servers',
     customGithubUrl: '',
