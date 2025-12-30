@@ -5,7 +5,7 @@
 
 // API Configuration
 const API_CONFIG = {
-    baseUrl: 'http://54.225.171.108:8000',
+    baseUrl: 'https://54.225.171.108',
     defaultTimeout: 10000,      // 10 seconds
     defaultCacheTTL: 30000,     // 30 seconds
     maxRetries: 3,
