@@ -1842,32 +1842,51 @@ async function initBuildActivityChart() {
  * Initialize authentication and show/hide login overlay
  */
 function initAuth() {
+    console.log('[Auth] Initializing authentication...');
+
     const loginOverlay = document.getElementById('login-overlay');
     const googleLoginBtn = document.getElementById('google-login-btn');
 
-    // Initialize auth module
-    const isAuthenticated = Auth.init();
+    console.log('[Auth] Login overlay found:', !!loginOverlay);
+    console.log('[Auth] Google login button found:', !!googleLoginBtn);
 
-    if (isAuthenticated) {
-        // Hide login overlay
-        if (loginOverlay) loginOverlay.classList.add('hidden');
+    // Check if Auth module is loaded
+    if (typeof Auth === 'undefined') {
+        console.error('[Auth] Auth module not loaded!');
+        return;
+    }
 
-        // Update user profile in sidebar
-        updateUserProfile();
+    try {
+        // Initialize auth module
+        const isAuthenticated = Auth.init();
 
-        console.log('[Auth] User authenticated:', Auth.getUser()?.email);
-    } else {
-        // Show login overlay
-        if (loginOverlay) loginOverlay.classList.remove('hidden');
+        if (isAuthenticated) {
+            // Hide login overlay
+            if (loginOverlay) loginOverlay.classList.add('hidden');
 
-        console.log('[Auth] User not authenticated, showing login');
+            // Update user profile in sidebar
+            updateUserProfile();
+
+            console.log('[Auth] User authenticated:', Auth.getUser()?.email);
+        } else {
+            // Show login overlay
+            if (loginOverlay) loginOverlay.classList.remove('hidden');
+
+            console.log('[Auth] User not authenticated, showing login');
+        }
+    } catch (error) {
+        console.error('[Auth] Error during init:', error);
     }
 
     // Google login button handler
     if (googleLoginBtn) {
         googleLoginBtn.addEventListener('click', () => {
+            console.log('[Auth] Login button clicked!');
             Auth.login();
         });
+        console.log('[Auth] Login button click handler attached');
+    } else {
+        console.error('[Auth] Could not find google-login-btn element');
     }
 }
 
