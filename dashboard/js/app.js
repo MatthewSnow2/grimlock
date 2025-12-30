@@ -1453,15 +1453,45 @@ function initEventListeners() {
                 const content = await readFileAsText(window.selectedFile);
                 console.log('[Upload] File content loaded, length:', content.length);
 
-                // Store PRD content for processing
+                const filename = window.selectedFile.name;
+
+                // Show loading state
+                Toast.info('Uploading PRD and starting build...');
+                processFileBtn.disabled = true;
+                processFileBtn.textContent = 'Processing...';
+
+                // Submit PRD to n8n webhook
+                const webhookUrl = `${CONFIG.apiUrl}/webhook/grimlock/prd-upload`;
+                console.log('[Upload] Submitting to:', webhookUrl);
+
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        filename: filename,
+                        content: content
+                    })
+                });
+
+                const result = await response.json();
+                console.log('[Upload] Response:', result);
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || 'Failed to submit PRD');
+                }
+
+                // Store PRD content for progress tracking
                 window.uploadedPRD = {
-                    filename: window.selectedFile.name,
+                    filename: filename,
                     content: content,
+                    projectName: result.projectName,
                     uploadedAt: new Date().toISOString()
                 };
 
                 closeUploadModal();
-                Toast.success(`PRD "${window.selectedFile.name}" uploaded successfully`);
+                Toast.success(`PRD "${filename}" uploaded - build started!`);
 
                 // Reset for next upload
                 window.selectedFile = null;
@@ -1473,8 +1503,12 @@ function initEventListeners() {
                 Router.navigate('/progress');
 
             } catch (error) {
-                console.error('[Upload] Error reading file:', error);
-                Toast.error('Error reading file: ' + error.message);
+                console.error('[Upload] Error:', error);
+                Toast.error('Upload failed: ' + error.message);
+            } finally {
+                // Reset button state
+                processFileBtn.disabled = false;
+                processFileBtn.textContent = 'Start Build';
             }
         });
     }
