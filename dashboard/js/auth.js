@@ -137,3 +137,5 @@ const Auth = {
 
 // Export for use in other modules
 window.Auth = Auth;
+
+console.log('[Auth] Auth module loaded');
