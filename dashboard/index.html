@@ -91,15 +91,15 @@
                         <span class="material-symbols-outlined" style="font-size: 22px;">factory</span>
                         <span>Builds</span>
                     </a>
-                    <a class="nav-link group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-text-secondary transition-colors hover:bg-slate-100 dark:hover:bg-[#282e39] dark:hover:text-white" href="#" data-nav="config">
+                    <a class="nav-link group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-text-secondary transition-colors hover:bg-slate-100 dark:hover:bg-[#282e39] dark:hover:text-white" href="#/config" data-nav="config">
                         <span class="material-symbols-outlined" style="font-size: 22px;">settings_suggest</span>
                         <span>Configuration</span>
                     </a>
-                    <a class="nav-link group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-text-secondary transition-colors hover:bg-slate-100 dark:hover:bg-[#282e39] dark:hover:text-white" href="#" data-nav="logs">
+                    <a class="nav-link group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-text-secondary transition-colors hover:bg-slate-100 dark:hover:bg-[#282e39] dark:hover:text-white" href="#/logs" data-nav="logs">
                         <span class="material-symbols-outlined" style="font-size: 22px;">description</span>
                         <span>Logs</span>
                     </a>
-                    <a class="nav-link group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-text-secondary transition-colors hover:bg-slate-100 dark:hover:bg-[#282e39] dark:hover:text-white" href="#" data-nav="analytics">
+                    <a class="nav-link group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-text-secondary transition-colors hover:bg-slate-100 dark:hover:bg-[#282e39] dark:hover:text-white" href="#/analytics" data-nav="analytics">
                         <span class="material-symbols-outlined" style="font-size: 22px;">analytics</span>
                         <span>Analytics</span>
                     </a>
@@ -107,15 +107,17 @@
             </div>
             <!-- Bottom Actions -->
             <div class="flex flex-col gap-2 border-t border-slate-200 dark:border-border-dark pt-4">
-                <a class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-text-secondary transition-colors hover:bg-slate-100 dark:hover:bg-[#282e39] dark:hover:text-white" href="#">
+                <a class="nav-link group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-text-secondary transition-colors hover:bg-slate-100 dark:hover:bg-[#282e39] dark:hover:text-white" href="#/settings" data-nav="settings">
                     <span class="material-symbols-outlined" style="font-size: 22px;">settings</span>
                     <span>Settings</span>
                 </a>
                 <div class="mt-2 flex items-center gap-3 rounded-xl bg-slate-100 dark:bg-card-dark p-3">
-                    <div class="h-9 w-9 overflow-hidden rounded-full bg-slate-300 bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBtA4O6HtgkWPZb7kUmRcp9aDvcMZlcwxnU42T98kucywepZhOAHkejEVO7IYkypp-YGpPp2KzFcFoqWDFYLaguipiFeX-zV4XTTgA88CmyovlsB6VD5TDI0GltK1lPY-LhJV1N8XHeh-tffoP2qJneVU9afILZet2FxbetB2r9BB9G-yiMF2NHGdFVJ2JxXVGVUTUgGW7Huvlf4x1pm3PmtooydymxKFxcFMAJQARARp8tVml96B49BG0SbnLZUXCnOnUn9g0V_EI");'></div>
+                    <div class="h-9 w-9 overflow-hidden rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-lg">precision_manufacturing</span>
+                    </div>
                     <div class="flex flex-col overflow-hidden">
-                        <span class="truncate text-sm font-semibold dark:text-white">Alex Morgan</span>
-                        <span class="truncate text-xs text-slate-500 dark:text-text-secondary">Lead Engineer</span>
+                        <span class="truncate text-sm font-semibold dark:text-white">GRIMLOCK</span>
+                        <span class="truncate text-xs text-slate-500 dark:text-text-secondary">MCP Factory v1.0</span>
                     </div>
                 </div>
             </div>
@@ -128,12 +130,12 @@
         <header class="flex h-16 items-center justify-between border-b border-slate-200 dark:border-border-dark bg-white dark:bg-surface-darker px-8">
             <div class="flex items-center gap-4">
                 <span class="material-symbols-outlined text-slate-400" style="font-size: 24px;">search</span>
-                <input class="h-full w-64 bg-transparent text-sm text-slate-900 placeholder-slate-400 focus:outline-none dark:text-white dark:placeholder-slate-500" placeholder="Search builds, logs, or artifacts..." type="text"/>
+                <input id="search-input" class="h-full w-64 bg-transparent text-sm text-slate-900 placeholder-slate-400 focus:outline-none dark:text-white dark:placeholder-slate-500" placeholder="Search builds, logs, or artifacts..." type="text"/>
             </div>
             <div class="flex items-center gap-6">
                 <div class="flex items-center gap-4">
-                    <a class="text-sm font-medium text-slate-600 hover:text-primary dark:text-text-secondary dark:hover:text-white transition-colors" href="#">Documentation</a>
-                    <a class="text-sm font-medium text-slate-600 hover:text-primary dark:text-text-secondary dark:hover:text-white transition-colors" href="#">Support</a>
+                    <a class="text-sm font-medium text-slate-600 hover:text-primary dark:text-text-secondary dark:hover:text-white transition-colors" href="#/documentation" data-nav="documentation">Documentation</a>
+                    <a class="text-sm font-medium text-slate-600 hover:text-primary dark:text-text-secondary dark:hover:text-white transition-colors" href="#/support" data-nav="support">Support</a>
                 </div>
                 <div class="h-6 w-px bg-slate-200 dark:bg-border-dark"></div>
                 <button id="new-build-btn" class="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-600 hover:shadow-blue-500/40">
@@ -226,19 +228,19 @@
                 <div class="flex flex-wrap items-end justify-between gap-4">
                     <div class="flex flex-col gap-2">
                         <div class="flex items-center gap-3">
-                            <h2 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Build #4092: Payment Module</h2>
-                            <span class="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            <h2 id="build-title" class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Build #4092: Payment Module</h2>
+                            <span id="build-status-badge" class="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                                 <span class="relative flex h-2 w-2">
                                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                     <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                 </span>
-                                Running
+                                <span id="build-status-text">Running</span>
                             </span>
                         </div>
                         <div class="flex items-center gap-4 text-sm text-slate-500 dark:text-text-secondary">
                             <span class="flex items-center gap-1.5">
                                 <span class="material-symbols-outlined" style="font-size: 18px;">schedule</span>
-                                Started 2m ago
+                                <span id="build-started-time">Started 2m ago</span>
                             </span>
                             <span class="h-1 w-1 rounded-full bg-slate-400"></span>
                             <span class="flex items-center gap-1.5">
@@ -248,15 +250,15 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
-                        <button class="flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 dark:border-border-dark dark:bg-card-dark dark:text-white dark:hover:bg-card-dark-lighter">
+                        <button id="pause-btn" class="flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 dark:border-border-dark dark:bg-card-dark dark:text-white dark:hover:bg-card-dark-lighter">
                             <span class="material-symbols-outlined" style="font-size: 20px;">pause</span>
                             Pause
                         </button>
-                        <button class="flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-rose-600 transition-colors hover:bg-rose-50 dark:border-border-dark dark:bg-card-dark dark:text-rose-400 dark:hover:bg-card-dark-lighter">
+                        <button id="cancel-btn" class="flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-rose-600 transition-colors hover:bg-rose-50 dark:border-border-dark dark:bg-card-dark dark:text-rose-400 dark:hover:bg-card-dark-lighter">
                             <span class="material-symbols-outlined" style="font-size: 20px;">cancel</span>
                             Cancel
                         </button>
-                        <button class="flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 dark:border-border-dark dark:bg-card-dark dark:text-white dark:hover:bg-card-dark-lighter">
+                        <button id="logs-btn" class="flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 dark:border-border-dark dark:bg-card-dark dark:text-white dark:hover:bg-card-dark-lighter">
                             <span class="material-symbols-outlined" style="font-size: 20px;">download</span>
                             Logs
                         </button>
@@ -267,10 +269,10 @@
                     <div class="flex flex-col gap-2">
                         <div class="flex justify-between text-sm font-medium">
                             <span class="text-slate-900 dark:text-white">Overall Progress</span>
-                            <span class="text-primary">65%</span>
+                            <span id="progress-percent" class="text-primary">65%</span>
                         </div>
                         <div class="h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
-                            <div class="h-full w-[65%] rounded-full bg-primary transition-all duration-500 ease-out shadow-[0_0_12px_rgba(19,91,236,0.6)]"></div>
+                            <div id="progress-bar" class="h-full w-[65%] rounded-full bg-primary transition-all duration-500 ease-out shadow-[0_0_12px_rgba(19,91,236,0.6)]"></div>
                         </div>
                     </div>
                     <!-- Stepper Visual -->
@@ -314,30 +316,30 @@
                     <div class="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-border-dark dark:bg-card-dark">
                         <div class="flex items-center gap-2 text-slate-500 dark:text-text-secondary">
                             <span class="material-symbols-outlined" style="font-size: 20px;">folder_open</span>
-                            <span class="text-xs font-semibold uppercase tracking-wide">Files Processed</span>
+                            <span class="text-xs font-semibold uppercase tracking-wide">Tasks Completed</span>
                         </div>
-                        <span class="text-2xl font-black text-slate-900 dark:text-white">1,248</span>
+                        <span id="metric-tasks-completed" class="text-2xl font-black text-slate-900 dark:text-white">0</span>
                     </div>
                     <div class="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-border-dark dark:bg-card-dark">
                         <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                             <span class="material-symbols-outlined" style="font-size: 20px;">verified</span>
-                            <span class="text-xs font-semibold uppercase tracking-wide">Best Practices</span>
+                            <span class="text-xs font-semibold uppercase tracking-wide">Criteria Passed</span>
                         </div>
-                        <span class="text-2xl font-black text-slate-900 dark:text-white">98.2%</span>
+                        <span id="metric-criteria-passed" class="text-2xl font-black text-slate-900 dark:text-white">0/0</span>
                     </div>
                     <div class="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-border-dark dark:bg-card-dark">
                         <div class="flex items-center gap-2 text-amber-500">
                             <span class="material-symbols-outlined" style="font-size: 20px;">warning</span>
-                            <span class="text-xs font-semibold uppercase tracking-wide">Warnings</span>
+                            <span class="text-xs font-semibold uppercase tracking-wide">Escalations</span>
                         </div>
-                        <span class="text-2xl font-black text-slate-900 dark:text-white">3</span>
+                        <span id="metric-escalations" class="text-2xl font-black text-slate-900 dark:text-white">0</span>
                     </div>
                     <div class="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-border-dark dark:bg-card-dark">
                         <div class="flex items-center gap-2 text-rose-500">
                             <span class="material-symbols-outlined" style="font-size: 20px;">error</span>
-                            <span class="text-xs font-semibold uppercase tracking-wide">Errors</span>
+                            <span class="text-xs font-semibold uppercase tracking-wide">Failed Criteria</span>
                         </div>
-                        <span class="text-2xl font-black text-slate-900 dark:text-white">0</span>
+                        <span id="metric-criteria-failed" class="text-2xl font-black text-slate-900 dark:text-white">0</span>
                     </div>
                 </div>
                 <!-- MAIN DASHBOARD CONTENT -->
@@ -349,15 +351,15 @@
                             <div class="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-border-dark dark:bg-card-dark">
                                 <div class="mb-4 flex items-center justify-between">
                                     <h3 class="text-base font-bold text-slate-900 dark:text-white">PRD Confidence</h3>
-                                    <button class="text-slate-400 hover:text-primary transition-colors">
+                                    <button id="prd-confidence-info-btn" class="text-slate-400 hover:text-primary transition-colors">
                                         <span class="material-symbols-outlined" style="font-size: 20px;">info</span>
                                     </button>
                                 </div>
                                 <div class="flex items-center gap-6">
-                                    <div class="relative flex h-28 w-28 items-center justify-center rounded-full conic-gauge">
+                                    <div id="prd-confidence-gauge" class="relative flex h-28 w-28 items-center justify-center rounded-full conic-gauge">
                                         <div class="absolute h-24 w-24 rounded-full bg-white dark:bg-card-dark"></div>
                                         <div class="relative z-10 flex flex-col items-center">
-                                            <span class="text-2xl font-black text-slate-900 dark:text-white">94%</span>
+                                            <span id="prd-confidence-value" class="text-2xl font-black text-slate-900 dark:text-white">0%</span>
                                             <span class="text-[10px] font-bold uppercase text-slate-400">Match</span>
                                         </div>
                                     </div>
@@ -411,7 +413,7 @@
                         <div class="flex flex-1 flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-border-dark dark:bg-card-dark">
                             <div class="mb-6 flex items-center justify-between">
                                 <h3 class="text-base font-bold text-slate-900 dark:text-white">Build Velocity &amp; Throughput</h3>
-                                <select class="rounded-lg border-none bg-slate-100 py-1 pl-3 pr-8 text-xs font-medium text-slate-700 focus:ring-0 dark:bg-surface-darker dark:text-slate-300">
+                                <select id="time-range-select" class="rounded-lg border-none bg-slate-100 py-1 pl-3 pr-8 text-xs font-medium text-slate-700 focus:ring-0 dark:bg-surface-darker dark:text-slate-300">
                                     <option>Last hour</option>
                                     <option>Last 24 hours</option>
                                 </select>
@@ -477,13 +479,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- Complete Build Button (Demo) -->
-                <div class="flex justify-center mt-4">
-                    <button id="complete-build-btn" class="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold transition-all">
-                        <span class="material-symbols-outlined">check_circle</span>
-                        <span>Simulate Build Complete</span>
-                    </button>
-                </div>
             </div>
         </div>
 
@@ -501,11 +496,11 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
-                        <button class="h-11 px-5 rounded-lg border border-border-dark bg-surface-darker text-white text-sm font-semibold hover:bg-border-dark transition-colors flex items-center gap-2">
+                        <button id="view-logs-btn" class="h-11 px-5 rounded-lg border border-border-dark bg-surface-darker text-white text-sm font-semibold hover:bg-border-dark transition-colors flex items-center gap-2">
                             <span class="material-symbols-outlined text-lg">terminal</span>
                             View Logs
                         </button>
-                        <button class="h-11 px-6 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-bold shadow-[0_0_15px_rgba(19,91,236,0.4)] transition-all flex items-center gap-2">
+                        <button id="download-btn" class="h-11 px-6 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-bold shadow-[0_0_15px_rgba(19,91,236,0.4)] transition-all flex items-center gap-2">
                             <span class="material-symbols-outlined text-lg">download</span>
                             Download Package
                         </button>
@@ -525,31 +520,28 @@
                             <div class="space-y-4">
                                 <div class="flex items-center justify-between py-2 border-b border-white/5">
                                     <span class="text-text-secondary text-sm">MCP Name</span>
-                                    <span class="text-white font-medium text-sm">Data-Pipeline-Connector</span>
+                                    <span id="complete-mcp-name" class="text-white font-medium text-sm">Loading...</span>
                                 </div>
                                 <div class="flex items-center justify-between py-2 border-b border-white/5">
                                     <span class="text-text-secondary text-sm">Build ID</span>
                                     <div class="flex items-center gap-2">
-                                        <span class="text-white font-mono text-sm">8823-AF</span>
-                                        <button class="text-text-secondary hover:text-white transition-colors" title="Copy ID">
+                                        <span id="build-id-value" class="text-white font-mono text-sm">--</span>
+                                        <button id="copy-id-btn" class="text-text-secondary hover:text-white transition-colors" title="Copy ID">
                                             <span class="material-symbols-outlined text-[16px]">content_copy</span>
                                         </button>
                                     </div>
                                 </div>
                                 <div class="flex items-center justify-between py-2 border-b border-white/5">
-                                    <span class="text-text-secondary text-sm">Version</span>
-                                    <span class="text-white font-medium text-sm">v1.0.4</span>
+                                    <span class="text-text-secondary text-sm">Status</span>
+                                    <span id="complete-status" class="text-white font-medium text-sm">--</span>
                                 </div>
                                 <div class="flex items-center justify-between py-2 border-b border-white/5">
                                     <span class="text-text-secondary text-sm">Total Duration</span>
-                                    <span class="text-white font-medium text-sm">14s</span>
+                                    <span id="complete-duration" class="text-white font-medium text-sm">--</span>
                                 </div>
                                 <div class="flex items-center justify-between py-2">
-                                    <span class="text-text-secondary text-sm">Target Environment</span>
-                                    <div class="flex items-center gap-2">
-                                        <span class="material-symbols-outlined text-text-secondary text-sm">laptop_mac</span>
-                                        <span class="text-white font-medium text-sm">Local Runtime</span>
-                                    </div>
+                                    <span class="text-text-secondary text-sm">Completed At</span>
+                                    <span id="complete-timestamp" class="text-white font-medium text-sm">--</span>
                                 </div>
                             </div>
                         </div>
@@ -557,39 +549,40 @@
                         <div class="bg-surface-dark rounded-xl border border-border-dark p-6 shadow-sm">
                             <h3 class="text-white text-base font-bold mb-4 flex items-center gap-2">
                                 <span class="material-symbols-outlined text-primary text-xl">description</span>
-                                Purpose &amp; Scope
+                                Workflow Details
                             </h3>
-                            <p class="text-text-secondary text-sm leading-relaxed">
-                                This MCP acts as a secure middleware layer to facilitate read/write operations to the internal analytics database. It exposes 3 custom tools for the AI agent to query user metrics, generate reports, and update session logs without direct SQL access.
+                            <p id="complete-workflow-name" class="text-text-secondary text-sm leading-relaxed mb-4">
+                                Loading workflow details...
                             </p>
                             <div class="mt-6">
-                                <h4 class="text-xs font-semibold text-white uppercase tracking-wider mb-3">Tools Integrated</h4>
-                                <div class="flex flex-wrap gap-3">
+                                <h4 class="text-xs font-semibold text-white uppercase tracking-wider mb-3">Execution Info</h4>
+                                <div id="complete-execution-info" class="flex flex-wrap gap-3">
+                                    <!-- Will be populated dynamically -->
                                     <div class="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-surface-darker border border-border-dark rounded-lg">
-                                        <div class="size-6 bg-[#336791]/20 rounded flex items-center justify-center text-[#336791]">
-                                            <span class="material-symbols-outlined text-sm">database</span>
+                                        <div class="size-6 bg-blue-500/20 rounded flex items-center justify-center text-blue-400">
+                                            <span class="material-symbols-outlined text-sm">schedule</span>
                                         </div>
                                         <div class="flex flex-col">
-                                            <span class="text-white text-xs font-semibold">Postgres Adapter</span>
-                                            <span class="text-[10px] text-text-secondary">Read/Write</span>
+                                            <span class="text-white text-xs font-semibold">Started</span>
+                                            <span id="complete-started-at" class="text-[10px] text-text-secondary">--</span>
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-surface-darker border border-border-dark rounded-lg">
-                                        <div class="size-6 bg-[#EB5424]/20 rounded flex items-center justify-center text-[#EB5424]">
-                                            <span class="material-symbols-outlined text-sm">lock</span>
+                                        <div class="size-6 bg-emerald-500/20 rounded flex items-center justify-center text-emerald-400">
+                                            <span class="material-symbols-outlined text-sm">check_circle</span>
                                         </div>
                                         <div class="flex flex-col">
-                                            <span class="text-white text-xs font-semibold">Auth0 Handler</span>
-                                            <span class="text-[10px] text-text-secondary">Authentication</span>
+                                            <span class="text-white text-xs font-semibold">Finished</span>
+                                            <span id="complete-finished-at" class="text-[10px] text-text-secondary">--</span>
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-surface-darker border border-border-dark rounded-lg">
-                                        <div class="size-6 bg-[#FF9900]/20 rounded flex items-center justify-center text-[#FF9900]">
-                                            <span class="material-symbols-outlined text-sm">cloud</span>
+                                        <div class="size-6 bg-purple-500/20 rounded flex items-center justify-center text-purple-400">
+                                            <span class="material-symbols-outlined text-sm">play_circle</span>
                                         </div>
                                         <div class="flex flex-col">
-                                            <span class="text-white text-xs font-semibold">S3 Storage</span>
-                                            <span class="text-[10px] text-text-secondary">Artifacts</span>
+                                            <span class="text-white text-xs font-semibold">Mode</span>
+                                            <span id="complete-mode" class="text-[10px] text-text-secondary">--</span>
                                         </div>
                                     </div>
                                 </div>
@@ -597,65 +590,27 @@
                         </div>
                     </div>
                     <div class="lg:col-span-5 flex flex-col h-full">
-                        <!-- Generated Artifacts -->
+                        <!-- Project Info / Artifacts -->
                         <div class="bg-surface-dark rounded-xl border border-border-dark flex flex-col h-full shadow-sm overflow-hidden">
                             <div class="p-4 border-b border-border-dark flex items-center justify-between bg-surface-darker/30">
                                 <h3 class="text-white text-sm font-bold flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-primary text-lg">folder_open</span>
-                                    Generated Artifacts
+                                    <span class="material-symbols-outlined text-primary text-lg">info</span>
+                                    Project Info
                                 </h3>
-                                <span class="text-[10px] text-text-secondary bg-border-dark px-2 py-0.5 rounded">Tree View</span>
+                                <span id="complete-project-count" class="text-[10px] text-text-secondary bg-border-dark px-2 py-0.5 rounded">--</span>
                             </div>
-                            <div class="p-4 flex-1 overflow-y-auto font-mono text-sm">
-                                <ul class="space-y-1 text-text-secondary">
-                                    <li class="flex items-center gap-2 text-white">
-                                        <span class="material-symbols-outlined text-lg text-primary">folder</span>
-                                        <span>data-pipeline-connector/</span>
-                                    </li>
-                                    <li>
-                                        <ul class="pl-6 space-y-1 border-l border-border-dark ml-2">
-                                            <li class="flex items-center gap-2 group cursor-default hover:text-white">
-                                                <span class="material-symbols-outlined text-lg text-yellow-500">folder</span>
-                                                <span>src/</span>
-                                            </li>
-                                            <li>
-                                                <ul class="pl-6 space-y-1 border-l border-border-dark ml-2">
-                                                    <li class="flex items-center gap-2 group cursor-default hover:text-white">
-                                                        <span class="material-symbols-outlined text-lg text-blue-400">description</span>
-                                                        <span>main.py</span>
-                                                    </li>
-                                                    <li class="flex items-center gap-2 group cursor-default hover:text-white">
-                                                        <span class="material-symbols-outlined text-lg text-blue-400">description</span>
-                                                        <span>utils.py</span>
-                                                    </li>
-                                                    <li class="flex items-center gap-2 group cursor-default hover:text-white">
-                                                        <span class="material-symbols-outlined text-lg text-blue-400">description</span>
-                                                        <span>db_connector.py</span>
-                                                    </li>
-                                                </ul>
-                                            </li>
-                                            <li class="flex items-center gap-2 group cursor-default hover:text-white">
-                                                <span class="material-symbols-outlined text-lg text-yellow-500">folder</span>
-                                                <span>tests/</span>
-                                            </li>
-                                            <li class="flex items-center gap-2 group cursor-default hover:text-white">
-                                                <span class="material-symbols-outlined text-lg text-gray-400">description</span>
-                                                <span>config.json</span>
-                                            </li>
-                                            <li class="flex items-center gap-2 group cursor-default hover:text-white">
-                                                <span class="material-symbols-outlined text-lg text-purple-400">description</span>
-                                                <span>package.json</span>
-                                            </li>
-                                            <li class="flex items-center gap-2 group cursor-default hover:text-white">
-                                                <span class="material-symbols-outlined text-lg text-gray-400">info</span>
-                                                <span>README.md</span>
-                                            </li>
-                                        </ul>
-                                    </li>
-                                </ul>
+                            <div id="complete-project-list" class="p-4 flex-1 overflow-y-auto font-mono text-sm">
+                                <!-- Loading state -->
+                                <div class="flex items-center justify-center py-8 text-text-secondary">
+                                    <svg class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span>Loading project info...</span>
+                                </div>
                             </div>
                             <div class="p-3 bg-surface-darker/50 border-t border-border-dark">
-                                <p class="text-[10px] text-text-secondary text-center">Total 12 files generated - 4.2 MB uncompressed</p>
+                                <p id="complete-project-path" class="text-[10px] text-text-secondary text-center">--</p>
                             </div>
                         </div>
                     </div>
@@ -679,6 +634,792 @@
                             <h4 class="text-white text-sm font-semibold">Deploy to Staging</h4>
                             <p class="text-text-secondary text-xs">Push this artifact to the cloud</p>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONFIGURATION VIEW -->
+        <div data-view="config" class="custom-scrollbar flex-1 overflow-y-auto p-8 hidden">
+            <div class="max-w-4xl mx-auto flex flex-col gap-8 pb-12">
+                <!-- Header -->
+                <div class="flex flex-col gap-2">
+                    <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Configuration</h1>
+                    <p class="text-slate-500 dark:text-text-secondary">Manage your MCP Factory settings and integrations.</p>
+                </div>
+
+                <!-- n8n Integration Section -->
+                <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="size-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-orange-500">hub</span>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white">n8n Integration</h3>
+                            <p class="text-xs text-slate-500 dark:text-text-secondary">Configure your n8n workflow connections</p>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <!-- Wizard URL -->
+                        <div class="flex flex-col gap-2">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-300" for="config-wizard-url">
+                                PRD Wizard Form URL
+                                <span class="text-xs text-slate-400 font-normal ml-2">Opens when user clicks "Begin Wizard"</span>
+                            </label>
+                            <input
+                                type="url"
+                                id="config-wizard-url"
+                                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-surface-darker text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                                placeholder="https://your-n8n.cloud/form/wizard-path"
+                            />
+                        </div>
+                        <!-- API URL -->
+                        <div class="flex flex-col gap-2">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-300" for="config-api-url">
+                                n8n API Base URL
+                                <span class="text-xs text-slate-400 font-normal ml-2">For workflow triggers and status checks</span>
+                            </label>
+                            <input
+                                type="url"
+                                id="config-api-url"
+                                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-surface-darker text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                                placeholder="https://your-n8n.cloud"
+                            />
+                        </div>
+                        <!-- Test Connection Button -->
+                        <div class="pt-2">
+                            <button id="test-n8n-connection" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-border-dark text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-surface-darker transition-colors">
+                                <span class="material-symbols-outlined text-lg">wifi_tethering</span>
+                                Test Connection
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Build Defaults Section -->
+                <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="size-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary">build</span>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white">Build Defaults</h3>
+                            <p class="text-xs text-slate-500 dark:text-text-secondary">Default settings for new MCP builds</p>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <!-- Default SDK -->
+                        <div class="flex flex-col gap-2">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-300" for="config-default-sdk">
+                                Default SDK Language
+                            </label>
+                            <select
+                                id="config-default-sdk"
+                                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-surface-darker text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                            >
+                                <option value="typescript">TypeScript (Recommended)</option>
+                                <option value="python">Python</option>
+                            </select>
+                        </div>
+                        <!-- GitHub Target -->
+                        <div class="flex flex-col gap-2">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-300" for="config-github-target">
+                                GitHub Repository Target
+                            </label>
+                            <select
+                                id="config-github-target"
+                                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-surface-darker text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                            >
+                                <option value="m2ai-mcp-servers">m2ai-mcp-servers (Internal MCPs)</option>
+                                <option value="MatthewSnow2">MatthewSnow2 (Personal)</option>
+                                <option value="custom">Custom URL...</option>
+                            </select>
+                        </div>
+                        <!-- Custom GitHub URL (shown when custom selected) -->
+                        <div id="custom-github-url-container" class="flex flex-col gap-2 hidden">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-300" for="config-custom-github-url">
+                                Custom GitHub URL
+                            </label>
+                            <input
+                                type="url"
+                                id="config-custom-github-url"
+                                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-surface-darker text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                                placeholder="https://github.com/org/repo"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Output Settings Section -->
+                <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="size-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-emerald-500">folder</span>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white">Output Settings</h3>
+                            <p class="text-xs text-slate-500 dark:text-text-secondary">Where MCP servers are generated</p>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <!-- Output Directory -->
+                        <div class="flex flex-col gap-2">
+                            <label class="text-sm font-medium text-slate-700 dark:text-slate-300" for="config-output-dir">
+                                MCP Output Directory
+                            </label>
+                            <input
+                                type="text"
+                                id="config-output-dir"
+                                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-surface-darker text-slate-900 dark:text-white text-sm font-mono focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                                placeholder="/home/ubuntu/projects/mcp/"
+                            />
+                            <p class="text-xs text-slate-400">All generated MCP servers will be created in this directory</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-between pt-4">
+                    <button id="config-reset-btn" class="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-border-dark text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-surface-darker transition-colors">
+                        <span class="material-symbols-outlined text-lg">restart_alt</span>
+                        Reset to Defaults
+                    </button>
+                    <button id="config-save-btn" class="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-bold shadow-lg shadow-primary/25 transition-all">
+                        <span class="material-symbols-outlined text-lg">save</span>
+                        Save Configuration
+                    </button>
+                </div>
+
+                <!-- Info Banner -->
+                <div class="flex items-start gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                    <span class="material-symbols-outlined text-blue-400 text-lg mt-0.5">info</span>
+                    <div class="text-sm text-blue-300">
+                        <p class="font-medium mb-1">Configuration Storage</p>
+                        <p class="text-blue-400/80">Settings are saved to your browser's local storage. They will persist across sessions but are specific to this browser.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOGS VIEW -->
+        <div data-view="logs" class="custom-scrollbar flex-1 overflow-y-auto p-8 hidden">
+            <div class="max-w-6xl mx-auto flex flex-col gap-8 pb-12">
+                <!-- Header -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex flex-col gap-2">
+                        <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Build Logs</h1>
+                        <p class="text-slate-500 dark:text-text-secondary">View and search execution logs from all builds.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <select id="logs-filter-status" class="px-4 py-2 rounded-lg border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-darker text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary">
+                            <option value="all">All Statuses</option>
+                            <option value="success">Success</option>
+                            <option value="error">Error</option>
+                            <option value="warning">Warning</option>
+                        </select>
+                        <button id="logs-refresh-btn" class="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-darker text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors">
+                            <span class="material-symbols-outlined text-lg">refresh</span>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Log Entries -->
+                <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark shadow-sm overflow-hidden">
+                    <!-- Log Header -->
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-surface-darker">
+                        <div class="flex items-center gap-4">
+                            <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">Recent Executions</span>
+                            <span id="logs-count-badge" class="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">-- entries</span>
+                        </div>
+                        <button id="logs-export-btn" class="flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-primary transition-colors">
+                            <span class="material-symbols-outlined text-lg">download</span>
+                            Export All
+                        </button>
+                    </div>
+
+                    <!-- Log List -->
+                    <div id="logs-list" class="divide-y divide-slate-100 dark:divide-border-dark">
+                        <!-- Loading state -->
+                        <div id="logs-loading" class="flex items-center justify-center py-12">
+                            <div class="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+                                <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Loading build history...</span>
+                            </div>
+                        </div>
+                        <!-- Empty state (hidden by default) -->
+                        <div id="logs-empty" class="hidden flex items-center justify-center py-12">
+                            <div class="text-center">
+                                <span class="material-symbols-outlined text-4xl text-slate-400 dark:text-slate-500 mb-2">inbox</span>
+                                <p class="text-slate-500 dark:text-slate-400">No builds found</p>
+                            </div>
+                        </div>
+                        <!-- Log entries will be dynamically inserted here -->
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-surface-darker">
+                        <span id="logs-pagination-info" class="text-sm text-slate-500 dark:text-slate-400">Showing 0 entries</span>
+                        <div class="flex items-center gap-2">
+                            <button id="logs-prev-btn" class="px-3 py-1.5 rounded border border-slate-200 dark:border-border-dark text-sm text-slate-400 cursor-not-allowed" disabled>Previous</button>
+                            <button id="logs-next-btn" class="px-3 py-1.5 rounded border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-dark text-sm text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-surface-darker transition-colors">Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ANALYTICS VIEW -->
+        <div data-view="analytics" class="custom-scrollbar flex-1 overflow-y-auto p-8 hidden">
+            <div class="max-w-6xl mx-auto flex flex-col gap-8 pb-12">
+                <!-- Header -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex flex-col gap-2">
+                        <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Analytics</h1>
+                        <p class="text-slate-500 dark:text-text-secondary">Monitor build performance and track key metrics.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <select id="analytics-time-range" class="px-4 py-2 rounded-lg border border-slate-200 dark:border-border-dark bg-white dark:bg-surface-darker text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary">
+                            <option value="7d">Last 7 days</option>
+                            <option value="30d">Last 30 days</option>
+                            <option value="90d">Last 90 days</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="size-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-primary">build</span>
+                            </div>
+                            <span class="text-sm font-medium text-slate-500 dark:text-text-secondary">Total Builds</span>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-3xl font-black text-slate-900 dark:text-white">247</span>
+                            <span class="text-sm font-medium text-emerald-500">+12%</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="size-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-emerald-500">check_circle</span>
+                            </div>
+                            <span class="text-sm font-medium text-slate-500 dark:text-text-secondary">Success Rate</span>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-3xl font-black text-slate-900 dark:text-white">94.2%</span>
+                            <span class="text-sm font-medium text-emerald-500">+2.1%</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="size-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-amber-500">schedule</span>
+                            </div>
+                            <span class="text-sm font-medium text-slate-500 dark:text-text-secondary">Avg Build Time</span>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-3xl font-black text-slate-900 dark:text-white">18.4s</span>
+                            <span class="text-sm font-medium text-emerald-500">-3.2s</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="size-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-purple-500">folder</span>
+                            </div>
+                            <span class="text-sm font-medium text-slate-500 dark:text-text-secondary">MCPs Generated</span>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-3xl font-black text-slate-900 dark:text-white">32</span>
+                            <span class="text-sm font-medium text-emerald-500">+5</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Build Activity Chart -->
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm">
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white mb-6">Build Activity</h3>
+                        <div class="h-48">
+                            <canvas id="build-activity-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Success/Failure Breakdown -->
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm">
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white mb-6">Build Status Breakdown</h3>
+                        <div class="flex items-center gap-8">
+                            <!-- Donut Chart Placeholder -->
+                            <div class="relative size-32 flex-shrink-0">
+                                <div class="absolute inset-0 rounded-full" style="background: conic-gradient(#22c55e 0% 71%, #f59e0b 71% 79%, #ef4444 79% 85%, #6b7280 85% 100%)"></div>
+                                <div class="absolute inset-4 rounded-full bg-white dark:bg-surface-dark"></div>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span class="text-xl font-black text-slate-900 dark:text-white">247</span>
+                                </div>
+                            </div>
+                            <!-- Legend -->
+                            <div class="flex flex-col gap-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="size-3 rounded-full bg-emerald-500"></div>
+                                    <span class="text-sm text-slate-600 dark:text-slate-300">Success</span>
+                                    <span class="text-sm font-medium text-slate-900 dark:text-white ml-auto">176 (71%)</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="size-3 rounded-full bg-amber-500"></div>
+                                    <span class="text-sm text-slate-600 dark:text-slate-300">Warnings</span>
+                                    <span class="text-sm font-medium text-slate-900 dark:text-white ml-auto">20 (8%)</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="size-3 rounded-full bg-rose-500"></div>
+                                    <span class="text-sm text-slate-600 dark:text-slate-300">Failed</span>
+                                    <span class="text-sm font-medium text-slate-900 dark:text-white ml-auto">14 (6%)</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="size-3 rounded-full bg-slate-400"></div>
+                                    <span class="text-sm text-slate-600 dark:text-slate-300">Cancelled</span>
+                                    <span class="text-sm font-medium text-slate-900 dark:text-white ml-auto">37 (15%)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top MCPs Table -->
+                <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-200 dark:border-border-dark">
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white">Most Built MCPs</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-slate-50 dark:bg-surface-darker">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">MCP Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Builds</th>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Success Rate</th>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Avg Time</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-border-dark">
+                                <tr class="hover:bg-slate-50 dark:hover:bg-surface-darker">
+                                    <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">Payment Gateway</td>
+                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">42</td>
+                                    <td class="px-6 py-4"><span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">98%</span></td>
+                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">14.2s</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 dark:hover:bg-surface-darker">
+                                    <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">Auth Service</td>
+                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">38</td>
+                                    <td class="px-6 py-4"><span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">95%</span></td>
+                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">22.1s</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 dark:hover:bg-surface-darker">
+                                    <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">Data Pipeline</td>
+                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">31</td>
+                                    <td class="px-6 py-4"><span class="text-sm font-medium text-amber-600 dark:text-amber-400">89%</span></td>
+                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">31.5s</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 dark:hover:bg-surface-darker">
+                                    <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">Email Notifications</td>
+                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">28</td>
+                                    <td class="px-6 py-4"><span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">96%</span></td>
+                                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">18.7s</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SETTINGS VIEW -->
+        <div data-view="settings" class="custom-scrollbar flex-1 overflow-y-auto p-8 hidden">
+            <div class="max-w-4xl mx-auto flex flex-col gap-8 pb-12">
+                <!-- Header -->
+                <div class="flex flex-col gap-2">
+                    <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Settings</h1>
+                    <p class="text-slate-500 dark:text-text-secondary">Manage your preferences and account settings.</p>
+                </div>
+
+                <!-- Appearance Section -->
+                <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="size-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-purple-500">palette</span>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white">Appearance</h3>
+                            <p class="text-xs text-slate-500 dark:text-text-secondary">Customize the look and feel</p>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between py-3 border-b border-slate-100 dark:border-border-dark">
+                            <div>
+                                <p class="text-sm font-medium text-slate-700 dark:text-slate-300">Theme</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Choose your preferred color scheme</p>
+                            </div>
+                            <select id="settings-theme" class="px-4 py-2 rounded-lg border border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-surface-darker text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary">
+                                <option value="dark">Dark</option>
+                                <option value="light">Light</option>
+                                <option value="system">System</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center justify-between py-3">
+                            <div>
+                                <p class="text-sm font-medium text-slate-700 dark:text-slate-300">Compact Mode</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Reduce spacing for denser layouts</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="settings-compact" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/25 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications Section -->
+                <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="size-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-amber-500">notifications</span>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white">Notifications</h3>
+                            <p class="text-xs text-slate-500 dark:text-text-secondary">Configure how you receive updates</p>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between py-3 border-b border-slate-100 dark:border-border-dark">
+                            <div>
+                                <p class="text-sm font-medium text-slate-700 dark:text-slate-300">Build Completions</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Notify when builds finish</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="settings-notify-complete" class="sr-only peer" checked>
+                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/25 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary"></div>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between py-3 border-b border-slate-100 dark:border-border-dark">
+                            <div>
+                                <p class="text-sm font-medium text-slate-700 dark:text-slate-300">Build Errors</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Alert on failed builds</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="settings-notify-errors" class="sr-only peer" checked>
+                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/25 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary"></div>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between py-3">
+                            <div>
+                                <p class="text-sm font-medium text-slate-700 dark:text-slate-300">Sound Effects</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Play sounds for notifications</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="settings-sound" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/25 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Info Section -->
+                <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="size-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary">info</span>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white">System Info</h3>
+                            <p class="text-xs text-slate-500 dark:text-text-secondary">GRIMLOCK MCP Factory details</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 p-4 rounded-xl bg-slate-50 dark:bg-surface-darker">
+                        <div class="h-14 w-14 overflow-hidden rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center flex-shrink-0">
+                            <span class="material-symbols-outlined text-white text-2xl">precision_manufacturing</span>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-base font-semibold text-slate-900 dark:text-white">GRIMLOCK</p>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">Autonomous MCP Server Factory</p>
+                            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Version 1.0 • December 2024</p>
+                        </div>
+                        <a href="https://github.com/m2ai-mcp-servers" target="_blank" class="px-4 py-2 rounded-lg border border-slate-200 dark:border-border-dark text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-surface-dark transition-colors flex items-center gap-2">
+                            <span class="material-symbols-outlined text-lg">open_in_new</span>
+                            GitHub
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Save Button -->
+                <div class="flex justify-end pt-4">
+                    <button id="settings-save-btn" class="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-bold shadow-lg shadow-primary/25 transition-all">
+                        <span class="material-symbols-outlined text-lg">save</span>
+                        Save Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- DOCUMENTATION VIEW -->
+        <div data-view="documentation" class="custom-scrollbar flex-1 overflow-y-auto p-8 hidden">
+            <div class="max-w-5xl mx-auto flex flex-col gap-8 pb-12">
+                <!-- Header -->
+                <div class="flex flex-col gap-2">
+                    <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Documentation</h1>
+                    <p class="text-slate-500 dark:text-text-secondary">Learn how to use MCP Factory and build powerful integrations.</p>
+                </div>
+
+                <!-- Quick Start -->
+                <div class="bg-gradient-to-br from-primary/10 via-blue-500/5 to-purple-500/10 rounded-2xl border border-primary/20 p-8">
+                    <div class="flex items-start gap-6">
+                        <div class="size-16 rounded-2xl bg-primary/20 flex items-center justify-center flex-shrink-0">
+                            <span class="material-symbols-outlined text-primary text-3xl">rocket_launch</span>
+                        </div>
+                        <div class="flex-1">
+                            <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Quick Start Guide</h2>
+                            <p class="text-slate-600 dark:text-slate-300 mb-4">Get up and running with MCP Factory in minutes. Learn the basics of creating your first MCP server.</p>
+                            <button id="docs-quick-start-btn" class="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-semibold transition-all">
+                                <span>Start Tutorial</span>
+                                <span class="material-symbols-outlined text-lg">arrow_forward</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Documentation Categories -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Getting Started -->
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer group">
+                        <div class="size-12 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-emerald-500 text-2xl">play_circle</span>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white mb-2">Getting Started</h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Installation, setup, and your first MCP build.</p>
+                        <div class="flex items-center gap-1 text-primary text-sm font-medium">
+                            <span>5 articles</span>
+                            <span class="material-symbols-outlined text-lg">chevron_right</span>
+                        </div>
+                    </div>
+
+                    <!-- PRD Templates -->
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer group">
+                        <div class="size-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-blue-500 text-2xl">description</span>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white mb-2">PRD Templates</h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Learn to write effective PRD specifications.</p>
+                        <div class="flex items-center gap-1 text-primary text-sm font-medium">
+                            <span>8 articles</span>
+                            <span class="material-symbols-outlined text-lg">chevron_right</span>
+                        </div>
+                    </div>
+
+                    <!-- API Reference -->
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer group">
+                        <div class="size-12 rounded-xl bg-purple-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-purple-500 text-2xl">code</span>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white mb-2">API Reference</h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Complete API documentation and examples.</p>
+                        <div class="flex items-center gap-1 text-primary text-sm font-medium">
+                            <span>12 articles</span>
+                            <span class="material-symbols-outlined text-lg">chevron_right</span>
+                        </div>
+                    </div>
+
+                    <!-- Best Practices -->
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer group">
+                        <div class="size-12 rounded-xl bg-amber-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-amber-500 text-2xl">lightbulb</span>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white mb-2">Best Practices</h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Tips for efficient MCP development.</p>
+                        <div class="flex items-center gap-1 text-primary text-sm font-medium">
+                            <span>6 articles</span>
+                            <span class="material-symbols-outlined text-lg">chevron_right</span>
+                        </div>
+                    </div>
+
+                    <!-- Troubleshooting -->
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer group">
+                        <div class="size-12 rounded-xl bg-rose-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-rose-500 text-2xl">bug_report</span>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white mb-2">Troubleshooting</h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Common issues and how to resolve them.</p>
+                        <div class="flex items-center gap-1 text-primary text-sm font-medium">
+                            <span>10 articles</span>
+                            <span class="material-symbols-outlined text-lg">chevron_right</span>
+                        </div>
+                    </div>
+
+                    <!-- Integrations -->
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer group">
+                        <div class="size-12 rounded-xl bg-cyan-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-cyan-500 text-2xl">hub</span>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white mb-2">Integrations</h3>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Connect with n8n, GitHub, and more.</p>
+                        <div class="flex items-center gap-1 text-primary text-sm font-medium">
+                            <span>7 articles</span>
+                            <span class="material-symbols-outlined text-lg">chevron_right</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- External Resources -->
+                <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm">
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white mb-4">External Resources</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <a href="https://modelcontextprotocol.io/docs" target="_blank" class="flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-surface-darker hover:bg-slate-100 dark:hover:bg-border-dark transition-colors">
+                            <span class="material-symbols-outlined text-primary">open_in_new</span>
+                            <div>
+                                <p class="text-sm font-medium text-slate-900 dark:text-white">MCP Protocol Docs</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Official Model Context Protocol documentation</p>
+                            </div>
+                        </a>
+                        <a href="https://github.com/m2ai-mcp-servers" target="_blank" class="flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-surface-darker hover:bg-slate-100 dark:hover:bg-border-dark transition-colors">
+                            <span class="material-symbols-outlined text-primary">open_in_new</span>
+                            <div>
+                                <p class="text-sm font-medium text-slate-900 dark:text-white">GitHub Repository</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Browse MCP server source code</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUPPORT VIEW -->
+        <div data-view="support" class="custom-scrollbar flex-1 overflow-y-auto p-8 hidden">
+            <div class="max-w-4xl mx-auto flex flex-col gap-8 pb-12">
+                <!-- Header -->
+                <div class="flex flex-col gap-2">
+                    <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Support</h1>
+                    <p class="text-slate-500 dark:text-text-secondary">Get help with MCP Factory and reach our team.</p>
+                </div>
+
+                <!-- System Status -->
+                <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-center gap-4">
+                    <div class="size-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                        <span class="material-symbols-outlined text-emerald-500">check_circle</span>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-emerald-700 dark:text-emerald-400">All Systems Operational</p>
+                        <p class="text-xs text-emerald-600 dark:text-emerald-500">Last checked: 2 minutes ago</p>
+                    </div>
+                    <button id="support-status-btn" class="text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:underline">View Status Page</button>
+                </div>
+
+                <!-- Contact Methods -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Email Support -->
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="size-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-primary text-2xl">email</span>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-slate-900 dark:text-white">Email Support</h3>
+                                <p class="text-xs text-slate-500 dark:text-text-secondary">Response within 24 hours</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">Send us a detailed description of your issue and we'll get back to you.</p>
+                        <button id="support-email-btn" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-border-dark text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-surface-darker transition-colors">
+                            <span class="material-symbols-outlined text-lg">mail</span>
+                            support@mcpfactory.io
+                        </button>
+                    </div>
+
+                    <!-- Discord -->
+                    <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="size-12 rounded-xl bg-indigo-500/20 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-indigo-500 text-2xl">forum</span>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-slate-900 dark:text-white">Community Discord</h3>
+                                <p class="text-xs text-slate-500 dark:text-text-secondary">Chat with the community</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">Join our Discord server for real-time help and discussions.</p>
+                        <button id="support-discord-btn" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors">
+                            <span class="material-symbols-outlined text-lg">open_in_new</span>
+                            Join Discord
+                        </button>
+                    </div>
+                </div>
+
+                <!-- FAQ Section -->
+                <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark shadow-sm">
+                    <div class="px-6 py-4 border-b border-slate-200 dark:border-border-dark">
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white">Frequently Asked Questions</h3>
+                    </div>
+                    <div class="divide-y divide-slate-100 dark:divide-border-dark">
+                        <details class="group">
+                            <summary class="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-surface-darker">
+                                <span class="text-sm font-medium text-slate-900 dark:text-white">What is an MCP server?</span>
+                                <span class="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+                            </summary>
+                            <div class="px-6 pb-4 text-sm text-slate-600 dark:text-slate-400">
+                                MCP (Model Context Protocol) servers are AI tool integrations that allow language models to interact with external services, APIs, and data sources. MCP Factory automates the creation of these servers from requirement specifications.
+                            </div>
+                        </details>
+                        <details class="group">
+                            <summary class="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-surface-darker">
+                                <span class="text-sm font-medium text-slate-900 dark:text-white">How long does a build typically take?</span>
+                                <span class="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+                            </summary>
+                            <div class="px-6 pb-4 text-sm text-slate-600 dark:text-slate-400">
+                                Most builds complete within 15-45 seconds, depending on the complexity of your PRD specification and the number of tools being generated. Complex MCPs with many integrations may take longer.
+                            </div>
+                        </details>
+                        <details class="group">
+                            <summary class="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-surface-darker">
+                                <span class="text-sm font-medium text-slate-900 dark:text-white">Can I use my own PRD template?</span>
+                                <span class="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+                            </summary>
+                            <div class="px-6 pb-4 text-sm text-slate-600 dark:text-slate-400">
+                                Yes! You can upload your own PRD in YAML or Markdown format using the "Upload PRD" option. Make sure to follow our template structure for best results. Check the Documentation section for template guidelines.
+                            </div>
+                        </details>
+                        <details class="group">
+                            <summary class="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-surface-darker">
+                                <span class="text-sm font-medium text-slate-900 dark:text-white">Where are my MCPs stored?</span>
+                                <span class="material-symbols-outlined text-slate-400 group-open:rotate-180 transition-transform">expand_more</span>
+                            </summary>
+                            <div class="px-6 pb-4 text-sm text-slate-600 dark:text-slate-400">
+                                Generated MCPs are stored in the output directory configured in your settings (default: /home/ubuntu/projects/mcp/). They can also be automatically pushed to your configured GitHub repository.
+                            </div>
+                        </details>
+                    </div>
+                </div>
+
+                <!-- Submit Feedback -->
+                <div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-border-dark p-6 shadow-sm">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="size-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-amber-500">feedback</span>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 dark:text-white">Submit Feedback</h3>
+                            <p class="text-xs text-slate-500 dark:text-text-secondary">Help us improve MCP Factory</p>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <textarea id="support-feedback-text" rows="4" class="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-border-dark bg-slate-50 dark:bg-surface-darker text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-primary focus:border-transparent resize-none" placeholder="Share your thoughts, suggestions, or report an issue..."></textarea>
+                        <button id="support-feedback-btn" class="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-semibold transition-all">
+                            <span class="material-symbols-outlined text-lg">send</span>
+                            Submit Feedback
+                        </button>
                     </div>
                 </div>
             </div>
@@ -711,8 +1452,112 @@
     </div>
 </div>
 
+<!-- WIZARD UNAVAILABLE MODAL -->
+<div id="wizard-unavailable-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm transition-all duration-300">
+    <div class="relative w-full max-w-md bg-white dark:bg-surface-dark rounded-2xl shadow-2xl border border-slate-200 dark:border-border-dark overflow-hidden animate-[fadeIn_0.3s_ease-out]">
+        <div class="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="size-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-amber-500">engineering</span>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white">Design Wizard Unavailable</h3>
+            </div>
+            <button id="wizard-modal-close" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="p-6">
+            <p class="text-slate-600 dark:text-slate-300 leading-relaxed">
+                The AI-powered PRD Design Wizard is currently being updated. Please use the <strong class="text-white">"Upload PRD"</strong> option to submit an existing specification.
+            </p>
+        </div>
+        <div class="p-6 bg-slate-50 dark:bg-surface-darker flex justify-end gap-3">
+            <button id="wizard-modal-dismiss" class="px-5 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Close</button>
+            <button id="wizard-upload-instead" class="px-5 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white font-medium shadow-lg shadow-primary/25 transition-all">Upload PRD Instead</button>
+        </div>
+    </div>
+</div>
+
+<!-- COMING SOON MODAL -->
+<div id="coming-soon-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm transition-all duration-300">
+    <div class="relative w-full max-w-md bg-white dark:bg-surface-dark rounded-2xl shadow-2xl border border-slate-200 dark:border-border-dark overflow-hidden animate-[fadeIn_0.3s_ease-out]">
+        <div class="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="size-10 rounded-full bg-primary/20 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary">construction</span>
+                </div>
+                <h3 id="coming-soon-title" class="text-lg font-bold text-slate-900 dark:text-white">Feature Coming Soon</h3>
+            </div>
+            <button id="coming-soon-close" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="p-6">
+            <p id="coming-soon-message" class="text-slate-600 dark:text-slate-300 leading-relaxed">
+                This feature is under development and will be available in a future update.
+            </p>
+        </div>
+        <div class="p-6 bg-slate-50 dark:bg-surface-darker flex justify-end">
+            <button id="coming-soon-dismiss" class="px-5 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white font-medium shadow-lg shadow-primary/25 transition-all">Got it</button>
+        </div>
+    </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div id="confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm transition-all duration-300">
+    <div class="relative w-full max-w-md bg-white dark:bg-surface-dark rounded-2xl shadow-2xl border border-slate-200 dark:border-border-dark overflow-hidden animate-[fadeIn_0.3s_ease-out]">
+        <div class="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-3">
+                <div id="confirm-icon-container" class="size-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                    <span id="confirm-icon" class="material-symbols-outlined text-amber-500">warning</span>
+                </div>
+                <h3 id="confirm-title" class="text-lg font-bold text-slate-900 dark:text-white">Confirm Action</h3>
+            </div>
+            <button id="confirm-close" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="p-6">
+            <p id="confirm-message" class="text-slate-600 dark:text-slate-300 leading-relaxed">
+                Are you sure you want to proceed?
+            </p>
+        </div>
+        <div class="p-6 bg-slate-50 dark:bg-surface-darker flex justify-end gap-3">
+            <button id="confirm-cancel" class="px-5 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+            <button id="confirm-ok" class="px-5 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white font-medium shadow-lg shadow-primary/25 transition-all">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- INFO MODAL -->
+<div id="info-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm transition-all duration-300">
+    <div class="relative w-full max-w-lg bg-white dark:bg-surface-dark rounded-2xl shadow-2xl border border-slate-200 dark:border-border-dark overflow-hidden animate-[fadeIn_0.3s_ease-out]">
+        <div class="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="size-10 rounded-full bg-primary/20 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-primary">info</span>
+                </div>
+                <h3 id="info-title" class="text-lg font-bold text-slate-900 dark:text-white">Information</h3>
+            </div>
+            <button id="info-close" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <div class="p-6">
+            <div id="info-content" class="text-slate-600 dark:text-slate-300 leading-relaxed"></div>
+        </div>
+        <div class="p-6 bg-slate-50 dark:bg-surface-darker flex justify-end">
+            <button id="info-dismiss" class="px-5 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white font-medium shadow-lg shadow-primary/25 transition-all">Close</button>
+        </div>
+    </div>
+</div>
+
 <!-- Scripts -->
+<!-- Chart.js for Analytics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="js/toast.js"></script>
 <script src="js/router.js"></script>
+<script src="js/api.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
