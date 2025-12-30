@@ -1,0 +1,443 @@
+# ============================================================================
+# GRIMLOCK MCP SERVER PRD - Notion Integration
+# ============================================================================
+# Purpose: MCP server for Notion workspace management and automation
+# Version: 1.0.0
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# PROJECT METADATA
+# ----------------------------------------------------------------------------
+project:
+  name: "notion-mcp"
+  version: "0.1.0"
+  description: |
+    Notion Integration MCP server providing AI assistants with full access to
+    Notion workspaces. Enables Claude to search, read, create, and update pages,
+    databases, and blocks. Perfect for knowledge management, task tracking,
+    documentation, and content creation workflows.
+
+  sdk: "typescript"
+  node_version: "18+"
+
+  deployment:
+    type: "local"
+    transport: "stdio"
+    containerized: false
+
+  delivery:
+    method: "customer_repo"
+    customer_repo_url: "https://github.com/m2ai-mcp-servers/mcp-notion"
+
+# ----------------------------------------------------------------------------
+# TARGET INTEGRATION
+# ----------------------------------------------------------------------------
+integration:
+  service_name: "Notion"
+  service_type: "api"
+
+  api:
+    base_url: "https://api.notion.com/v1"
+    documentation_url: "https://developers.notion.com/reference"
+    rate_limits:
+      requests_per_second: 3
+      requests_per_minute: 180
+
+  auth:
+    type: "bearer"
+    api_key:
+      header_name: "Authorization"
+      env_variable: "NOTION_API_KEY"
+    headers:
+      - name: "Notion-Version"
+        value: "2022-06-28"
+
+# ----------------------------------------------------------------------------
+# MCP TOOLS SPECIFICATION
+# ----------------------------------------------------------------------------
+tools:
+  # --- Search & Discovery ---
+  - name: "search"
+    description: |
+      Search across all pages and databases in the workspace.
+      Use when user wants to find content by keyword or title.
+    parameters:
+      - name: "query"
+        type: "string"
+        required: true
+        description: "Search query text"
+      - name: "filter_type"
+        type: "string"
+        required: false
+        description: "Filter by object type"
+        validation:
+          enum: ["page", "database"]
+      - name: "sort_direction"
+        type: "string"
+        required: false
+        default: "descending"
+        description: "Sort by last edited time"
+        validation:
+          enum: ["ascending", "descending"]
+      - name: "page_size"
+        type: "number"
+        required: false
+        default: 10
+        description: "Number of results (max 100)"
+        validation:
+          minimum: 1
+          maximum: 100
+    behavior:
+      api_endpoint: "POST /search"
+      returns: "array of page/database objects with id, title, url"
+      error_handling:
+        - condition: "no_results"
+          response: "Suggest alternative search terms"
+
+  # --- Page Operations ---
+  - name: "get_page"
+    description: |
+      Retrieve a page's properties and metadata.
+      Use when user wants to view page details or check properties.
+    parameters:
+      - name: "page_id"
+        type: "string"
+        required: true
+        description: "Notion page ID or URL"
+    behavior:
+      api_endpoint: "GET /pages/{page_id}"
+      returns: "page object with properties, created/edited times"
+
+  - name: "create_page"
+    description: |
+      Create a new page in a database or as a child of another page.
+      Use when user wants to add new content to Notion.
+    parameters:
+      - name: "parent_id"
+        type: "string"
+        required: true
+        description: "Parent database ID or page ID"
+      - name: "parent_type"
+        type: "string"
+        required: true
+        description: "Type of parent"
+        validation:
+          enum: ["database_id", "page_id"]
+      - name: "title"
+        type: "string"
+        required: true
+        description: "Page title"
+      - name: "properties"
+        type: "object"
+        required: false
+        description: "Database properties (for database parents)"
+      - name: "content"
+        type: "string"
+        required: false
+        description: "Initial page content in markdown format"
+    behavior:
+      api_endpoint: "POST /pages"
+      returns: "created page object with id and url"
+
+  - name: "update_page"
+    description: |
+      Update a page's properties (not content blocks).
+      Use when user wants to modify page metadata or database properties.
+    parameters:
+      - name: "page_id"
+        type: "string"
+        required: true
+        description: "Page ID to update"
+      - name: "properties"
+        type: "object"
+        required: true
+        description: "Properties to update"
+      - name: "archived"
+        type: "boolean"
+        required: false
+        description: "Archive or unarchive the page"
+    behavior:
+      api_endpoint: "PATCH /pages/{page_id}"
+      returns: "updated page object"
+
+  - name: "get_page_content"
+    description: |
+      Retrieve all content blocks from a page.
+      Use when user wants to read the full content of a page.
+    parameters:
+      - name: "page_id"
+        type: "string"
+        required: true
+        description: "Page ID to get content from"
+      - name: "format"
+        type: "string"
+        required: false
+        default: "markdown"
+        description: "Output format"
+        validation:
+          enum: ["markdown", "blocks", "plain_text"]
+    behavior:
+      api_endpoint: "GET /blocks/{page_id}/children"
+      returns: "page content in specified format"
+
+  # --- Block Operations ---
+  - name: "append_blocks"
+    description: |
+      Add new content blocks to a page or block.
+      Use when user wants to add content to an existing page.
+    parameters:
+      - name: "parent_id"
+        type: "string"
+        required: true
+        description: "Page or block ID to append to"
+      - name: "content"
+        type: "string"
+        required: true
+        description: "Content to add (supports markdown)"
+    behavior:
+      api_endpoint: "PATCH /blocks/{parent_id}/children"
+      returns: "array of created block objects"
+
+  - name: "update_block"
+    description: |
+      Update an existing block's content.
+      Use when user wants to modify specific content.
+    parameters:
+      - name: "block_id"
+        type: "string"
+        required: true
+        description: "Block ID to update"
+      - name: "content"
+        type: "string"
+        required: true
+        description: "New content for the block"
+    behavior:
+      api_endpoint: "PATCH /blocks/{block_id}"
+      returns: "updated block object"
+
+  - name: "delete_block"
+    description: |
+      Delete a block (archive it).
+      Use when user wants to remove content from a page.
+    parameters:
+      - name: "block_id"
+        type: "string"
+        required: true
+        description: "Block ID to delete"
+    behavior:
+      api_endpoint: "DELETE /blocks/{block_id}"
+      returns: "confirmation of deletion"
+
+  # --- Database Operations ---
+  - name: "get_database"
+    description: |
+      Retrieve database schema and properties.
+      Use when user wants to understand database structure.
+    parameters:
+      - name: "database_id"
+        type: "string"
+        required: true
+        description: "Database ID"
+    behavior:
+      api_endpoint: "GET /databases/{database_id}"
+      returns: "database object with title, properties schema"
+
+  - name: "query_database"
+    description: |
+      Query a database with optional filters and sorts.
+      Use when user wants to retrieve specific entries from a database.
+    parameters:
+      - name: "database_id"
+        type: "string"
+        required: true
+        description: "Database ID to query"
+      - name: "filter"
+        type: "object"
+        required: false
+        description: "Notion filter object"
+      - name: "sorts"
+        type: "array"
+        required: false
+        description: "Sort configuration"
+      - name: "page_size"
+        type: "number"
+        required: false
+        default: 100
+        description: "Results per page (max 100)"
+    behavior:
+      api_endpoint: "POST /databases/{database_id}/query"
+      returns: "array of page objects matching query"
+
+  - name: "create_database"
+    description: |
+      Create a new database as a child of a page.
+      Use when user wants to set up a new structured data collection.
+    parameters:
+      - name: "parent_page_id"
+        type: "string"
+        required: true
+        description: "Parent page ID"
+      - name: "title"
+        type: "string"
+        required: true
+        description: "Database title"
+      - name: "properties"
+        type: "object"
+        required: true
+        description: "Database properties schema"
+    behavior:
+      api_endpoint: "POST /databases"
+      returns: "created database object"
+
+  # --- User & Workspace ---
+  - name: "list_users"
+    description: |
+      List all users in the workspace.
+      Use when user needs to reference team members.
+    parameters:
+      - name: "page_size"
+        type: "number"
+        required: false
+        default: 100
+        description: "Number of users to return"
+    behavior:
+      api_endpoint: "GET /users"
+      returns: "array of user objects"
+
+  - name: "get_user"
+    description: |
+      Get details about a specific user.
+      Use when user needs info about a team member.
+    parameters:
+      - name: "user_id"
+        type: "string"
+        required: true
+        description: "User ID"
+    behavior:
+      api_endpoint: "GET /users/{user_id}"
+      returns: "user object with name, email, avatar"
+
+# ----------------------------------------------------------------------------
+# ACCEPTANCE CRITERIA
+# ----------------------------------------------------------------------------
+acceptance_criteria:
+  functional:
+    - id: "AC-001"
+      description: "Search returns relevant pages and databases"
+      test_method: "automated"
+      priority: "must-have"
+
+    - id: "AC-002"
+      description: "Create page works in both database and page contexts"
+      test_method: "automated"
+      priority: "must-have"
+
+    - id: "AC-003"
+      description: "Markdown content converts correctly to Notion blocks"
+      test_method: "automated"
+      priority: "must-have"
+
+    - id: "AC-004"
+      description: "Database queries support filter and sort"
+      test_method: "automated"
+      priority: "must-have"
+
+  non_functional:
+    - id: "NFR-001"
+      category: "performance"
+      description: "Respects Notion rate limits (3 req/sec)"
+
+    - id: "NFR-002"
+      category: "security"
+      description: "API key never logged or exposed"
+
+    - id: "NFR-003"
+      category: "reliability"
+      description: "Graceful pagination for large result sets"
+
+# ----------------------------------------------------------------------------
+# SECURITY REQUIREMENTS
+# ----------------------------------------------------------------------------
+security:
+  credentials:
+    storage: "environment_variables"
+    required_env_vars:
+      - name: "NOTION_API_KEY"
+        description: "Notion Integration API key (Internal Integration)"
+
+  data_sensitivity:
+    pii_handling: true
+    data_encryption: false
+    audit_logging: true
+
+  access_control:
+    require_user_confirmation:
+      - "delete_block"
+      - "create_database"
+    restricted_operations: []
+
+# ----------------------------------------------------------------------------
+# TESTING REQUIREMENTS
+# ----------------------------------------------------------------------------
+testing:
+  unit_tests:
+    coverage_target: 80
+    frameworks: ["jest"]
+    key_areas:
+      - "Markdown to Notion block conversion"
+      - "Filter object construction"
+      - "Rate limiting logic"
+
+  integration_tests:
+    - name: "Full page lifecycle"
+      description: "Create, read, update, archive page"
+      mock_external: true
+
+  manual_tests:
+    - "Test with real Notion workspace"
+    - "Verify markdown conversion accuracy"
+    - "Test with Claude Desktop"
+
+# ----------------------------------------------------------------------------
+# CONTEXT EFFICIENCY
+# ----------------------------------------------------------------------------
+context_efficiency:
+  tool_count: 13
+  estimated_tokens_per_call: 5850
+  scope_recommendation:
+    level: "project"
+    rationale: |
+      Notion tools work best at project level where they're scoped
+      to specific workspace integrations.
+
+# ----------------------------------------------------------------------------
+# NOTES
+# ----------------------------------------------------------------------------
+notes: |
+  **Setup Requirements:**
+  1. Create Notion Integration at https://www.notion.so/my-integrations
+  2. Select "Internal Integration"
+  3. Grant required capabilities (read/write content, read user info)
+  4. Share pages/databases with the integration
+  5. Copy the "Internal Integration Token" to NOTION_API_KEY
+
+  **Markdown Support:**
+  Supports conversion of common markdown:
+  - Headings (H1, H2, H3)
+  - Bold, italic, strikethrough, code
+  - Bullet and numbered lists
+  - Code blocks with language
+  - Links and mentions
+  - Checkboxes (todo items)
+
+  **Known Limitations:**
+  - Cannot access pages not shared with integration
+  - File/image uploads not supported (use URLs)
+  - Comments API limited
+  - Synced blocks read-only
+
+  **Future Enhancements:**
+  - Comment management
+  - Block drag/reorder
+  - Template instantiation
+  - Relation property management

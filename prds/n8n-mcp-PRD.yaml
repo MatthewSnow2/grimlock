@@ -1,0 +1,462 @@
+# ============================================================================
+# GRIMLOCK MCP SERVER PRD - n8n Workflow Automation
+# ============================================================================
+# Purpose: MCP server for n8n workflow management and execution
+# Version: 1.0.0
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# PROJECT METADATA
+# ----------------------------------------------------------------------------
+project:
+  name: "n8n-mcp"
+  version: "0.1.0"
+  description: |
+    n8n Workflow Automation MCP server providing AI assistants with the ability
+    to manage n8n workflows. Enables Claude to list, create, update, execute,
+    and monitor workflows, plus search templates and manage executions.
+    Perfect for building and debugging automation workflows conversationally.
+
+  sdk: "typescript"
+  node_version: "18+"
+
+  deployment:
+    type: "local"
+    transport: "stdio"
+    containerized: false
+
+  delivery:
+    method: "customer_repo"
+    customer_repo_url: "https://github.com/m2ai-mcp-servers/mcp-n8n"
+
+# ----------------------------------------------------------------------------
+# TARGET INTEGRATION
+# ----------------------------------------------------------------------------
+integration:
+  service_name: "n8n"
+  service_type: "api"
+
+  api:
+    base_url: "https://<instance>.app.n8n.cloud/api/v1"
+    documentation_url: "https://docs.n8n.io/api/"
+    rate_limits:
+      requests_per_minute: 100
+
+  auth:
+    type: "api_key"
+    api_key:
+      header_name: "X-N8N-API-KEY"
+      env_variable: "N8N_API_KEY"
+
+# ----------------------------------------------------------------------------
+# MCP TOOLS SPECIFICATION
+# ----------------------------------------------------------------------------
+tools:
+  # --- Workflow Management ---
+  - name: "list_workflows"
+    description: |
+      List all workflows in the n8n instance.
+      Use when user wants to see available workflows or find a specific one.
+    parameters:
+      - name: "active"
+        type: "boolean"
+        required: false
+        description: "Filter by active status"
+      - name: "tags"
+        type: "array"
+        required: false
+        description: "Filter by tags"
+      - name: "limit"
+        type: "number"
+        required: false
+        default: 50
+        description: "Max workflows to return"
+        validation:
+          minimum: 1
+          maximum: 100
+    behavior:
+      api_endpoint: "GET /workflows"
+      returns: "array of workflow summaries with id, name, active, tags"
+
+  - name: "get_workflow"
+    description: |
+      Get full details of a workflow including nodes and connections.
+      Use when user wants to inspect or understand a workflow.
+    parameters:
+      - name: "workflow_id"
+        type: "string"
+        required: true
+        description: "Workflow ID"
+    behavior:
+      api_endpoint: "GET /workflows/{workflow_id}"
+      returns: "complete workflow object with nodes, connections, settings"
+
+  - name: "create_workflow"
+    description: |
+      Create a new workflow from a specification.
+      Use when user wants to build a new automation.
+    parameters:
+      - name: "name"
+        type: "string"
+        required: true
+        description: "Workflow name"
+      - name: "nodes"
+        type: "array"
+        required: true
+        description: "Array of node configurations"
+      - name: "connections"
+        type: "object"
+        required: true
+        description: "Node connection mappings"
+      - name: "settings"
+        type: "object"
+        required: false
+        description: "Workflow settings (timezone, error handling)"
+    behavior:
+      api_endpoint: "POST /workflows"
+      returns: "created workflow object with id"
+
+  - name: "update_workflow"
+    description: |
+      Update an existing workflow's configuration.
+      Use when user wants to modify nodes, connections, or settings.
+    parameters:
+      - name: "workflow_id"
+        type: "string"
+        required: true
+        description: "Workflow ID to update"
+      - name: "nodes"
+        type: "array"
+        required: false
+        description: "Updated nodes array"
+      - name: "connections"
+        type: "object"
+        required: false
+        description: "Updated connections"
+      - name: "name"
+        type: "string"
+        required: false
+        description: "New workflow name"
+      - name: "settings"
+        type: "object"
+        required: false
+        description: "Updated settings"
+    behavior:
+      api_endpoint: "PUT /workflows/{workflow_id}"
+      returns: "updated workflow object"
+
+  - name: "delete_workflow"
+    description: |
+      Delete a workflow permanently.
+      Use with caution - confirm with user first.
+    parameters:
+      - name: "workflow_id"
+        type: "string"
+        required: true
+        description: "Workflow ID to delete"
+    behavior:
+      api_endpoint: "DELETE /workflows/{workflow_id}"
+      returns: "deletion confirmation"
+
+  - name: "activate_workflow"
+    description: |
+      Activate a workflow to enable triggers.
+      Use when user wants to turn on a workflow.
+    parameters:
+      - name: "workflow_id"
+        type: "string"
+        required: true
+        description: "Workflow ID to activate"
+    behavior:
+      api_endpoint: "POST /workflows/{workflow_id}/activate"
+      returns: "activation confirmation with webhook URLs if applicable"
+
+  - name: "deactivate_workflow"
+    description: |
+      Deactivate a workflow to disable triggers.
+      Use when user wants to pause or stop a workflow.
+    parameters:
+      - name: "workflow_id"
+        type: "string"
+        required: true
+        description: "Workflow ID to deactivate"
+    behavior:
+      api_endpoint: "POST /workflows/{workflow_id}/deactivate"
+      returns: "deactivation confirmation"
+
+  # --- Execution Management ---
+  - name: "execute_workflow"
+    description: |
+      Manually trigger a workflow execution with optional input data.
+      Use when user wants to test or run a workflow.
+    parameters:
+      - name: "workflow_id"
+        type: "string"
+        required: true
+        description: "Workflow ID to execute"
+      - name: "data"
+        type: "object"
+        required: false
+        description: "Input data for the workflow"
+    behavior:
+      api_endpoint: "POST /workflows/{workflow_id}/run"
+      returns: "execution ID and initial status"
+
+  - name: "list_executions"
+    description: |
+      List workflow executions with optional filters.
+      Use when user wants to see execution history.
+    parameters:
+      - name: "workflow_id"
+        type: "string"
+        required: false
+        description: "Filter by workflow ID"
+      - name: "status"
+        type: "string"
+        required: false
+        description: "Filter by status"
+        validation:
+          enum: ["success", "error", "running", "waiting"]
+      - name: "limit"
+        type: "number"
+        required: false
+        default: 20
+        description: "Max executions to return"
+    behavior:
+      api_endpoint: "GET /executions"
+      returns: "array of execution summaries"
+
+  - name: "get_execution"
+    description: |
+      Get detailed execution data including node outputs.
+      Use when user wants to debug or inspect an execution.
+    parameters:
+      - name: "execution_id"
+        type: "string"
+        required: true
+        description: "Execution ID"
+      - name: "include_data"
+        type: "boolean"
+        required: false
+        default: true
+        description: "Include full node data in response"
+    behavior:
+      api_endpoint: "GET /executions/{execution_id}"
+      returns: "complete execution data with node inputs/outputs"
+
+  - name: "delete_execution"
+    description: |
+      Delete an execution record.
+      Use when user wants to clean up execution history.
+    parameters:
+      - name: "execution_id"
+        type: "string"
+        required: true
+        description: "Execution ID to delete"
+    behavior:
+      api_endpoint: "DELETE /executions/{execution_id}"
+      returns: "deletion confirmation"
+
+  # --- Node Discovery ---
+  - name: "search_nodes"
+    description: |
+      Search available n8n nodes by keyword.
+      Use when user wants to find nodes for building workflows.
+    parameters:
+      - name: "query"
+        type: "string"
+        required: true
+        description: "Search query (e.g., 'slack', 'webhook', 'google')"
+      - name: "limit"
+        type: "number"
+        required: false
+        default: 10
+        description: "Max results"
+    behavior:
+      returns: "array of matching node types with descriptions"
+
+  - name: "get_node_info"
+    description: |
+      Get detailed information about a specific node type.
+      Use when user needs to understand node parameters.
+    parameters:
+      - name: "node_type"
+        type: "string"
+        required: true
+        description: "Full node type (e.g., 'n8n-nodes-base.httpRequest')"
+    behavior:
+      returns: "node schema with parameters, operations, credentials required"
+
+  # --- Template Discovery ---
+  - name: "search_templates"
+    description: |
+      Search n8n workflow templates from the community.
+      Use when user wants inspiration or starting points.
+    parameters:
+      - name: "query"
+        type: "string"
+        required: true
+        description: "Search query"
+      - name: "limit"
+        type: "number"
+        required: false
+        default: 10
+        description: "Max templates to return"
+    behavior:
+      api_endpoint: "GET https://api.n8n.io/api/templates"
+      returns: "array of template summaries with id, name, description"
+
+  - name: "get_template"
+    description: |
+      Get full template workflow definition.
+      Use when user wants to deploy a template.
+    parameters:
+      - name: "template_id"
+        type: "number"
+        required: true
+        description: "Template ID from n8n.io"
+    behavior:
+      api_endpoint: "GET https://api.n8n.io/api/templates/{template_id}"
+      returns: "complete template workflow JSON"
+
+  # --- Credentials ---
+  - name: "list_credentials"
+    description: |
+      List available credentials in the instance.
+      Use when user needs to know what credentials are configured.
+    parameters:
+      - name: "type"
+        type: "string"
+        required: false
+        description: "Filter by credential type"
+    behavior:
+      api_endpoint: "GET /credentials"
+      returns: "array of credential names and types (not secrets)"
+
+# ----------------------------------------------------------------------------
+# ACCEPTANCE CRITERIA
+# ----------------------------------------------------------------------------
+acceptance_criteria:
+  functional:
+    - id: "AC-001"
+      description: "list_workflows returns all workflows with correct metadata"
+      test_method: "automated"
+      priority: "must-have"
+
+    - id: "AC-002"
+      description: "create_workflow successfully creates functional workflows"
+      test_method: "automated"
+      priority: "must-have"
+
+    - id: "AC-003"
+      description: "execute_workflow triggers and returns execution ID"
+      test_method: "automated"
+      priority: "must-have"
+
+    - id: "AC-004"
+      description: "get_execution shows detailed node outputs"
+      test_method: "automated"
+      priority: "must-have"
+
+  non_functional:
+    - id: "NFR-001"
+      category: "performance"
+      description: "API calls complete within 10 seconds"
+
+    - id: "NFR-002"
+      category: "security"
+      description: "API key never logged, credentials not exposed"
+
+    - id: "NFR-003"
+      category: "reliability"
+      description: "Graceful handling of n8n instance unavailability"
+
+# ----------------------------------------------------------------------------
+# SECURITY REQUIREMENTS
+# ----------------------------------------------------------------------------
+security:
+  credentials:
+    storage: "environment_variables"
+    required_env_vars:
+      - name: "N8N_API_KEY"
+        description: "n8n API key from instance settings"
+      - name: "N8N_BASE_URL"
+        description: "n8n instance URL (e.g., https://myinstance.app.n8n.cloud)"
+
+  data_sensitivity:
+    pii_handling: true
+    data_encryption: false
+    audit_logging: true
+
+  access_control:
+    require_user_confirmation:
+      - "delete_workflow"
+      - "delete_execution"
+    restricted_operations: []
+
+# ----------------------------------------------------------------------------
+# TESTING REQUIREMENTS
+# ----------------------------------------------------------------------------
+testing:
+  unit_tests:
+    coverage_target: 80
+    frameworks: ["jest"]
+    key_areas:
+      - "Workflow JSON construction"
+      - "Connection mapping"
+      - "Error response parsing"
+
+  integration_tests:
+    - name: "Workflow lifecycle"
+      description: "Create, execute, check result, delete"
+      mock_external: true
+
+  manual_tests:
+    - "Test with real n8n cloud instance"
+    - "Verify workflow activation triggers work"
+    - "Test with Claude Desktop"
+
+# ----------------------------------------------------------------------------
+# CONTEXT EFFICIENCY
+# ----------------------------------------------------------------------------
+context_efficiency:
+  tool_count: 16
+  estimated_tokens_per_call: 7200
+  scope_recommendation:
+    level: "project"
+    rationale: |
+      n8n MCP is typically used for specific automation projects.
+      Project-level keeps workflow management isolated.
+
+# ----------------------------------------------------------------------------
+# NOTES
+# ----------------------------------------------------------------------------
+notes: |
+  **Setup Requirements:**
+  1. n8n cloud instance or self-hosted n8n
+  2. Generate API key: Settings → n8n API
+  3. Set N8N_BASE_URL to your instance URL
+  4. Set N8N_API_KEY to the generated key
+
+  **Workflow Construction:**
+  When creating workflows programmatically:
+  - Each node needs: id, name, type, typeVersion, position, parameters
+  - Connections map source node names to target nodes
+  - Use search_nodes to find correct node types
+
+  **Template Integration:**
+  Templates from n8n.io can be deployed directly:
+  1. search_templates to find relevant templates
+  2. get_template to fetch full JSON
+  3. create_workflow with template structure
+
+  **Known Limitations:**
+  - Cannot create new credentials (only use existing)
+  - Some enterprise features may not be available via API
+  - Execution data may be truncated for large payloads
+
+  **Future Enhancements:**
+  - Workflow validation before creation
+  - Node parameter autocomplete
+  - Execution monitoring/streaming
+  - Workflow versioning/backup
