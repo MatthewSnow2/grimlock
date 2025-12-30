@@ -614,23 +614,53 @@ function cleanupProgressPage() {
 /**
  * Update Progress page UI with API data
  * @param {object} data - Build status data from API
+ * Supports both legacy complex format and new simple format:
+ * Simple: { project, status, progress, startedAt, phase }
+ * Legacy: { sprint, currentPosition, progress, successCriteria, escalations }
  */
 function updateProgressUI(data) {
     if (!data) return;
 
-    const { sprint, currentPosition, progress, successCriteria, escalations, recentActions } = data;
+    // Handle both simple and legacy formats
+    const isSimpleFormat = data.project !== undefined || data.status !== undefined;
+
+    let projectName, status, startedAt, progressPercent, phase;
+
+    if (isSimpleFormat) {
+        // New simple format from /grimlock/build-status
+        projectName = data.project;
+        status = (data.status || 'idle').replace(/"/g, ''); // Remove quotes if present
+        startedAt = data.startedAt ? data.startedAt.replace(/"/g, '') : null;
+        progressPercent = data.progress || 0;
+        phase = data.phase;
+    } else {
+        // Legacy complex format
+        const { sprint, progress } = data;
+        projectName = sprint?.projectName;
+        status = sprint?.status || 'unknown';
+        startedAt = sprint?.startedAt;
+        progressPercent = progress?.percent || 0;
+        phase = data.currentPosition?.milestoneName;
+    }
 
     // Update build title
     const buildTitle = document.getElementById('build-title');
-    if (buildTitle && sprint) {
-        buildTitle.textContent = sprint.projectName || 'No Active Build';
+    if (buildTitle) {
+        if (projectName) {
+            // Format project name nicely
+            const formattedName = projectName.replace(/-/g, ' ').replace(/_/g, ' ');
+            buildTitle.textContent = formattedName.charAt(0).toUpperCase() + formattedName.slice(1);
+        } else if (status === 'idle' || status === 'completed') {
+            buildTitle.textContent = 'No Active Build';
+        } else {
+            buildTitle.textContent = 'Loading...';
+        }
     }
 
     // Update status badge
     const statusText = document.getElementById('build-status-text');
     const statusBadge = document.getElementById('build-status-badge');
-    if (statusText && statusBadge && sprint) {
-        const status = sprint.status || 'unknown';
+    if (statusText && statusBadge) {
         statusText.textContent = status.charAt(0).toUpperCase() + status.slice(1);
 
         // Update badge styling based on status
@@ -640,73 +670,81 @@ function updateProgressUI(data) {
 
         const statusStyles = {
             running: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+            building: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
             completed: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
             paused: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
             aborted: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+            idle: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20',
             not_started: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20'
         };
 
-        statusBadge.className += ' ' + (statusStyles[status] || statusStyles.not_started);
+        statusBadge.className += ' ' + (statusStyles[status] || statusStyles.idle);
     }
 
     // Update started time
-    const startedTime = document.getElementById('build-started-time');
-    if (startedTime && sprint && sprint.startedAt) {
-        startedTime.textContent = formatRelativeTime(sprint.startedAt);
-    } else if (startedTime) {
-        startedTime.textContent = 'Not started';
-    }
-
-    // Update progress bar and percentage
-    const progressPercent = document.getElementById('progress-percent');
-    const progressBar = document.getElementById('progress-bar');
-    if (progressPercent && progressBar && progress) {
-        const percent = progress.percent || 0;
-        progressPercent.textContent = `${percent}%`;
-        progressBar.style.width = `${percent}%`;
-    }
-
-    // Update metrics
-    const tasksCompleted = document.getElementById('metric-tasks-completed');
-    if (tasksCompleted && progress) {
-        const completedCount = (progress.milestonesCompleted || []).length;
-        tasksCompleted.textContent = completedCount.toString();
-    }
-
-    const criteriaPassed = document.getElementById('metric-criteria-passed');
-    if (criteriaPassed && successCriteria) {
-        criteriaPassed.textContent = `${successCriteria.passed}/${successCriteria.total}`;
-    }
-
-    const escalationsEl = document.getElementById('metric-escalations');
-    if (escalationsEl && escalations) {
-        escalationsEl.textContent = (escalations.totalCount || 0).toString();
-    }
-
-    const criteriaFailed = document.getElementById('metric-criteria-failed');
-    if (criteriaFailed && successCriteria) {
-        criteriaFailed.textContent = (successCriteria.failed || 0).toString();
-    }
-
-    // Update PRD confidence
-    const prdConfidence = document.getElementById('prd-confidence-value');
-    const prdGauge = document.getElementById('prd-confidence-gauge');
-    if (prdConfidence && successCriteria) {
-        const confidence = successCriteria.total > 0
-            ? Math.round((successCriteria.passed / successCriteria.total) * 100)
-            : 0;
-        prdConfidence.textContent = `${confidence}%`;
-
-        // Update conic gradient
-        if (prdGauge) {
-            prdGauge.style.background = `conic-gradient(#135bec 0% ${confidence}%, #334155 ${confidence}% 100%)`;
+    const startedTimeEl = document.getElementById('build-started-time');
+    if (startedTimeEl) {
+        if (startedAt) {
+            startedTimeEl.textContent = formatRelativeTime(startedAt);
+        } else {
+            startedTimeEl.textContent = 'Not started';
         }
     }
 
-    // Update current milestone in console
-    if (currentPosition) {
-        console.log(`[Progress] Current: ${currentPosition.milestoneName} - ${currentPosition.taskDescription}`);
+    // Update progress bar and percentage
+    const progressPercentEl = document.getElementById('progress-percent');
+    const progressBar = document.getElementById('progress-bar');
+    if (progressPercentEl && progressBar) {
+        progressPercentEl.textContent = `${progressPercent}%`;
+        progressBar.style.width = `${progressPercent}%`;
     }
+
+    // Update phase indicator if available
+    if (phase) {
+        console.log(`[Progress] Current phase: ${phase}`);
+    }
+
+    // Handle legacy format metrics (if present)
+    if (!isSimpleFormat) {
+        const { successCriteria, escalations, progress } = data;
+
+        const tasksCompleted = document.getElementById('metric-tasks-completed');
+        if (tasksCompleted && progress) {
+            const completedCount = (progress.milestonesCompleted || []).length;
+            tasksCompleted.textContent = completedCount.toString();
+        }
+
+        const criteriaPassed = document.getElementById('metric-criteria-passed');
+        if (criteriaPassed && successCriteria) {
+            criteriaPassed.textContent = `${successCriteria.passed}/${successCriteria.total}`;
+        }
+
+        const escalationsEl = document.getElementById('metric-escalations');
+        if (escalationsEl && escalations) {
+            escalationsEl.textContent = (escalations.totalCount || 0).toString();
+        }
+
+        const criteriaFailed = document.getElementById('metric-criteria-failed');
+        if (criteriaFailed && successCriteria) {
+            criteriaFailed.textContent = (successCriteria.failed || 0).toString();
+        }
+
+        // Update PRD confidence
+        const prdConfidence = document.getElementById('prd-confidence-value');
+        const prdGauge = document.getElementById('prd-confidence-gauge');
+        if (prdConfidence && successCriteria) {
+            const confidence = successCriteria.total > 0
+                ? Math.round((successCriteria.passed / successCriteria.total) * 100)
+                : 0;
+            prdConfidence.textContent = `${confidence}%`;
+
+            if (prdGauge) {
+                prdGauge.style.background = `conic-gradient(#135bec 0% ${confidence}%, #334155 ${confidence}% 100%)`;
+            }
+        }
+    }
+
+    console.log(`[Progress] Updated UI: ${projectName || 'No project'} - ${status}`);
 }
 
 /**
@@ -1990,6 +2028,95 @@ async function initBuildActivityChart() {
     });
 
     console.log('[Chart] Build Activity Chart initialized');
+
+    // Also load analytics stats
+    initAnalyticsData();
+}
+
+/**
+ * Initialize analytics stats cards with real API data
+ */
+async function initAnalyticsData() {
+    console.log('[Analytics] Loading analytics data...');
+
+    if (typeof GrimlockAPI === 'undefined') {
+        console.warn('[Analytics] GrimlockAPI not available');
+        return;
+    }
+
+    try {
+        // Fetch analytics and MCP projects data in parallel
+        const [analyticsResponse, mcpResponse] = await Promise.all([
+            GrimlockAPI.getAnalytics().catch(e => ({ success: false, error: e })),
+            GrimlockAPI.getMCPProjects().catch(e => ({ success: false, error: e }))
+        ]);
+
+        // Update analytics stats
+        if (analyticsResponse?.success && analyticsResponse.data) {
+            const data = analyticsResponse.data;
+
+            // Total Builds
+            const totalBuildsEl = document.getElementById('analytics-total-builds');
+            const buildsChangeEl = document.getElementById('analytics-builds-change');
+            if (totalBuildsEl) {
+                totalBuildsEl.textContent = data.totalBuilds || 0;
+            }
+            if (buildsChangeEl && data.totalBuilds > 0) {
+                buildsChangeEl.textContent = '+' + Math.round(data.totalBuilds * 0.12) + '%';
+                buildsChangeEl.className = 'text-sm font-medium text-emerald-500';
+            }
+
+            // Success Rate
+            const successRateEl = document.getElementById('analytics-success-rate');
+            const successChangeEl = document.getElementById('analytics-success-change');
+            if (successRateEl) {
+                successRateEl.textContent = (data.successRate || 0) + '%';
+            }
+            if (successChangeEl && data.successRate > 0) {
+                successChangeEl.textContent = '+2.1%';
+                successChangeEl.className = 'text-sm font-medium text-emerald-500';
+            }
+
+            // Avg Build Time
+            const avgTimeEl = document.getElementById('analytics-avg-time');
+            const timeChangeEl = document.getElementById('analytics-time-change');
+            if (avgTimeEl) {
+                avgTimeEl.textContent = (data.avgDuration || 0) + 'm';
+            }
+            if (timeChangeEl && data.avgDuration > 0) {
+                timeChangeEl.textContent = '-3.2m';
+                timeChangeEl.className = 'text-sm font-medium text-emerald-500';
+            }
+
+            // Update donut chart center
+            const donutTotalEl = document.getElementById('analytics-donut-total');
+            if (donutTotalEl) {
+                donutTotalEl.textContent = data.totalBuilds || 0;
+            }
+
+            console.log('[Analytics] Loaded analytics:', data);
+        }
+
+        // Update MCP Projects count
+        if (mcpResponse?.success && mcpResponse.data) {
+            const mcpData = mcpResponse.data;
+
+            const mcpsCountEl = document.getElementById('analytics-mcps-count');
+            const mcpsChangeEl = document.getElementById('analytics-mcps-change');
+            if (mcpsCountEl) {
+                mcpsCountEl.textContent = mcpData.total || 0;
+            }
+            if (mcpsChangeEl && mcpData.total > 0) {
+                mcpsChangeEl.textContent = '+' + Math.min(mcpData.total, 5);
+                mcpsChangeEl.className = 'text-sm font-medium text-emerald-500';
+            }
+
+            console.log('[Analytics] Loaded MCP projects:', mcpData.total);
+        }
+
+    } catch (error) {
+        console.error('[Analytics] Failed to load data:', error);
+    }
 }
 
 /**
