@@ -1437,12 +1437,13 @@
             </button>
         </div>
         <div class="p-8">
-            <div class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-10 flex flex-col items-center justify-center text-center hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group">
+            <input type="file" id="file-input" class="hidden" accept=".yaml,.yml,.md,.txt,.pdf" />
+            <div id="drop-zone" class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-10 flex flex-col items-center justify-center text-center hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group">
                 <div class="size-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                     <span class="material-symbols-outlined text-3xl text-slate-400 dark:text-slate-500 group-hover:text-primary">cloud_upload</span>
                 </div>
-                <p class="text-slate-900 dark:text-white font-medium mb-1">Click to upload or drag and drop</p>
-                <p class="text-sm text-slate-500 dark:text-slate-400">PDF, MD, or TXT (max. 10MB)</p>
+                <p id="drop-zone-text" class="text-slate-900 dark:text-white font-medium mb-1">Click to upload or drag and drop</p>
+                <p id="drop-zone-subtext" class="text-sm text-slate-500 dark:text-slate-400">YAML, MD, TXT, or PDF (max. 10MB)</p>
             </div>
         </div>
         <div class="p-6 bg-slate-50 dark:bg-surface-darker flex justify-end gap-3">
@@ -1592,10 +1593,10 @@
 <!-- Scripts -->
 <!-- Chart.js for Analytics -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="js/toast.js?v=20241230"></script>
-<script src="js/auth.js?v=20241230"></script>
-<script src="js/router.js?v=20241230"></script>
-<script src="js/api.js?v=20241230"></script>
-<script src="js/app.js?v=20241230"></script>
+<script src="js/toast.js?v=20241230b"></script>
+<script src="js/auth.js?v=20241230b"></script>
+<script src="js/router.js?v=20241230b"></script>
+<script src="js/api.js?v=20241230b"></script>
+<script src="js/app.js?v=20241230b"></script>
 </body>
 </html>

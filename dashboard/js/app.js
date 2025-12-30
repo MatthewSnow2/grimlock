@@ -1364,12 +1364,128 @@ function initEventListeners() {
         modalCancelBtn.addEventListener('click', closeUploadModal);
     }
 
+    // File input and drop zone
+    const fileInput = document.getElementById('file-input');
+    const dropZone = document.getElementById('drop-zone');
+    const dropZoneText = document.getElementById('drop-zone-text');
+    const dropZoneSubtext = document.getElementById('drop-zone-subtext');
+
+    // Store selected file
+    window.selectedFile = null;
+
+    // Click on drop zone triggers file input
+    if (dropZone && fileInput) {
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // File selected via input
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleFileSelected(file);
+            }
+        });
+
+        // Drag and drop handlers
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('border-primary', 'bg-primary/10');
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('border-primary', 'bg-primary/10');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('border-primary', 'bg-primary/10');
+
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                handleFileSelected(file);
+            }
+        });
+    }
+
+    // Handle file selection
+    function handleFileSelected(file) {
+        const allowedTypes = ['.yaml', '.yml', '.md', '.txt', '.pdf'];
+        const ext = '.' + file.name.split('.').pop().toLowerCase();
+
+        if (!allowedTypes.includes(ext)) {
+            Toast.error(`Invalid file type. Allowed: ${allowedTypes.join(', ')}`);
+            return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+            Toast.error('File too large. Maximum size is 10MB.');
+            return;
+        }
+
+        window.selectedFile = file;
+
+        // Update UI to show selected file
+        if (dropZoneText) {
+            dropZoneText.textContent = file.name;
+        }
+        if (dropZoneSubtext) {
+            dropZoneSubtext.textContent = `${(file.size / 1024).toFixed(1)} KB - Click to change`;
+        }
+
+        console.log('[Upload] File selected:', file.name, file.type, file.size);
+    }
+
     const processFileBtn = document.getElementById('process-file-btn');
     if (processFileBtn) {
-        processFileBtn.addEventListener('click', () => {
-            closeUploadModal();
-            Toast.success('File uploaded successfully');
-            Router.navigate('/progress');
+        processFileBtn.addEventListener('click', async () => {
+            if (!window.selectedFile) {
+                Toast.warning('Please select a file first');
+                return;
+            }
+
+            try {
+                // Read file contents
+                const content = await readFileAsText(window.selectedFile);
+                console.log('[Upload] File content loaded, length:', content.length);
+
+                // Store PRD content for processing
+                window.uploadedPRD = {
+                    filename: window.selectedFile.name,
+                    content: content,
+                    uploadedAt: new Date().toISOString()
+                };
+
+                closeUploadModal();
+                Toast.success(`PRD "${window.selectedFile.name}" uploaded successfully`);
+
+                // Reset for next upload
+                window.selectedFile = null;
+                if (fileInput) fileInput.value = '';
+                if (dropZoneText) dropZoneText.textContent = 'Click to upload or drag and drop';
+                if (dropZoneSubtext) dropZoneSubtext.textContent = 'YAML, MD, TXT, or PDF (max. 10MB)';
+
+                // Navigate to progress page
+                Router.navigate('/progress');
+
+            } catch (error) {
+                console.error('[Upload] Error reading file:', error);
+                Toast.error('Error reading file: ' + error.message);
+            }
+        });
+    }
+
+    // Helper function to read file as text
+    function readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(new Error('Failed to read file'));
+            reader.readAsText(file);
         });
     }
 
