@@ -1,7 +1,7 @@
 # ============================================================================
-# GRIMLOCK MCP SERVER PRD - Windows PowerShell & File System
+# GRIMLOCK MCP SERVER PRD - Windows System Integration
 # ============================================================================
-# Purpose: MCP server for Windows PowerShell execution and file operations
+# Purpose: MCP server for Windows system operations and automation
 # Version: 1.0.0
 # ============================================================================
 
@@ -12,9 +12,10 @@ project:
   name: "windows-mcp"
   version: "0.1.0"
   description: |
-    Windows MCP server providing AI assistants with PowerShell execution
-    and file system operations (CRUD). Enables Claude to automate Windows
-    tasks, manage files, and execute scripts for users.
+    Windows System Integration MCP server providing AI assistants with the ability
+    to interact with Windows operating system features including file management,
+    process control, system information, clipboard operations, and shell execution.
+    Enables Claude to help users automate Windows tasks and troubleshoot system issues.
 
   sdk: "typescript"
   node_version: "18+"
@@ -35,6 +36,7 @@ integration:
   service_name: "Windows OS"
   service_type: "filesystem"
 
+  # No external API - uses Node.js native modules and PowerShell
   api:
     base_url: null
     documentation_url: "https://nodejs.org/api/"
@@ -47,76 +49,37 @@ integration:
 # MCP TOOLS SPECIFICATION
 # ----------------------------------------------------------------------------
 tools:
-  # --- PowerShell Execution ---
-  - name: "run_powershell"
-    description: |
-      Execute a PowerShell command and return output.
-      Use for any Windows automation, system queries, or script execution.
-    parameters:
-      - name: "command"
-        type: "string"
-        required: true
-        description: "PowerShell command or script to execute"
-      - name: "timeout"
-        type: "number"
-        required: false
-        default: 30000
-        description: "Timeout in milliseconds (max 60000)"
-        validation:
-          minimum: 1000
-          maximum: 60000
-    behavior:
-      returns: "object with stdout, stderr, exitCode"
-      error_handling:
-        - condition: "timeout"
-          response: "Command execution timed out"
-        - condition: "execution_policy"
-          response: "May need to adjust PowerShell execution policy"
-        - condition: "access_denied"
-          response: "May require administrator privileges"
-    examples:
-      - input:
-          command: "Get-Process | Select-Object -First 5"
-        expected_output: |
-          { "stdout": "Process list...", "stderr": "", "exitCode": 0 }
-      - input:
-          command: "Get-ChildItem C:\\Users"
-        expected_output: |
-          { "stdout": "Directory listing...", "stderr": "", "exitCode": 0 }
-
-  # --- File System: List ---
+  # --- File System Tools ---
   - name: "list_directory"
     description: |
-      List contents of a directory.
-      Use when user wants to see files in a folder.
+      List contents of a directory with optional filtering.
+      Use when user wants to see files in a folder or search for specific file types.
     parameters:
       - name: "path"
         type: "string"
         required: true
-        description: "Directory path (e.g., 'C:\\Users\\Name\\Documents')"
+        description: "Directory path to list (e.g., 'C:\\Users\\Name\\Documents')"
+      - name: "filter"
+        type: "string"
+        required: false
+        description: "File extension filter (e.g., '*.txt', '*.pdf')"
       - name: "recursive"
         type: "boolean"
         required: false
         default: false
         description: "Include subdirectories"
     behavior:
-      returns: "array of file/folder objects with name, size, modified date, isDirectory"
+      returns: "array of file/folder objects with name, size, modified date, type"
       error_handling:
         - condition: "path_not_found"
-          response: "Directory not found at specified path"
+          response: "Return error with suggested similar paths"
         - condition: "access_denied"
-          response: "Permission denied - may need admin rights"
-    examples:
-      - input:
-          path: "C:\\Users\\Public"
-        expected_output: |
-          [{ "name": "Documents", "isDirectory": true, "size": 0, "modified": "2024-01-01" }]
+          response: "Inform user about permission requirements"
 
-  # --- File System: Read ---
   - name: "read_file"
     description: |
       Read contents of a text file.
-      Use when user wants to view file contents.
+      Use when user wants to view file contents or analyze text data.
     parameters:
       - name: "path"
         type: "string"
@@ -126,29 +89,19 @@ tools:
         type: "string"
         required: false
         default: "utf8"
-        description: "File encoding"
-        validation:
-          enum: ["utf8", "ascii", "utf16le", "base64"]
+        description: "File encoding (utf8, ascii, utf16le)"
     behavior:
       returns: "string with file contents"
       error_handling:
         - condition: "file_not_found"
-          response: "File not found at specified path"
+          response: "Return error with path checked"
         - condition: "binary_file"
-          response: "File appears to be binary - use base64 encoding"
-        - condition: "too_large"
-          response: "File exceeds 10MB limit"
-    examples:
-      - input:
-          path: "C:\\Users\\Name\\config.txt"
-        expected_output: |
-          "File contents as string..."
+          response: "Inform user this appears to be a binary file"
 
-  # --- File System: Write ---
   - name: "write_file"
     description: |
-      Write content to a file (create or overwrite).
-      Use when user wants to create or modify files.
+      Write or append content to a file.
+      Use when user wants to create or modify text files.
     parameters:
       - name: "path"
         type: "string"
@@ -164,23 +117,51 @@ tools:
         default: false
         description: "Append to existing file instead of overwrite"
     behavior:
-      returns: "object with success status and bytes written"
+      returns: "success confirmation with bytes written"
       error_handling:
         - condition: "access_denied"
-          response: "Permission denied - check folder permissions"
-        - condition: "disk_full"
-          response: "Insufficient disk space"
-    examples:
-      - input:
-          path: "C:\\Users\\Name\\test.txt"
-          content: "Hello World"
-        expected_output: |
-          { "success": true, "bytesWritten": 11, "path": "C:\\Users\\Name\\test.txt" }
+          response: "Suggest running as administrator or different location"
 
-  # --- File System: Delete ---
+  - name: "copy_file"
+    description: |
+      Copy a file or directory to a new location.
+      Use when user wants to duplicate or backup files.
+    parameters:
+      - name: "source"
+        type: "string"
+        required: true
+        description: "Source file or directory path"
+      - name: "destination"
+        type: "string"
+        required: true
+        description: "Destination path"
+      - name: "overwrite"
+        type: "boolean"
+        required: false
+        default: false
+        description: "Overwrite if destination exists"
+    behavior:
+      returns: "success confirmation"
+
+  - name: "move_file"
+    description: |
+      Move or rename a file or directory.
+      Use when user wants to relocate or rename items.
+    parameters:
+      - name: "source"
+        type: "string"
+        required: true
+        description: "Source path"
+      - name: "destination"
+        type: "string"
+        required: true
+        description: "Destination path"
+    behavior:
+      returns: "success confirmation with new path"
+
   - name: "delete_file"
     description: |
-      Delete a file or directory.
+      Delete a file or empty directory.
       Use with caution - always confirm with user first.
     parameters:
       - name: "path"
@@ -193,19 +174,153 @@ tools:
         default: false
         description: "Delete directory and all contents (dangerous)"
     behavior:
-      returns: "object with success status"
+      returns: "success confirmation"
       error_handling:
-        - condition: "not_found"
-          response: "File or directory not found"
         - condition: "in_use"
           response: "File is in use by another process"
+
+  # --- Process Management Tools ---
+  - name: "list_processes"
+    description: |
+      List running processes with CPU and memory usage.
+      Use when user wants to see what's running or find resource-heavy apps.
+    parameters:
+      - name: "filter"
+        type: "string"
+        required: false
+        description: "Filter by process name (partial match)"
+      - name: "sort_by"
+        type: "string"
+        required: false
+        default: "memory"
+        description: "Sort by: memory, cpu, name, pid"
+        validation:
+          enum: ["memory", "cpu", "name", "pid"]
+    behavior:
+      returns: "array of process objects with pid, name, cpu%, memory"
+
+  - name: "kill_process"
+    description: |
+      Terminate a running process by PID or name.
+      Use when user wants to force-close an application.
+    parameters:
+      - name: "identifier"
+        type: "string"
+        required: true
+        description: "Process ID (number) or process name"
+      - name: "force"
+        type: "boolean"
+        required: false
+        default: false
+        description: "Force termination without cleanup"
+    behavior:
+      returns: "success confirmation"
+      error_handling:
         - condition: "access_denied"
-          response: "Permission denied"
-    examples:
-      - input:
-          path: "C:\\Users\\Name\\temp.txt"
-        expected_output: |
-          { "success": true, "deleted": "C:\\Users\\Name\\temp.txt" }
+          response: "May require administrator privileges"
+
+  - name: "start_application"
+    description: |
+      Launch an application or open a file with default program.
+      Use when user wants to open apps or files.
+    parameters:
+      - name: "path"
+        type: "string"
+        required: true
+        description: "Application path or file to open"
+      - name: "arguments"
+        type: "string"
+        required: false
+        description: "Command-line arguments"
+      - name: "wait"
+        type: "boolean"
+        required: false
+        default: false
+        description: "Wait for application to close"
+    behavior:
+      returns: "process ID of launched application"
+
+  # --- System Information Tools ---
+  - name: "get_system_info"
+    description: |
+      Get detailed system information including OS, CPU, memory, disk.
+      Use when user asks about their system specs or available resources.
+    parameters: []
+    behavior:
+      returns: "object with os, cpu, memory, disk info"
+
+  - name: "get_disk_usage"
+    description: |
+      Get disk space information for all drives.
+      Use when user wants to check available storage.
+    parameters:
+      - name: "drive"
+        type: "string"
+        required: false
+        description: "Specific drive letter (e.g., 'C:')"
+    behavior:
+      returns: "array of drive objects with total, used, free space"
+
+  # --- Clipboard Tools ---
+  - name: "get_clipboard"
+    description: |
+      Read current clipboard contents (text only).
+      Use when user wants to work with copied text.
+    parameters: []
+    behavior:
+      returns: "string with clipboard text content"
+
+  - name: "set_clipboard"
+    description: |
+      Copy text to clipboard.
+      Use when user wants to copy generated content.
+    parameters:
+      - name: "text"
+        type: "string"
+        required: true
+        description: "Text to copy to clipboard"
+    behavior:
+      returns: "success confirmation"
+
+  # --- Shell Execution ---
+  - name: "run_powershell"
+    description: |
+      Execute a PowerShell command and return output.
+      Use for advanced Windows automation tasks.
+    parameters:
+      - name: "command"
+        type: "string"
+        required: true
+        description: "PowerShell command to execute"
+      - name: "timeout"
+        type: "number"
+        required: false
+        default: 30000
+        description: "Timeout in milliseconds"
+    behavior:
+      returns: "object with stdout, stderr, exit code"
+      error_handling:
+        - condition: "timeout"
+          response: "Command execution timed out"
+        - condition: "execution_policy"
+          response: "May need to adjust PowerShell execution policy"
+
+  - name: "run_cmd"
+    description: |
+      Execute a CMD command and return output.
+      Use for simple command-line operations.
+    parameters:
+      - name: "command"
+        type: "string"
+        required: true
+        description: "CMD command to execute"
+      - name: "timeout"
+        type: "number"
+        required: false
+        default: 30000
+        description: "Timeout in milliseconds"
+    behavior:
+      returns: "object with stdout, stderr, exit code"
 
 # ----------------------------------------------------------------------------
 # ACCEPTANCE CRITERIA
@@ -213,38 +328,33 @@ tools:
 acceptance_criteria:
   functional:
     - id: "AC-001"
-      description: "run_powershell executes commands and returns output"
-      test_method: "automated"
-      priority: "must-have"
-
-    - id: "AC-002"
       description: "list_directory returns accurate file listing"
       test_method: "automated"
       priority: "must-have"
 
-    - id: "AC-003"
-      description: "read_file returns file contents correctly"
+    - id: "AC-002"
+      description: "File operations (read/write/copy/move/delete) work correctly"
       test_method: "automated"
+      priority: "must-have"
+
+    - id: "AC-003"
+      description: "Process listing shows accurate CPU/memory stats"
+      test_method: "manual"
       priority: "must-have"
 
     - id: "AC-004"
-      description: "write_file creates and overwrites files"
-      test_method: "automated"
-      priority: "must-have"
-
-    - id: "AC-005"
-      description: "delete_file removes files safely"
+      description: "PowerShell/CMD execution captures output correctly"
       test_method: "automated"
       priority: "must-have"
 
   non_functional:
     - id: "NFR-001"
       category: "performance"
-      description: "File operations complete within 5 seconds"
+      description: "File operations complete within 5 seconds for typical files"
 
     - id: "NFR-002"
       category: "security"
-      description: "No arbitrary code execution without explicit command"
+      description: "No arbitrary code execution without explicit user command"
 
     - id: "NFR-003"
       category: "reliability"
@@ -266,10 +376,12 @@ security:
   access_control:
     require_user_confirmation:
       - "delete_file (with recursive=true)"
-      - "run_powershell (destructive commands)"
+      - "kill_process"
+      - "run_powershell"
+      - "run_cmd"
     restricted_operations:
-      - "System32 modifications"
-      - "Registry access"
+      - "System directory modifications"
+      - "Registry access (not implemented in v1)"
 
 # ----------------------------------------------------------------------------
 # TESTING REQUIREMENTS
@@ -280,50 +392,48 @@ testing:
     frameworks: ["jest"]
     key_areas:
       - "Path validation and sanitization"
-      - "PowerShell command escaping"
-      - "Error handling"
+      - "Error handling for all tools"
+      - "Process listing parsing"
 
   integration_tests:
-    - name: "File CRUD cycle"
-      description: "Create, read, update, delete file"
+    - name: "File operations end-to-end"
+      description: "Create, read, modify, delete file cycle"
       mock_external: false
 
   manual_tests:
     - "Test with Claude Desktop on Windows"
     - "Verify admin-required operations fail gracefully"
-    - "Test PowerShell with various commands"
+    - "Test clipboard with various content"
 
 # ----------------------------------------------------------------------------
 # CONTEXT EFFICIENCY
 # ----------------------------------------------------------------------------
 context_efficiency:
-  tool_count: 5
-  estimated_tokens_per_call: 2700
+  tool_count: 14
+  estimated_tokens_per_call: 6300
   scope_recommendation:
     level: "project"
     rationale: |
-      5 tools is optimal. PowerShell provides flexibility for complex
-      operations while file CRUD covers common use cases.
+      Windows system tools are typically used in focused automation sessions.
+      Project-level installation is recommended for security.
 
 # ----------------------------------------------------------------------------
 # NOTES
 # ----------------------------------------------------------------------------
 notes: |
   **Dependencies:**
-  - Node.js built-in: fs, path, child_process
+  - Node.js built-in: fs, path, child_process, os
+  - clipboardy (for clipboard operations)
+  - systeminformation (for system info)
 
   **Windows-Specific Considerations:**
+  - Use PowerShell for advanced operations
   - Handle Windows path formats (backslashes)
-  - PowerShell execution policy may need adjustment
   - Consider UAC elevation requirements
   - Test on Windows 10 and Windows 11
 
-  **PowerShell Notes:**
-  - run_powershell is the "escape hatch" for anything not covered by CRUD tools
-  - Can query processes, services, registry (read), network, etc.
-  - Consider command sanitization for security
-
   **Future Enhancements:**
-  - copy_file and move_file tools
   - Registry read/write operations
   - Service management
+  - Scheduled task creation
+  - Network configuration
