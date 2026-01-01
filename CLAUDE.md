@@ -1,201 +1,96 @@
-# CLAUDE.md
+# GRIMLOCK MCP Factory
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+An AI-powered factory that generates MCP servers from PRD specifications.
 
-## Project Overview
+## Current State
 
-GRIMLOCK is an **Autonomous MCP Server Factory** - a system that builds production-ready MCP (Model Context Protocol) servers from PRD specifications. It follows the Week 1 → Weekend → Week 2 sprint model:
+Check `GRIMLOCK_STATE.md` for current build status.
 
-- **Week 1 (Human)**: Define MCP server requirements in PRD template
-- **Friday-Monday (Grimlock)**: Autonomous MCP server construction
-- **Week 2 (Human)**: Security review, integration testing, production hardening
-
-**Architecture:** Slack (commands) → n8n (orchestration) → Claude Code (builds MCP) → GitHub (code + state)
-
-## Key Components
-
-- **GRIMLOCK_STATE.md** - Sprint state file with YAML frontmatter; auto-updated during sprints
-- **prds/TEMPLATE.yaml** - MCP PRD template (tools, resources, prompts, acceptance criteria)
-- **n8n/workflow-exports/** - Backup JSON exports of orchestration workflows
-
-## MCP Server Output Directory
-
-**Output Location:** `/home/ubuntu/projects/mcp/`
-
-All MCP servers built by GRIMLOCK are created in the central MCP directory, not inside the grimlock workspace. This keeps the GRIMLOCK system clean and organizes all deliverables in one place.
-
-## GitHub Repository Routing
-
-**Internal MCPs (built by GRIMLOCK for M2AI):**
-- Organization: `https://github.com/m2ai-mcp-servers/`
-- Naming: `mcp-<project-name>`
-- Example: `m2ai-mcp-servers/mcp-philips-hue`
-
-**Customer MCPs:**
-- Pushed to customer-provided repository URL
-- Or transferred from staging repo
-
-**Non-MCP projects:**
-- Personal account: `https://github.com/MatthewSnow2/`
-
-## MCP Server Output Structure
-
-When Grimlock builds an MCP server, it creates:
+## Project Structure
 
 ```
-/home/ubuntu/projects/mcp/<project-name>/
-├── package.json              # Node.js project (TypeScript)
-├── tsconfig.json             # TypeScript configuration
-├── src/
-│   ├── index.ts              # MCP server entry point
-│   ├── tools/                # Tool implementations
-│   ├── resources/            # Resource handlers (if any)
-│   └── prompts/              # Prompt templates (if any)
-├── tests/
-│   └── *.test.ts             # Jest test suite
-└── README.md                 # Setup and usage docs
+grimlock/
+├── GRIMLOCK_STATE.md    # Build status (single source of truth)
+├── prds/                # Input: PRD specification files
+├── mcps/                # Output: Built MCP server packages
+└── docs/                # Documentation
 ```
 
-## MCP PRD Template Sections
+## Build Process
 
-The PRD template (`prds/TEMPLATE.yaml`) includes:
+When triggered with a PRD file:
+1. Read PRD from `prds/{prd_file}`
+2. Create project in `mcps/{project_name}/`
+3. Implement MCP server according to PRD specs
+4. Run tests
+5. Package and upload to Google Drive
 
-| Section | Purpose |
-|---------|---------|
-| `project` | Name, SDK (typescript/python), deployment config |
-| `integration` | Target API details, authentication method |
-| `tools` | MCP tools with parameters, behavior, examples |
-| `resources` | Application-controlled data sources |
-| `prompts` | User-controlled prompt templates |
-| `acceptance_criteria` | Functional and non-functional requirements |
-| `security` | Credential handling, data sensitivity |
-| `testing` | Unit, integration, manual test requirements |
-| `grimlock_handoff` | Required inputs for autonomous build |
-| `week2_refinement` | Post-delivery review checklist |
+## Build Completion Protocol
 
-## Design Wizard
+When an MCP build is successfully completed (all tests pass, documentation generated):
 
-The `grimlock design` command (or `/grimlock design` in Slack) launches an interactive PRD design wizard that:
-
-1. Guides users through MCP definition questions
-2. Applies best practices for context efficiency
-3. Warns about high tool counts (10+, 15+)
-4. Recommends installation scope (project vs user)
-5. Generates production-ready PRD
-
-**Skill location:** `~/.claude/skills/grimlock-design/SKILL.md`
-
-**Configuration files:**
-- `config/design-wizard.yaml` - Question tree
-- `config/context-efficiency.yaml` - Token thresholds
-- `config/validation-rules.yaml` - Warning rules
-
-**Best practices reference:** `docs/MCP_BEST_PRACTICES.md`
-
-### Context Efficiency Guidelines
-
-| Tools | Tokens | Level | Recommendation |
-|-------|--------|-------|----------------|
-| 3-7 | ~3,500 | Optimal | Project level |
-| 8-10 | ~4,500 | Acceptable | Project or user |
-| 11-15 | ~7,000 | Concerning | Consider splitting |
-| 16+ | >7,000 | Problematic | Split required |
-
-## Orchestration Workflows
-
-| Workflow | Purpose |
-|----------|---------|
-| Design Wizard | Guided PRD creation with best practices |
-| Sprint Initiator | Validate MCP PRD → Launch CC → Initialize state |
-| Heartbeat Monitor | 30-min health checks → Slack status |
-| Milestone Gate Checker | Validate milestones → Route pass/fail |
-| Escalation Handler | Severity routing → Notifications → Logging |
-
-## Escalation Severity Levels
-
-- **INFO** - Log only
-- **WARNING** - Slack channel post, continue execution
-- **PAUSE** - Channel + DM, halt execution, await `/grimlock resume`
-- **EMERGENCY** - Immediate halt, terminate CC process
-
-## Scope Boundaries
-
-**In scope:**
-- MCP server TypeScript/Python code
-- Tool implementations matching PRD spec
-- Unit and integration tests
-- Setup documentation (README.md)
-- State management and progress reporting
-
-**Out of scope (PAUSE if detected):**
-- AWS infrastructure changes
-- n8n credential management
-- Slack/GitHub administration
-- Production deployments (Week 2 human task)
-- Publishing to npm/PyPI without approval
-
-## MCP SDK References
-
-**TypeScript:**
-- Package: `@modelcontextprotocol/sdk`
-- Docs: https://modelcontextprotocol.io/docs
-
-**Python:**
-- Package: `mcp`
-- Docs: https://modelcontextprotocol.io/docs
-
-## State Transitions
-
-`not_started` → `running` → `paused` ↔ `running` → `completed|aborted`
-
-## Files Claude Code May Create
-
-- MCP server source files in `/home/ubuntu/projects/mcp/<project>/` (`.ts`, `.py`)
-- Test files (`.test.ts`, `test_*.py`)
-- Configuration files (`package.json`, `tsconfig.json`, `pyproject.toml`)
-- Documentation (`.md` files)
-- PRD files in `/home/ubuntu/projects/grimlock/prds/`
-- State updates in `/home/ubuntu/projects/grimlock/GRIMLOCK_STATE.md`
-
-## Files Claude Code May NOT Create
-
-- Files outside grimlock or mcp directories
-- `.env` files with real credentials (only `.env.example`)
-- Executable deployment scripts without approval
-- CI/CD pipelines (Week 2 human task)
-
-## Known Issues & Troubleshooting
-
-### Shell Session Breaks After Directory Deletion
-
-**Problem:** If a project directory that was the shell's working directory gets deleted (e.g., after moving a project to a new location), ALL subsequent Bash commands will fail with exit code 1, even basic commands like `pwd` or `echo`.
-
-**Symptoms:**
-- Every Bash command returns exit code 1
-- No output or error message
-- Affects main session AND agent subprocesses
-
-**Solution:** User must restart Claude Code session:
+### 1. Package the MCP
 ```bash
-# Exit current session
-exit
-# Or use Ctrl+C multiple times
-
-# Start fresh session
-claude
+cd /home/ubuntu/projects/grimlock/mcps
+zip -r {mcp-name}.zip {mcp-name}/
 ```
 
-**Prevention:** When moving/deleting project directories, ensure the shell's working directory is changed BEFORE the deletion:
+### 2. Upload to Google Drive via n8n webhook
 ```bash
-cd /home/ubuntu  # Move to safe directory first
-rm -rf /path/to/old/project  # Then delete
+curl -X POST https://im4tlai.app.n8n.cloud/webhook/grimlock/upload-mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "buildId": "{current-build-id}",
+    "mcpName": "{mcp-name}"
+  }'
 ```
 
-### Workarounds When Shell is Broken
+### 3. Update GRIMLOCK_STATE.md
+Set the following values:
+- `status: complete`
+- `phase: complete`
+- `progress: 100`
+- The webhook will update `mcp_download_url` automatically
 
-When shell commands fail, Claude Code can still:
-- Read and write files using Read/Edit/Write tools
-- Use n8n MCP tools for workflow management
-- Provide commands for user to run manually
+## State File Format
 
-The user should run shell commands in a separate terminal when this occurs.
+GRIMLOCK_STATE.md uses YAML frontmatter:
+
+```yaml
+---
+build_id: mcp-example-1704067200000
+prd_file: mcp-example-PRD.yaml
+status: running          # idle | running | complete | failed
+phase: implementation    # prd_uploaded | implementation | testing | documentation | packaging | complete
+progress: 45             # 0-100
+mcp_download_url: null   # Populated when complete
+started_at: 2024-12-31T10:00:00Z
+updated_at: 2024-12-31T10:15:00Z
+---
+```
+
+## Phase Definitions
+
+| Phase | Progress Range | Description |
+|-------|----------------|-------------|
+| prd_uploaded | 0-10% | PRD received, analyzing requirements |
+| implementation | 10-60% | Building MCP server code |
+| testing | 60-80% | Running tests, fixing issues |
+| documentation | 80-90% | Generating README, examples |
+| packaging | 90-99% | Zipping, uploading to Google Drive |
+| complete | 100% | Build finished successfully |
+
+## Error Handling
+
+If build fails:
+1. Set `status: failed` in GRIMLOCK_STATE.md
+2. Add error details to state file
+3. Do NOT call the upload webhook
+
+## Conventions
+
+- Use MCP SDK latest stable version
+- Follow PRD tool specifications exactly
+- Create comprehensive tests
+- Include .env.example for required credentials
+- Write clear README with setup instructions

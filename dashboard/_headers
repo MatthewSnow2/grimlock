@@ -1,7 +1,0 @@
-# Netlify Headers - Prevent aggressive caching of JS files
-
-/js/*
-  Cache-Control: no-cache, must-revalidate
-
-/*.html
-  Cache-Control: no-cache, must-revalidate

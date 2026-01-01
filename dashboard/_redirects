@@ -1,9 +1,0 @@
-# API Proxy Rules - Route API calls through Netlify
-# Netlify proxies to FastAPI directly (HTTP), avoiding self-signed cert issue
-
-# Proxy all /api/* requests to FastAPI (HTTP port 8000)
-/api/* http://54.225.171.108:8000/api/:splat 200
-
-# SPA redirect fallback
-# All non-API routes serve index.html for client-side routing
-/*    /index.html   200

@@ -1,2541 +1,296 @@
 /**
- * MCP Factory Dashboard - Application Logic
- * Handles view switching, event binding, and UI interactions
+ * MCP Factory Dashboard - Simplified Single Page Application
+ * GRIMLOCK Hackathon - January 2025
  */
 
-// Configuration
 const CONFIG = {
-    // External PRD Design Wizard URL (n8n form)
-    wizardUrl: 'https://im4tlai.app.n8n.cloud/form/grimlock-wizard',
-    // API base URL - empty string for relative URLs (proxied through Netlify)
-    // Netlify _redirects routes /api/* to EC2 backend, solving self-signed cert issue
-    apiUrl: ''
+    N8N_BASE_URL: 'https://im4tlai.app.n8n.cloud/webhook',
+    ENDPOINTS: {
+        START_BUILD: '/grimlock/start',
+        CHECK_STATUS: '/grimlock/build-status'
+    },
+    POLL_INTERVAL: 10000  // 10 seconds
 };
 
-// Track active confirm callback
-let confirmCallback = null;
+// =============================================================================
+// DOM Elements
+// =============================================================================
 
-/**
- * Show a specific view and hide others
- * @param {string} viewName - The data-view attribute value to show
- */
-function showView(viewName) {
-    document.querySelectorAll('[data-view]').forEach(el => {
-        el.classList.add('hidden');
+const uploadForm = document.getElementById('upload-form');
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('prd-file');
+const fileName = document.getElementById('file-name');
+const buildBtn = document.getElementById('build-btn');
+const buildStatus = document.getElementById('build-status');
+const statusBadge = document.getElementById('status-badge');
+const statusPhase = document.getElementById('status-phase');
+const progressBar = document.getElementById('progress-bar');
+const progressText = document.getElementById('progress-text');
+const mcpResult = document.getElementById('mcp-result');
+const mcpDownload = document.getElementById('mcp-download');
+
+// Active build section
+const activeBuildSection = document.getElementById('active-build-section');
+const activeBuildName = document.getElementById('active-build-name');
+const activeBuildId = document.getElementById('active-build-id');
+const activeStatusBadge = document.getElementById('active-status-badge');
+const activePhase = document.getElementById('active-phase');
+const activeProgressBar = document.getElementById('active-progress-bar');
+const activeProgressText = document.getElementById('active-progress-text');
+const activeDownload = document.getElementById('active-download');
+const activeDownloadLink = document.getElementById('active-download-link');
+
+let selectedFile = null;
+let pollInterval = null;
+
+// =============================================================================
+// File Selection Handlers
+// =============================================================================
+
+if (dropZone) {
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-cyan-500');
     });
 
-    const targetView = document.querySelector(`[data-view="${viewName}"]`);
-    if (targetView) {
-        targetView.classList.remove('hidden');
-    }
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('border-cyan-500');
+    });
 
-    updateNavigation(viewName);
-}
-
-/**
- * Update sidebar navigation active state
- * @param {string} activeView - The currently active view
- */
-function updateNavigation(activeView) {
-    document.querySelectorAll('.nav-link').forEach(link => {
-        const navTarget = link.dataset.nav;
-        link.classList.remove('text-primary', 'dark:bg-[#282e39]', 'dark:text-white');
-        link.classList.add('text-slate-600', 'dark:text-text-secondary');
-
-        if (navTarget === activeView) {
-            link.classList.add('text-primary', 'dark:bg-[#282e39]', 'dark:text-white');
-            link.classList.remove('text-slate-600', 'dark:text-text-secondary');
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-cyan-500');
+        const file = e.dataTransfer.files[0];
+        if (file && (file.name.endsWith('.yaml') || file.name.endsWith('.yml'))) {
+            handleFileSelect(file);
         }
     });
 }
 
-// ==========================================
-// MODAL HELPERS
-// ==========================================
-
-/**
- * Open the upload modal
- */
-function openUploadModal() {
-    const modal = document.getElementById('upload-modal');
-    if (modal) modal.classList.remove('hidden');
-}
-
-/**
- * Close the upload modal
- */
-function closeUploadModal() {
-    const modal = document.getElementById('upload-modal');
-    if (modal) modal.classList.add('hidden');
-}
-
-/**
- * Show the wizard unavailable modal
- */
-function showWizardUnavailableModal() {
-    const modal = document.getElementById('wizard-unavailable-modal');
-    if (modal) modal.classList.remove('hidden');
-}
-
-/**
- * Close the wizard unavailable modal
- */
-function closeWizardUnavailableModal() {
-    const modal = document.getElementById('wizard-unavailable-modal');
-    if (modal) modal.classList.add('hidden');
-}
-
-/**
- * Show the coming soon modal with custom feature name
- * @param {string} featureName - Name of the feature
- */
-function showComingSoonModal(featureName) {
-    const modal = document.getElementById('coming-soon-modal');
-    const title = document.getElementById('coming-soon-title');
-    const message = document.getElementById('coming-soon-message');
-
-    if (modal) {
-        const formattedName = featureName.charAt(0).toUpperCase() + featureName.slice(1);
-        title.textContent = `${formattedName} Coming Soon`;
-        message.textContent = `The ${formattedName} feature is under development and will be available in a future update.`;
-        modal.classList.remove('hidden');
-    }
-}
-
-/**
- * Close the coming soon modal
- */
-function closeComingSoonModal() {
-    const modal = document.getElementById('coming-soon-modal');
-    if (modal) modal.classList.add('hidden');
-}
-
-/**
- * Show confirmation modal
- * @param {string} title - Modal title
- * @param {string} message - Modal message
- * @param {function} onConfirm - Callback when confirmed
- * @param {string} confirmText - Text for confirm button (default: "Confirm")
- * @param {boolean} isDanger - Use danger styling (default: false)
- */
-function showConfirmModal(title, message, onConfirm, confirmText = 'Confirm', isDanger = false) {
-    const modal = document.getElementById('confirm-modal');
-    const titleEl = document.getElementById('confirm-title');
-    const messageEl = document.getElementById('confirm-message');
-    const confirmBtn = document.getElementById('confirm-ok');
-    const iconContainer = document.getElementById('confirm-icon-container');
-    const icon = document.getElementById('confirm-icon');
-
-    if (modal) {
-        titleEl.textContent = title;
-        messageEl.textContent = message;
-        confirmBtn.textContent = confirmText;
-
-        // Update styling based on danger
-        if (isDanger) {
-            iconContainer.className = 'size-10 rounded-full bg-rose-500/20 flex items-center justify-center';
-            icon.className = 'material-symbols-outlined text-rose-500';
-            icon.textContent = 'warning';
-            confirmBtn.className = 'px-5 py-2.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-medium transition-all';
-        } else {
-            iconContainer.className = 'size-10 rounded-full bg-amber-500/20 flex items-center justify-center';
-            icon.className = 'material-symbols-outlined text-amber-500';
-            icon.textContent = 'warning';
-            confirmBtn.className = 'px-5 py-2.5 rounded-lg bg-primary hover:bg-blue-600 text-white font-medium shadow-lg shadow-primary/25 transition-all';
+if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files[0]) {
+            handleFileSelect(e.target.files[0]);
         }
-
-        confirmCallback = onConfirm;
-        modal.classList.remove('hidden');
-    }
+    });
 }
 
-/**
- * Close confirmation modal
- */
-function closeConfirmModal() {
-    const modal = document.getElementById('confirm-modal');
-    if (modal) modal.classList.add('hidden');
-    confirmCallback = null;
+function handleFileSelect(file) {
+    selectedFile = file;
+    fileName.textContent = file.name;
+    fileName.classList.remove('hidden');
+    buildBtn.disabled = false;
 }
 
-/**
- * Show info modal
- * @param {string} title - Modal title
- * @param {string} content - HTML content for the modal body
- */
-function showInfoModal(title, content) {
-    const modal = document.getElementById('info-modal');
-    const titleEl = document.getElementById('info-title');
-    const contentEl = document.getElementById('info-content');
+// =============================================================================
+// Build Submission
+// =============================================================================
 
-    if (modal) {
-        titleEl.textContent = title;
-        contentEl.innerHTML = content;
-        modal.classList.remove('hidden');
-    }
-}
+if (uploadForm) {
+    uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!selectedFile) return;
 
-/**
- * Close info modal
- */
-function closeInfoModal() {
-    const modal = document.getElementById('info-modal');
-    if (modal) modal.classList.add('hidden');
-}
+        buildBtn.disabled = true;
+        buildBtn.textContent = 'Starting Build...';
 
-/**
- * Close any open modal on Escape key
- */
-function closeAllModals() {
-    closeUploadModal();
-    closeWizardUnavailableModal();
-    closeComingSoonModal();
-    closeConfirmModal();
-    closeInfoModal();
-}
-
-// ==========================================
-// UTILITY FUNCTIONS
-// ==========================================
-
-/**
- * Copy text to clipboard
- * @param {string} text - Text to copy
- */
-async function copyToClipboard(text) {
-    try {
-        await navigator.clipboard.writeText(text);
-        Toast.success('Copied to clipboard');
-    } catch (err) {
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-9999px';
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        Toast.success('Copied to clipboard');
-    }
-}
-
-/**
- * Simulate downloading logs
- */
-function downloadDemoLogs() {
-    Toast.info('Preparing logs for download...');
-
-    // Simulate download delay
-    setTimeout(() => {
-        const logContent = `[Build Log - Generated ${new Date().toISOString()}]
-================================================================================
-[10:42:01] INFO  Initializing build environment...
-[10:42:02] INFO  Loading MCP configuration v2.1.0
-[10:42:05] INFO  PRD analysis complete. Confidence: 94%
-[10:42:06] SUCCESS Schema validation passed for 12 models.
-[10:42:08] INFO  Starting Code Generation Module...
-[10:42:15] INFO  Generating payment_gateway.ts...
-[10:42:18] INFO  Generating transaction_logger.ts...
-[10:42:22] WARN  Deprecated method usage detected in auth_utils.ts:45
-[10:42:22] INFO  Auto-correcting deprecation... DONE
-[10:42:25] INFO  Running unit tests (Batch 1/4)...
-[10:42:28] PASS  PaymentControllerTest.createOrder
-[10:42:29] PASS  PaymentControllerTest.validateCard
-[10:42:31] INFO  Generating invoice_generator.ts...
-[10:42:35] INFO  Compressing assets...
-[10:42:40] SUCCESS Build completed successfully!
-================================================================================`;
-
-        const blob = new Blob([logContent], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'build-logs.txt';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        Toast.success('Logs downloaded');
-    }, 500);
-}
-
-/**
- * Simulate downloading the package
- */
-function downloadDemoPackage() {
-    Toast.info('Preparing package for download...');
-
-    // Simulate download delay
-    setTimeout(() => {
-        const manifest = `# MCP Package Manifest
-# Generated: ${new Date().toISOString()}
-# Build ID: 8823-AF
-
-Package: data-pipeline-connector-v1.0.4.zip
-Size: 4.2 MB
-Files: 12
-
-Contents:
-- src/main.py
-- src/utils.py
-- src/db_connector.py
-- tests/test_main.py
-- tests/test_utils.py
-- config.json
-- package.json
-- README.md
-- LICENSE
-- .gitignore
-- requirements.txt
-- setup.py
-
-Checksums:
-SHA256: 8f14e45fceea167a5a36dedd4bea2543
-MD5: a3dcb4d229de6fde0db5686dee47145d
-
----
-This is a demo manifest. In production, the actual package would be downloaded.`;
-
-        const blob = new Blob([manifest], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'package-manifest.txt';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        Toast.success('Package manifest downloaded');
-    }, 800);
-}
-
-// ==========================================
-// CONFIGURATION MANAGEMENT
-// ==========================================
-
-/**
- * Default configuration values
- */
-const DEFAULT_CONFIG = {
-    wizardUrl: 'https://im4tlai.app.n8n.cloud/form/grimlock-wizard',
-    apiUrl: '',  // Empty = relative URLs (proxied through Netlify)
-    defaultSdk: 'typescript',
-    githubTarget: 'm2ai-mcp-servers',
-    customGithubUrl: '',
-    outputDir: '/home/ubuntu/projects/mcp/'
-};
-
-/**
- * Get current configuration from localStorage
- * @returns {object} Configuration object
- */
-function getConfig() {
-    const stored = localStorage.getItem('grimlock-config');
-    if (stored) {
         try {
-            return { ...DEFAULT_CONFIG, ...JSON.parse(stored) };
-        } catch (e) {
-            console.error('Failed to parse config:', e);
-        }
-    }
-    return { ...DEFAULT_CONFIG };
-}
-
-/**
- * Save configuration to localStorage
- * @param {object} config - Configuration to save
- */
-function saveConfig(config) {
-    localStorage.setItem('grimlock-config', JSON.stringify(config));
-    // Update the runtime CONFIG object
-    CONFIG.wizardUrl = config.wizardUrl;
-    CONFIG.apiUrl = config.apiUrl;
-}
-
-/**
- * Load configuration values into the form
- */
-function loadConfigToForm() {
-    const config = getConfig();
-
-    const wizardUrlInput = document.getElementById('config-wizard-url');
-    const apiUrlInput = document.getElementById('config-api-url');
-    const defaultSdkSelect = document.getElementById('config-default-sdk');
-    const githubTargetSelect = document.getElementById('config-github-target');
-    const customGithubUrlInput = document.getElementById('config-custom-github-url');
-    const outputDirInput = document.getElementById('config-output-dir');
-    const customGithubContainer = document.getElementById('custom-github-url-container');
-
-    if (wizardUrlInput) wizardUrlInput.value = config.wizardUrl;
-    if (apiUrlInput) apiUrlInput.value = config.apiUrl;
-    if (defaultSdkSelect) defaultSdkSelect.value = config.defaultSdk;
-    if (githubTargetSelect) githubTargetSelect.value = config.githubTarget;
-    if (customGithubUrlInput) customGithubUrlInput.value = config.customGithubUrl;
-    if (outputDirInput) outputDirInput.value = config.outputDir;
-
-    // Show/hide custom URL field
-    if (customGithubContainer) {
-        if (config.githubTarget === 'custom') {
-            customGithubContainer.classList.remove('hidden');
-        } else {
-            customGithubContainer.classList.add('hidden');
-        }
-    }
-}
-
-/**
- * Get configuration values from the form
- * @returns {object} Configuration from form inputs
- */
-function getConfigFromForm() {
-    return {
-        wizardUrl: document.getElementById('config-wizard-url')?.value || DEFAULT_CONFIG.wizardUrl,
-        apiUrl: document.getElementById('config-api-url')?.value || DEFAULT_CONFIG.apiUrl,
-        defaultSdk: document.getElementById('config-default-sdk')?.value || DEFAULT_CONFIG.defaultSdk,
-        githubTarget: document.getElementById('config-github-target')?.value || DEFAULT_CONFIG.githubTarget,
-        customGithubUrl: document.getElementById('config-custom-github-url')?.value || '',
-        outputDir: document.getElementById('config-output-dir')?.value || DEFAULT_CONFIG.outputDir
-    };
-}
-
-/**
- * Initialize configuration event listeners
- */
-function initConfigEventListeners() {
-    // GitHub target dropdown - show/hide custom URL field
-    const githubTargetSelect = document.getElementById('config-github-target');
-    if (githubTargetSelect) {
-        githubTargetSelect.addEventListener('change', (e) => {
-            const customContainer = document.getElementById('custom-github-url-container');
-            if (customContainer) {
-                if (e.target.value === 'custom') {
-                    customContainer.classList.remove('hidden');
-                } else {
-                    customContainer.classList.add('hidden');
-                }
-            }
-        });
-    }
-
-    // Save button
-    const saveBtn = document.getElementById('config-save-btn');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', () => {
-            const config = getConfigFromForm();
-            saveConfig(config);
-            Toast.success('Configuration saved');
-        });
-    }
-
-    // Reset button
-    const resetBtn = document.getElementById('config-reset-btn');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', () => {
-            showConfirmModal(
-                'Reset Configuration',
-                'Are you sure you want to reset all settings to their default values?',
-                () => {
-                    saveConfig(DEFAULT_CONFIG);
-                    loadConfigToForm();
-                    Toast.info('Configuration reset to defaults');
-                },
-                'Reset'
-            );
-        });
-    }
-
-    // Test Connection button
-    const testBtn = document.getElementById('test-n8n-connection');
-    if (testBtn) {
-        testBtn.addEventListener('click', async () => {
-            const apiUrl = document.getElementById('config-api-url')?.value;
-            if (!apiUrl) {
-                Toast.error('Please enter an API URL first');
-                return;
-            }
-
-            Toast.info('Testing connection...');
-
-            try {
-                // Try to fetch the FastAPI health endpoint
-                const response = await fetch(`${apiUrl}/api/health`, {
-                    method: 'GET'
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    Toast.success(`Connection successful (API v${data.version || 'unknown'})`);
-                } else {
-                    Toast.warning('API returned non-OK status');
-                }
-            } catch (error) {
-                Toast.warning('Could not connect to API: ' + error.message);
-            }
-        });
-    }
-}
-
-/**
- * Apply saved configuration on startup
- */
-function applyStoredConfig() {
-    const config = getConfig();
-    CONFIG.wizardUrl = config.wizardUrl;
-    CONFIG.apiUrl = config.apiUrl;
-}
-
-// ==========================================
-// SETTINGS MANAGEMENT
-// ==========================================
-
-/**
- * Default settings values
- */
-const DEFAULT_SETTINGS = {
-    theme: 'dark',
-    compact: false,
-    notifyComplete: true,
-    notifyErrors: true,
-    sound: false
-};
-
-/**
- * Get current settings from localStorage
- * @returns {object} Settings object
- */
-function getSettings() {
-    const stored = localStorage.getItem('grimlock-settings');
-    if (stored) {
-        try {
-            return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
-        } catch (e) {
-            console.error('Failed to parse settings:', e);
-        }
-    }
-    return { ...DEFAULT_SETTINGS };
-}
-
-/**
- * Save settings to localStorage
- * @param {object} settings - Settings to save
- */
-function saveSettings(settings) {
-    localStorage.setItem('grimlock-settings', JSON.stringify(settings));
-}
-
-/**
- * Load settings values into the form
- */
-function loadSettingsToForm() {
-    const settings = getSettings();
-
-    const themeSelect = document.getElementById('settings-theme');
-    const compactCheckbox = document.getElementById('settings-compact');
-    const notifyCompleteCheckbox = document.getElementById('settings-notify-complete');
-    const notifyErrorsCheckbox = document.getElementById('settings-notify-errors');
-    const soundCheckbox = document.getElementById('settings-sound');
-
-    if (themeSelect) themeSelect.value = settings.theme;
-    if (compactCheckbox) compactCheckbox.checked = settings.compact;
-    if (notifyCompleteCheckbox) notifyCompleteCheckbox.checked = settings.notifyComplete;
-    if (notifyErrorsCheckbox) notifyErrorsCheckbox.checked = settings.notifyErrors;
-    if (soundCheckbox) soundCheckbox.checked = settings.sound;
-}
-
-/**
- * Get settings values from the form
- * @returns {object} Settings from form inputs
- */
-function getSettingsFromForm() {
-    return {
-        theme: document.getElementById('settings-theme')?.value || DEFAULT_SETTINGS.theme,
-        compact: document.getElementById('settings-compact')?.checked || false,
-        notifyComplete: document.getElementById('settings-notify-complete')?.checked || false,
-        notifyErrors: document.getElementById('settings-notify-errors')?.checked || false,
-        sound: document.getElementById('settings-sound')?.checked || false
-    };
-}
-
-/**
- * Initialize settings event listeners
- */
-function initSettingsEventListeners() {
-    // Save button
-    const saveBtn = document.getElementById('settings-save-btn');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', () => {
-            const settings = getSettingsFromForm();
-            saveSettings(settings);
-            Toast.success('Settings saved');
-        });
-    }
-}
-
-// ==========================================
-// PROGRESS PAGE - API INTEGRATION
-// ==========================================
-
-/**
- * Initialize the Progress page with real API data
- */
-function initProgressPage() {
-    if (typeof GrimlockAPI === 'undefined') {
-        console.warn('[Progress] GrimlockAPI not available, showing demo data');
-        return;
-    }
-
-    console.log('[Progress] Starting real-time data polling...');
-
-    // Start polling for build status (FastAPI endpoint)
-    GrimlockAPI.startPolling('/api/builds/current', (response, error) => {
-        if (error) {
-            console.error('[Progress] API error:', error);
-            Toast.error('Failed to fetch build status');
-            return;
-        }
-
-        if (response && response.success) {
-            updateProgressUI(response.data);
-        } else if (response && response._stale) {
-            updateProgressUI(response.data);
-            Toast.warning('Showing cached data - connection issues');
-        }
-    }, 30000); // Poll every 30 seconds
-}
-
-/**
- * Stop Progress page polling when navigating away
- */
-function cleanupProgressPage() {
-    if (typeof GrimlockAPI !== 'undefined') {
-        GrimlockAPI.stopPolling('/api/builds/current');
-        console.log('[Progress] Stopped polling');
-    }
-}
-
-/**
- * Update Progress page UI with API data
- * @param {object} data - Build status data from API
- * Supports multiple formats:
- * FastAPI: { running: [{id, name, status, phase, started_at, ...}], count }
- * Simple: { project, status, progress, startedAt, phase }
- * Legacy: { sprint, currentPosition, progress, successCriteria, escalations }
- */
-function updateProgressUI(data) {
-    if (!data) return;
-
-    // Detect format
-    const isFastAPIFormat = data.running !== undefined;
-    const isSimpleFormat = data.project !== undefined || data.status !== undefined;
-
-    let projectName, status, startedAt, progressPercent, phase;
-
-    if (isFastAPIFormat) {
-        // FastAPI format from /api/builds/current
-        if (data.running && data.running.length > 0) {
-            const build = data.running[0]; // Get first running build
-            projectName = build.name;
-            status = build.status || 'running';
-            startedAt = build.started_at;
-            phase = build.phase;
-            // Estimate progress based on phase
-            const phaseProgress = {
-                'prd_uploaded': 10,
-                'analysis': 25,
-                'specGen': 40,
-                'codeGen': 60,
-                'validation': 80,
-                'complete': 100
-            };
-            progressPercent = phaseProgress[phase] || 0;
-        } else {
-            // No running builds
-            projectName = null;
-            status = 'idle';
-            startedAt = null;
-            phase = null;
-            progressPercent = 0;
-        }
-    } else if (isSimpleFormat) {
-        // Simple format from old /grimlock/build-status
-        projectName = data.project;
-        status = (data.status || 'idle').replace(/"/g, ''); // Remove quotes if present
-        startedAt = data.startedAt ? data.startedAt.replace(/"/g, '') : null;
-        progressPercent = data.progress || 0;
-        phase = data.phase;
-    } else {
-        // Legacy complex format
-        const { sprint, progress } = data;
-        projectName = sprint?.projectName;
-        status = sprint?.status || 'unknown';
-        startedAt = sprint?.startedAt;
-        progressPercent = progress?.percent || 0;
-        phase = data.currentPosition?.milestoneName;
-    }
-
-    // Update build title
-    const buildTitle = document.getElementById('build-title');
-    if (buildTitle) {
-        if (projectName) {
-            // Format project name nicely
-            const formattedName = projectName.replace(/-/g, ' ').replace(/_/g, ' ');
-            buildTitle.textContent = formattedName.charAt(0).toUpperCase() + formattedName.slice(1);
-        } else if (status === 'idle' || status === 'completed') {
-            buildTitle.textContent = 'No Active Build';
-        } else {
-            buildTitle.textContent = 'Loading...';
-        }
-    }
-
-    // Update status badge
-    const statusText = document.getElementById('build-status-text');
-    const statusBadge = document.getElementById('build-status-badge');
-    if (statusText && statusBadge) {
-        statusText.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-
-        // Update badge styling based on status
-        statusBadge.className = statusBadge.className.replace(
-            /bg-\w+-500\/10|text-\w+-600|text-\w+-400|border-\w+-500\/20/g, ''
-        );
-
-        const statusStyles = {
-            running: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-            building: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-            completed: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
-            paused: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
-            aborted: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
-            idle: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20',
-            not_started: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20'
-        };
-
-        statusBadge.className += ' ' + (statusStyles[status] || statusStyles.idle);
-    }
-
-    // Update started time
-    const startedTimeEl = document.getElementById('build-started-time');
-    if (startedTimeEl) {
-        if (startedAt) {
-            startedTimeEl.textContent = formatRelativeTime(startedAt);
-        } else {
-            startedTimeEl.textContent = 'Not started';
-        }
-    }
-
-    // Update progress bar and percentage
-    const progressPercentEl = document.getElementById('progress-percent');
-    const progressBar = document.getElementById('progress-bar');
-    if (progressPercentEl && progressBar) {
-        progressPercentEl.textContent = `${progressPercent}%`;
-        progressBar.style.width = `${progressPercent}%`;
-    }
-
-    // Update phase indicator and stepper
-    if (phase) {
-        console.log(`[Progress] Current phase: ${phase}`);
-        updateStepperUI(phase, status);
-    } else if (status === 'idle' || status === 'completed') {
-        // Reset stepper when no active build
-        updateStepperUI('complete', status);
-    }
-
-    // Handle legacy format metrics (if present)
-    if (!isSimpleFormat) {
-        const { successCriteria, escalations, progress } = data;
-
-        const tasksCompleted = document.getElementById('metric-tasks-completed');
-        if (tasksCompleted && progress) {
-            const completedCount = (progress.milestonesCompleted || []).length;
-            tasksCompleted.textContent = completedCount.toString();
-        }
-
-        const criteriaPassed = document.getElementById('metric-criteria-passed');
-        if (criteriaPassed && successCriteria) {
-            criteriaPassed.textContent = `${successCriteria.passed}/${successCriteria.total}`;
-        }
-
-        const escalationsEl = document.getElementById('metric-escalations');
-        if (escalationsEl && escalations) {
-            escalationsEl.textContent = (escalations.totalCount || 0).toString();
-        }
-
-        const criteriaFailed = document.getElementById('metric-criteria-failed');
-        if (criteriaFailed && successCriteria) {
-            criteriaFailed.textContent = (successCriteria.failed || 0).toString();
-        }
-
-        // Update PRD confidence
-        const prdConfidence = document.getElementById('prd-confidence-value');
-        const prdGauge = document.getElementById('prd-confidence-gauge');
-        if (prdConfidence && successCriteria) {
-            const confidence = successCriteria.total > 0
-                ? Math.round((successCriteria.passed / successCriteria.total) * 100)
-                : 0;
-            prdConfidence.textContent = `${confidence}%`;
-
-            if (prdGauge) {
-                prdGauge.style.background = `conic-gradient(#135bec 0% ${confidence}%, #334155 ${confidence}% 100%)`;
-            }
-        }
-    }
-
-    console.log(`[Progress] Updated UI: ${projectName || 'No project'} - ${status}`);
-}
-
-/**
- * Update the stepper UI based on current build phase
- * @param {string} phase - Current phase (prd_uploaded, analysis, specGen, codeGen, validation, complete)
- * @param {string} status - Current build status (running, idle, completed, etc.)
- */
-function updateStepperUI(phase, status) {
-    // Map phase names to step indices
-    const phaseMap = {
-        'prd_uploaded': 0,
-        'prd_reviewed': 0,
-        'analysis': 0,
-        'specGen': 1,
-        'codeGen': 2,
-        'validation': 3,
-        'deploy': 4,
-        'complete': 5
-    };
-
-    // Icons for each step
-    const stepIcons = ['search', 'description', 'code', 'rule', 'rocket_launch'];
-
-    // Get current step index (-1 if not started)
-    let currentStep = phaseMap[phase];
-    if (currentStep === undefined) currentStep = -1;
-    if (status === 'idle' || status === 'not_started') currentStep = -1;
-    if (status === 'completed' || phase === 'complete') currentStep = 5;
-
-    // Update progress line width
-    const progressLine = document.getElementById('stepper-progress-line');
-    if (progressLine) {
-        const progressPercent = currentStep >= 5 ? 100 : Math.max(0, (currentStep / 4) * 100);
-        progressLine.style.width = `${progressPercent}%`;
-    }
-
-    // Update each step
-    const steps = document.querySelectorAll('.stepper-step');
-    steps.forEach((step, index) => {
-        const circle = step.querySelector('.step-circle');
-        const icon = step.querySelector('.step-icon');
-        const label = step.querySelector('.step-label');
-
-        if (!circle || !icon || !label) return;
-
-        // Reset classes
-        circle.className = 'step-circle flex h-8 w-8 items-center justify-center rounded-full ring-4 ring-white dark:ring-card-dark';
-        icon.className = 'step-icon material-symbols-outlined';
-        icon.style.fontSize = '16px';
-        label.className = 'step-label text-xs';
-
-        if (index < currentStep || currentStep >= 5) {
-            // Completed step
-            circle.classList.add('bg-primary', 'text-white');
-            icon.textContent = 'check';
-            label.classList.add('font-semibold', 'text-primary');
-        } else if (index === currentStep && currentStep < 5) {
-            // Current/active step
-            circle.classList.add('bg-primary', 'text-white', 'shadow-lg', 'shadow-blue-500/50');
-            icon.classList.add('animate-spin');
-            icon.textContent = 'sync';
-            label.classList.add('font-bold', 'text-primary');
-        } else {
-            // Pending step
-            circle.classList.add('bg-slate-200', 'text-slate-500', 'dark:bg-slate-700', 'dark:text-slate-400');
-            icon.textContent = stepIcons[index] || 'circle';
-            label.classList.add('font-medium', 'text-slate-400', 'dark:text-slate-500');
-        }
-    });
-
-    console.log(`[Stepper] Updated to phase: ${phase}, step: ${currentStep}`);
-}
-
-/**
- * Format build logs array into HTML for the modal
- * @param {Array} logs - Array of log entries with ts, event, phase, msg, level
- * @returns {string} Formatted HTML string
- */
-function formatBuildLogs(logs) {
-    const levelColors = {
-        'info': 'text-emerald-400',
-        'warn': 'text-amber-400',
-        'warning': 'text-amber-400',
-        'error': 'text-rose-400',
-        'success': 'text-emerald-400',
-        'debug': 'text-slate-500'
-    };
-
-    const levelIcons = {
-        'info': 'info',
-        'warn': 'warning',
-        'warning': 'warning',
-        'error': 'error',
-        'success': 'check_circle',
-        'debug': 'bug_report'
-    };
-
-    const logsHtml = logs.map(log => {
-        const timestamp = log.ts ? new Date(log.ts).toLocaleTimeString() : '--:--:--';
-        const level = (log.level || 'info').toLowerCase();
-        const color = levelColors[level] || 'text-slate-400';
-        const icon = levelIcons[level] || 'circle';
-        const phase = log.phase ? `[${log.phase}]` : '';
-        const message = log.msg || log.message || 'No message';
-
-        return `
-            <div class="flex items-start gap-2 py-1 border-b border-slate-800 last:border-0">
-                <span class="text-slate-600 text-[10px] min-w-[65px]">${timestamp}</span>
-                <span class="material-symbols-outlined ${color}" style="font-size: 14px;">${icon}</span>
-                <span class="${color} text-[10px] uppercase font-semibold min-w-[45px]">${level}</span>
-                ${phase ? `<span class="text-blue-400 text-[10px]">${phase}</span>` : ''}
-                <span class="text-slate-300 flex-1">${message}</span>
-            </div>
-        `;
-    }).join('');
-
-    return `
-        <div class="font-mono text-xs bg-slate-900 rounded-lg p-4 max-h-96 overflow-y-auto">
-            ${logsHtml || '<div class="text-slate-500 text-center py-4">No log entries</div>'}
-        </div>
-    `;
-}
-
-/**
- * Format a date string as relative time (e.g., "Started 2m ago")
- * @param {string} dateString - ISO date string
- * @returns {string} Relative time string
- */
-function formatRelativeTime(dateString) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Started just now';
-    if (diffMins < 60) return `Started ${diffMins}m ago`;
-    if (diffHours < 24) return `Started ${diffHours}h ago`;
-    return `Started ${diffDays}d ago`;
-}
-
-// ==========================================
-// LOGS PAGE - API INTEGRATION
-// ==========================================
-
-// Store current logs data for filtering/pagination
-let currentLogsData = [];
-let currentLogsFilter = 'all';
-
-/**
- * Initialize the Logs page with real API data
- */
-async function initLogsPage() {
-    if (typeof GrimlockAPI === 'undefined') {
-        console.warn('[Logs] GrimlockAPI not available, showing demo data');
-        showDemoLogs();
-        return;
-    }
-
-    console.log('[Logs] Fetching build history...');
-
-    try {
-        const response = await GrimlockAPI.getBuildHistory();
-
-        if (response && response.success) {
-            currentLogsData = response.data.builds || [];
-            updateLogsUI(currentLogsData);
-        } else {
-            console.error('[Logs] API returned error:', response?.error);
-            Toast.error('Failed to load build history');
-            showDemoLogs();
-        }
-    } catch (error) {
-        console.error('[Logs] API error:', error);
-        Toast.error('Failed to connect to API');
-        showDemoLogs();
-    }
-}
-
-/**
- * Show empty state when no logs data is available
- */
-function showDemoLogs() {
-    // Show empty state instead of fake demo data
-    currentLogsData = [];
-    updateLogsUI([]);
-    console.log('[Logs] No build history available - showing empty state');
-}
-
-/**
- * Update Logs page UI with API data
- * @param {Array} builds - Array of build objects from API
- */
-function updateLogsUI(builds) {
-    const logsList = document.getElementById('logs-list');
-    const loadingEl = document.getElementById('logs-loading');
-    const emptyEl = document.getElementById('logs-empty');
-    const countBadge = document.getElementById('logs-count-badge');
-    const paginationInfo = document.getElementById('logs-pagination-info');
-
-    // Hide loading state
-    if (loadingEl) loadingEl.classList.add('hidden');
-
-    // Apply filter
-    let filteredBuilds = builds;
-    if (currentLogsFilter !== 'all') {
-        filteredBuilds = builds.filter(b => b.status === currentLogsFilter);
-    }
-
-    // Update count badge
-    if (countBadge) {
-        countBadge.textContent = `${filteredBuilds.length} entries`;
-    }
-
-    // Update pagination info
-    if (paginationInfo) {
-        paginationInfo.textContent = `Showing ${filteredBuilds.length} of ${builds.length} entries`;
-    }
-
-    // Show empty state if no builds
-    if (filteredBuilds.length === 0) {
-        if (emptyEl) emptyEl.classList.remove('hidden');
-        // Remove any existing log entries (but keep loading/empty states)
-        logsList.querySelectorAll('.log-entry').forEach(el => el.remove());
-        return;
-    }
-
-    // Hide empty state
-    if (emptyEl) emptyEl.classList.add('hidden');
-
-    // Remove existing log entries (but keep loading/empty states)
-    logsList.querySelectorAll('.log-entry').forEach(el => el.remove());
-
-    // Generate and insert new log entries
-    filteredBuilds.forEach(build => {
-        const entryHtml = createLogEntryHtml(build);
-        logsList.insertAdjacentHTML('beforeend', entryHtml);
-    });
-
-    // Re-attach click listeners to new entries
-    attachLogEntryListeners();
-}
-
-/**
- * Create HTML for a single log entry
- * @param {object} build - Build object
- * @returns {string} HTML string
- */
-function createLogEntryHtml(build) {
-    const statusConfig = {
-        success: {
-            bgColor: 'bg-emerald-500/20',
-            textColor: 'text-emerald-500',
-            icon: 'check_circle',
-            badgeBg: 'bg-emerald-500/10',
-            badgeText: 'text-emerald-600 dark:text-emerald-400',
-            label: 'Success'
-        },
-        error: {
-            bgColor: 'bg-rose-500/20',
-            textColor: 'text-rose-500',
-            icon: 'error',
-            badgeBg: 'bg-rose-500/10',
-            badgeText: 'text-rose-600 dark:text-rose-400',
-            label: 'Failed'
-        },
-        warning: {
-            bgColor: 'bg-amber-500/20',
-            textColor: 'text-amber-500',
-            icon: 'warning',
-            badgeBg: 'bg-amber-500/10',
-            badgeText: 'text-amber-600 dark:text-amber-400',
-            label: 'Warning'
-        },
-        running: {
-            bgColor: 'bg-blue-500/20',
-            textColor: 'text-blue-500',
-            icon: 'sync',
-            badgeBg: 'bg-blue-500/10',
-            badgeText: 'text-blue-600 dark:text-blue-400',
-            label: 'Running'
-        }
-    };
-
-    const config = statusConfig[build.status] || statusConfig.success;
-    // Support both camelCase (legacy) and snake_case (FastAPI)
-    const dateInfo = formatLogDate(build.startedAt || build.started_at || build.stoppedAt || build.stopped_at);
-    const duration = build.duration ? `${Math.round(build.duration)}s` : '--';
-    const buildName = build.name || build.workflowName || 'Unknown Build';
-    const shortId = (build.id || '').substring(0, 8);
-
-    return `
-        <div class="log-entry flex items-center gap-4 px-6 py-4 hover:bg-slate-50 dark:hover:bg-surface-darker cursor-pointer transition-colors" data-log-id="${build.id}">
-            <div class="size-10 rounded-full ${config.bgColor} flex items-center justify-center flex-shrink-0">
-                <span class="material-symbols-outlined ${config.textColor}">${config.icon}</span>
-            </div>
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                    <span class="text-sm font-semibold text-slate-900 dark:text-white">${buildName}</span>
-                    <span class="px-2 py-0.5 rounded-full ${config.badgeBg} ${config.badgeText} text-xs font-medium">${config.label}</span>
-                </div>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Duration: ${duration} • ID: ${shortId}</p>
-            </div>
-            <div class="text-right flex-shrink-0">
-                <p class="text-sm text-slate-700 dark:text-slate-300 font-medium">${dateInfo.date}</p>
-                <p class="text-xs text-slate-400">${dateInfo.time}</p>
-            </div>
-            <span class="material-symbols-outlined text-slate-400">chevron_right</span>
-        </div>
-    `;
-}
-
-/**
- * Format date for log entries
- * @param {string} dateString - ISO date string
- * @returns {object} { date, time }
- */
-function formatLogDate(dateString) {
-    if (!dateString) return { date: '--', time: '--' };
-
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffDays = Math.floor((now - date) / 86400000);
-
-    let dateLabel;
-    if (diffDays === 0) {
-        dateLabel = 'Today';
-    } else if (diffDays === 1) {
-        dateLabel = 'Yesterday';
-    } else {
-        dateLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    }
-
-    const timeLabel = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-
-    return { date: dateLabel, time: timeLabel };
-}
-
-/**
- * Attach click listeners to log entries
- */
-function attachLogEntryListeners() {
-    document.querySelectorAll('.log-entry').forEach(entry => {
-        entry.addEventListener('click', () => {
-            const logId = entry.dataset.logId;
-            // Navigate to Complete page with build ID
-            Router.navigate(`/complete?id=${logId}`);
-        });
-    });
-}
-
-/**
- * Initialize logs page event listeners
- */
-function initLogsEventListeners() {
-    // Filter dropdown
-    const filterSelect = document.getElementById('logs-filter-status');
-    if (filterSelect) {
-        filterSelect.addEventListener('change', (e) => {
-            currentLogsFilter = e.target.value;
-            if (currentLogsData.length > 0) {
-                updateLogsUI(currentLogsData);
-            }
-        });
-    }
-
-    // Refresh button
-    const refreshBtn = document.getElementById('logs-refresh-btn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', async () => {
-            Toast.info('Refreshing logs...');
-            await initLogsPage();
-            Toast.success('Logs refreshed');
-        });
-    }
-
-    // Export button
-    const exportBtn = document.getElementById('logs-export-btn');
-    if (exportBtn) {
-        exportBtn.addEventListener('click', () => {
-            downloadDemoLogs();
-        });
-    }
-}
-
-// ==========================================
-// COMPLETE PAGE - API INTEGRATION
-// ==========================================
-
-// Store current build ID
-let currentBuildId = null;
-
-/**
- * Initialize the Complete page with real API data
- * @param {string} buildId - The build/execution ID to fetch details for
- */
-async function initCompletePage(buildId) {
-    currentBuildId = buildId;
-
-    if (!buildId) {
-        console.warn('[Complete] No build ID provided, showing placeholder');
-        showDemoComplete();
-        return;
-    }
-
-    if (typeof GrimlockAPI === 'undefined') {
-        console.warn('[Complete] GrimlockAPI not available, showing demo data');
-        showDemoComplete();
-        return;
-    }
-
-    console.log(`[Complete] Fetching build details for ID: ${buildId}`);
-
-    try {
-        const response = await GrimlockAPI.getBuildDetails(buildId);
-
-        if (response && response.success) {
-            updateCompleteUI(response.data);
-        } else {
-            console.error('[Complete] API returned error:', response?.error);
-            Toast.error('Failed to load build details');
-            showDemoComplete();
-        }
-    } catch (error) {
-        console.error('[Complete] API error:', error);
-        Toast.error('Failed to connect to API');
-        showDemoComplete();
-    }
-}
-
-/**
- * Show demo/fallback complete data
- */
-function showDemoComplete() {
-    const demoData = {
-        execution: {
-            id: 'demo-8823-AF',
-            status: 'success',
-            startedAt: new Date(Date.now() - 14000).toISOString(),
-            stoppedAt: new Date().toISOString(),
-            mode: 'manual',
-            workflowName: 'Demo Build - Data Pipeline',
-            finished: true
-        },
-        project: {
-            name: 'Demo Project',
-            status: 'completed',
-            projectName: 'Data-Pipeline-Connector'
-        },
-        artifacts: {
-            mcpProjects: ['data-pipeline-connector'],
-            projectPath: '/home/ubuntu/projects/mcp/'
-        }
-    };
-    updateCompleteUI(demoData);
-}
-
-/**
- * Update Complete page UI with API data
- * @param {object} data - Build details data from API
- * Supports FastAPI format (flat) and legacy format (nested)
- */
-function updateCompleteUI(data) {
-    if (!data) return;
-
-    // Detect format - FastAPI returns flat structure, legacy uses nested
-    const isFastAPIFormat = data.id !== undefined && data.execution === undefined;
-
-    let execution, project, artifacts;
-
-    if (isFastAPIFormat) {
-        // FastAPI format: flat structure from /api/builds/{id}
-        execution = {
-            id: data.id,
-            status: data.status,
-            startedAt: data.started_at,
-            stoppedAt: data.stopped_at,
-            mode: 'automated',
-            workflowName: data.name,
-            finished: data.status === 'success' || data.status === 'error'
-        };
-        project = {
-            name: data.name,
-            status: data.status,
-            projectName: data.name
-        };
-        artifacts = {
-            mcpProjects: [data.name],
-            projectPath: '/home/ubuntu/projects/mcp/'
-        };
-    } else {
-        // Legacy format: nested structure
-        execution = data.execution;
-        project = data.project;
-        artifacts = data.artifacts;
-    }
-
-    // Update MCP Name
-    const mcpName = document.getElementById('complete-mcp-name');
-    if (mcpName) {
-        mcpName.textContent = project?.projectName || execution?.workflowName || 'Unknown';
-    }
-
-    // Update Build ID
-    const buildIdValue = document.getElementById('build-id-value');
-    if (buildIdValue && execution) {
-        const shortId = (execution.id || '').substring(0, 12);
-        buildIdValue.textContent = shortId || '--';
-    }
-
-    // Update Status
-    const statusEl = document.getElementById('complete-status');
-    if (statusEl && execution) {
-        const status = execution.status || 'unknown';
-        statusEl.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-
-        // Update status color
-        const statusColors = {
-            success: 'text-emerald-400',
-            error: 'text-rose-400',
-            running: 'text-blue-400',
-            waiting: 'text-amber-400'
-        };
-        statusEl.className = `font-medium text-sm ${statusColors[status] || 'text-white'}`;
-    }
-
-    // Update Duration
-    const durationEl = document.getElementById('complete-duration');
-    if (durationEl && execution) {
-        if (execution.startedAt && execution.stoppedAt) {
-            const start = new Date(execution.startedAt);
-            const end = new Date(execution.stoppedAt);
-            const diffMs = end - start;
-            const diffSecs = Math.round(diffMs / 1000);
-            durationEl.textContent = `${diffSecs}s`;
-        } else {
-            durationEl.textContent = '--';
-        }
-    }
-
-    // Update Completed At
-    const timestampEl = document.getElementById('complete-timestamp');
-    if (timestampEl && execution && execution.stoppedAt) {
-        const date = new Date(execution.stoppedAt);
-        timestampEl.textContent = date.toLocaleString();
-    }
-
-    // Update Workflow Name
-    const workflowName = document.getElementById('complete-workflow-name');
-    if (workflowName && execution) {
-        workflowName.textContent = execution.workflowName || 'GRIMLOCK Build Workflow';
-    }
-
-    // Update execution info badges
-    const startedAt = document.getElementById('complete-started-at');
-    if (startedAt && execution && execution.startedAt) {
-        const date = new Date(execution.startedAt);
-        startedAt.textContent = date.toLocaleTimeString();
-    }
-
-    const finishedAt = document.getElementById('complete-finished-at');
-    if (finishedAt && execution && execution.stoppedAt) {
-        const date = new Date(execution.stoppedAt);
-        finishedAt.textContent = date.toLocaleTimeString();
-    }
-
-    const modeEl = document.getElementById('complete-mode');
-    if (modeEl && execution) {
-        modeEl.textContent = execution.mode || 'Manual';
-    }
-
-    // Update Project Info section
-    const projectList = document.getElementById('complete-project-list');
-    const projectCount = document.getElementById('complete-project-count');
-    const projectPath = document.getElementById('complete-project-path');
-
-    if (artifacts && artifacts.mcpProjects && artifacts.mcpProjects.length > 0) {
-        const projects = artifacts.mcpProjects;
-
-        if (projectCount) {
-            projectCount.textContent = `${projects.length} project${projects.length !== 1 ? 's' : ''}`;
-        }
-
-        if (projectPath && artifacts.projectPath) {
-            projectPath.textContent = artifacts.projectPath;
-        }
-
-        if (projectList) {
-            projectList.innerHTML = `
-                <ul class="space-y-2 text-text-secondary">
-                    ${projects.map(proj => `
-                        <li class="flex items-center gap-2 hover:text-white transition-colors">
-                            <span class="material-symbols-outlined text-lg text-primary">folder</span>
-                            <span>${proj}/</span>
-                        </li>
-                    `).join('')}
-                </ul>
-            `;
-        }
-    } else {
-        if (projectCount) projectCount.textContent = 'No projects';
-        if (projectPath) projectPath.textContent = project?.projectName ? `/home/ubuntu/projects/mcp/${project.projectName}` : '--';
-        if (projectList) {
-            projectList.innerHTML = `
-                <div class="text-center py-8 text-text-secondary">
-                    <span class="material-symbols-outlined text-3xl mb-2">folder_off</span>
-                    <p>No MCP projects found</p>
-                </div>
-            `;
-        }
-    }
-}
-
-/**
- * Get build ID from URL query string
- * @returns {string|null} Build ID or null
- */
-function getBuildIdFromUrl() {
-    const hash = window.location.hash;
-    const queryIndex = hash.indexOf('?');
-    if (queryIndex === -1) return null;
-
-    const queryString = hash.substring(queryIndex + 1);
-    const params = new URLSearchParams(queryString);
-    return params.get('id');
-}
-
-/**
- * Initialize analytics page event listeners
- */
-function initAnalyticsEventListeners() {
-    // Time range dropdown
-    const timeRangeSelect = document.getElementById('analytics-time-range');
-    if (timeRangeSelect) {
-        timeRangeSelect.addEventListener('change', (e) => {
-            Toast.info(`Time range: ${e.target.options[e.target.selectedIndex].text} (demo mode)`);
-        });
-    }
-}
-
-/**
- * Initialize documentation page event listeners
- */
-function initDocsEventListeners() {
-    // Quick start button
-    const quickStartBtn = document.getElementById('docs-quick-start-btn');
-    if (quickStartBtn) {
-        quickStartBtn.addEventListener('click', () => {
-            showInfoModal('Quick Start Tutorial', `
-                <div class="space-y-4 text-sm">
-                    <div class="flex items-start gap-3">
-                        <div class="size-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span class="text-primary text-xs font-bold">1</span>
-                        </div>
-                        <div>
-                            <p class="text-white font-medium">Create a PRD</p>
-                            <p class="text-slate-400">Use the Design Wizard or upload an existing specification file.</p>
-                        </div>
-                    </div>
-                    <div class="flex items-start gap-3">
-                        <div class="size-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span class="text-primary text-xs font-bold">2</span>
-                        </div>
-                        <div>
-                            <p class="text-white font-medium">Configure Your Build</p>
-                            <p class="text-slate-400">Set your SDK preference, GitHub target, and output directory.</p>
-                        </div>
-                    </div>
-                    <div class="flex items-start gap-3">
-                        <div class="size-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span class="text-primary text-xs font-bold">3</span>
-                        </div>
-                        <div>
-                            <p class="text-white font-medium">Start the Build</p>
-                            <p class="text-slate-400">GRIMLOCK will autonomously generate your MCP server.</p>
-                        </div>
-                    </div>
-                    <div class="flex items-start gap-3">
-                        <div class="size-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span class="text-primary text-xs font-bold">4</span>
-                        </div>
-                        <div>
-                            <p class="text-white font-medium">Review & Deploy</p>
-                            <p class="text-slate-400">Download your package and integrate it into your project.</p>
-                        </div>
-                    </div>
-                </div>
-            `);
-        });
-    }
-}
-
-/**
- * Initialize support page event listeners
- */
-function initSupportEventListeners() {
-    // Status button
-    const statusBtn = document.getElementById('support-status-btn');
-    if (statusBtn) {
-        statusBtn.addEventListener('click', () => {
-            Toast.info('Status page coming soon');
-        });
-    }
-
-    // Email button
-    const emailBtn = document.getElementById('support-email-btn');
-    if (emailBtn) {
-        emailBtn.addEventListener('click', () => {
-            copyToClipboard('support@mcpfactory.io');
-            Toast.success('Email address copied to clipboard');
-        });
-    }
-
-    // Discord button
-    const discordBtn = document.getElementById('support-discord-btn');
-    if (discordBtn) {
-        discordBtn.addEventListener('click', () => {
-            Toast.info('Discord invite coming soon');
-        });
-    }
-
-    // Feedback button
-    const feedbackBtn = document.getElementById('support-feedback-btn');
-    if (feedbackBtn) {
-        feedbackBtn.addEventListener('click', () => {
-            const feedbackText = document.getElementById('support-feedback-text');
-            if (feedbackText && feedbackText.value.trim()) {
-                Toast.success('Thank you for your feedback!');
-                feedbackText.value = '';
-            } else {
-                Toast.warning('Please enter your feedback before submitting');
-            }
-        });
-    }
-}
-
-// ==========================================
-// EVENT LISTENERS
-// ==========================================
-
-/**
- * Initialize event listeners
- */
-function initEventListeners() {
-    // ========================================
-    // LANDING PAGE
-    // ========================================
-
-    // Begin Wizard button - opens external n8n form in new tab
-    const beginWizardBtn = document.getElementById('begin-wizard-btn');
-    if (beginWizardBtn) {
-        beginWizardBtn.addEventListener('click', () => {
-            window.open(CONFIG.wizardUrl, '_blank');
-        });
-    }
-
-    // Upload File button - opens upload modal
-    const uploadBtn = document.getElementById('upload-btn');
-    if (uploadBtn) {
-        uploadBtn.addEventListener('click', openUploadModal);
-    }
-
-    // ========================================
-    // HEADER
-    // ========================================
-
-    // New Build button - navigates to landing
-    const newBuildBtn = document.getElementById('new-build-btn');
-    if (newBuildBtn) {
-        newBuildBtn.addEventListener('click', () => {
-            Router.navigate('/');
-        });
-    }
-
-    // Search input - Enter key shows toast
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const query = searchInput.value.trim();
-                if (query) {
-                    Toast.info(`Search for "${query}" coming soon`);
-                } else {
-                    Toast.info('Search functionality coming soon');
-                }
-            }
-        });
-    }
-
-    // ========================================
-    // UPLOAD MODAL
-    // ========================================
-
-    const modalCloseBtn = document.getElementById('modal-close-btn');
-    if (modalCloseBtn) {
-        modalCloseBtn.addEventListener('click', closeUploadModal);
-    }
-
-    const modalCancelBtn = document.getElementById('modal-cancel-btn');
-    if (modalCancelBtn) {
-        modalCancelBtn.addEventListener('click', closeUploadModal);
-    }
-
-    // File input and drop zone
-    const fileInput = document.getElementById('file-input');
-    const dropZone = document.getElementById('drop-zone');
-    const dropZoneText = document.getElementById('drop-zone-text');
-    const dropZoneSubtext = document.getElementById('drop-zone-subtext');
-
-    // Store selected file
-    window.selectedFile = null;
-
-    // Click on drop zone triggers file input
-    if (dropZone && fileInput) {
-        dropZone.addEventListener('click', () => {
-            fileInput.click();
-        });
-
-        // File selected via input
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                handleFileSelected(file);
-            }
-        });
-
-        // Drag and drop handlers
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropZone.classList.add('border-primary', 'bg-primary/10');
-        });
-
-        dropZone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropZone.classList.remove('border-primary', 'bg-primary/10');
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropZone.classList.remove('border-primary', 'bg-primary/10');
-
-            const file = e.dataTransfer.files[0];
-            if (file) {
-                handleFileSelected(file);
-            }
-        });
-    }
-
-    // Handle file selection
-    function handleFileSelected(file) {
-        const allowedTypes = ['.yaml', '.yml', '.md', '.txt', '.pdf'];
-        const ext = '.' + file.name.split('.').pop().toLowerCase();
-
-        if (!allowedTypes.includes(ext)) {
-            Toast.error(`Invalid file type. Allowed: ${allowedTypes.join(', ')}`);
-            return;
-        }
-
-        if (file.size > 10 * 1024 * 1024) {
-            Toast.error('File too large. Maximum size is 10MB.');
-            return;
-        }
-
-        window.selectedFile = file;
-
-        // Update UI to show selected file
-        if (dropZoneText) {
-            dropZoneText.textContent = file.name;
-        }
-        if (dropZoneSubtext) {
-            dropZoneSubtext.textContent = `${(file.size / 1024).toFixed(1)} KB - Click to change`;
-        }
-
-        console.log('[Upload] File selected:', file.name, file.type, file.size);
-    }
-
-    const processFileBtn = document.getElementById('process-file-btn');
-    if (processFileBtn) {
-        processFileBtn.addEventListener('click', async () => {
-            if (!window.selectedFile) {
-                Toast.warning('Please select a file first');
-                return;
-            }
-
-            try {
-                // Read file contents
-                const content = await readFileAsText(window.selectedFile);
-                console.log('[Upload] File content loaded, length:', content.length);
-
-                const filename = window.selectedFile.name;
-
-                // Show loading state
-                Toast.info('Uploading PRD and starting build...');
-                processFileBtn.disabled = true;
-                processFileBtn.textContent = 'Processing...';
-
-                // Submit PRD to FastAPI endpoint
-                const uploadUrl = `${CONFIG.apiUrl}/api/prd/upload`;
-                console.log('[Upload] Submitting to:', uploadUrl);
-
-                const response = await fetch(uploadUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        filename: filename,
-                        content: content
-                    })
-                });
-
-                const result = await response.json();
-                console.log('[Upload] Response:', result);
-
-                if (!response.ok) {
-                    throw new Error(result.detail || result.message || 'Failed to submit PRD');
-                }
-
-                // Store PRD content for progress tracking
-                // API returns: { id, filename, uploaded_at, build_triggered, build_id }
-                window.uploadedPRD = {
-                    filename: filename,
-                    content: content,
-                    projectName: result.id?.split('-')[0] || filename.replace(/\.(yaml|yml|md|txt)$/i, ''),
-                    uploadedAt: result.uploaded_at || new Date().toISOString()
-                };
-
-                closeUploadModal();
-                Toast.success(`PRD "${filename}" uploaded - build started!`);
-
-                // Reset for next upload
-                window.selectedFile = null;
-                if (fileInput) fileInput.value = '';
-                if (dropZoneText) dropZoneText.textContent = 'Click to upload or drag and drop';
-                if (dropZoneSubtext) dropZoneSubtext.textContent = 'YAML, MD, TXT, or PDF (max. 10MB)';
-
-                // Navigate to progress page
-                Router.navigate('/progress');
-
-            } catch (error) {
-                console.error('[Upload] Error:', error);
-                Toast.error('Upload failed: ' + error.message);
-            } finally {
-                // Reset button state
-                processFileBtn.disabled = false;
-                processFileBtn.textContent = 'Start Build';
-            }
-        });
-    }
-
-    // Helper function to read file as text
-    function readFileAsText(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = (e) => reject(new Error('Failed to read file'));
-            reader.readAsText(file);
-        });
-    }
-
-    // Close upload modal on backdrop click
-    const uploadModal = document.getElementById('upload-modal');
-    if (uploadModal) {
-        uploadModal.addEventListener('click', (e) => {
-            if (e.target === uploadModal) closeUploadModal();
-        });
-    }
-
-    // ========================================
-    // WIZARD UNAVAILABLE MODAL
-    // ========================================
-
-    const wizardModalClose = document.getElementById('wizard-modal-close');
-    if (wizardModalClose) {
-        wizardModalClose.addEventListener('click', closeWizardUnavailableModal);
-    }
-
-    const wizardModalDismiss = document.getElementById('wizard-modal-dismiss');
-    if (wizardModalDismiss) {
-        wizardModalDismiss.addEventListener('click', closeWizardUnavailableModal);
-    }
-
-    const wizardUploadInstead = document.getElementById('wizard-upload-instead');
-    if (wizardUploadInstead) {
-        wizardUploadInstead.addEventListener('click', () => {
-            closeWizardUnavailableModal();
-            openUploadModal();
-        });
-    }
-
-    // Backdrop click
-    const wizardModal = document.getElementById('wizard-unavailable-modal');
-    if (wizardModal) {
-        wizardModal.addEventListener('click', (e) => {
-            if (e.target === wizardModal) closeWizardUnavailableModal();
-        });
-    }
-
-    // ========================================
-    // COMING SOON MODAL
-    // ========================================
-
-    const comingSoonClose = document.getElementById('coming-soon-close');
-    if (comingSoonClose) {
-        comingSoonClose.addEventListener('click', closeComingSoonModal);
-    }
-
-    const comingSoonDismiss = document.getElementById('coming-soon-dismiss');
-    if (comingSoonDismiss) {
-        comingSoonDismiss.addEventListener('click', closeComingSoonModal);
-    }
-
-    const comingSoonModal = document.getElementById('coming-soon-modal');
-    if (comingSoonModal) {
-        comingSoonModal.addEventListener('click', (e) => {
-            if (e.target === comingSoonModal) closeComingSoonModal();
-        });
-    }
-
-    // ========================================
-    // CONFIRM MODAL
-    // ========================================
-
-    const confirmClose = document.getElementById('confirm-close');
-    if (confirmClose) {
-        confirmClose.addEventListener('click', closeConfirmModal);
-    }
-
-    const confirmCancel = document.getElementById('confirm-cancel');
-    if (confirmCancel) {
-        confirmCancel.addEventListener('click', closeConfirmModal);
-    }
-
-    const confirmOk = document.getElementById('confirm-ok');
-    if (confirmOk) {
-        confirmOk.addEventListener('click', () => {
-            if (confirmCallback) {
-                confirmCallback();
-            }
-            closeConfirmModal();
-        });
-    }
-
-    const confirmModal = document.getElementById('confirm-modal');
-    if (confirmModal) {
-        confirmModal.addEventListener('click', (e) => {
-            if (e.target === confirmModal) closeConfirmModal();
-        });
-    }
-
-    // ========================================
-    // INFO MODAL
-    // ========================================
-
-    const infoClose = document.getElementById('info-close');
-    if (infoClose) {
-        infoClose.addEventListener('click', closeInfoModal);
-    }
-
-    const infoDismiss = document.getElementById('info-dismiss');
-    if (infoDismiss) {
-        infoDismiss.addEventListener('click', closeInfoModal);
-    }
-
-    const infoModal = document.getElementById('info-modal');
-    if (infoModal) {
-        infoModal.addEventListener('click', (e) => {
-            if (e.target === infoModal) closeInfoModal();
-        });
-    }
-
-    // ========================================
-    // PROGRESS PAGE
-    // ========================================
-
-    // Pause button
-    const pauseBtn = document.getElementById('pause-btn');
-    if (pauseBtn) {
-        pauseBtn.addEventListener('click', () => {
-            showConfirmModal(
-                'Pause Build',
-                'Are you sure you want to pause the current build? You can resume it later.',
-                () => {
-                    Toast.warning('Build paused');
-                },
-                'Pause Build'
-            );
-        });
-    }
-
-    // Cancel button
-    const cancelBtn = document.getElementById('cancel-btn');
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', () => {
-            showConfirmModal(
-                'Cancel Build',
-                'Are you sure you want to cancel this build? This action cannot be undone and all progress will be lost.',
-                () => {
-                    Toast.error('Build cancelled');
-                    Router.navigate('/');
-                },
-                'Cancel Build',
-                true
-            );
-        });
-    }
-
-    // Logs button (progress page)
-    const logsBtn = document.getElementById('logs-btn');
-    if (logsBtn) {
-        logsBtn.addEventListener('click', downloadDemoLogs);
-    }
-
-    // Time range dropdown
-    const timeRangeSelect = document.getElementById('time-range-select');
-    if (timeRangeSelect) {
-        timeRangeSelect.addEventListener('change', (e) => {
-            Toast.info(`Time range: ${e.target.value} (demo mode)`);
-        });
-    }
-
-    // PRD Confidence info button
-    const prdConfidenceInfoBtn = document.getElementById('prd-confidence-info-btn');
-    if (prdConfidenceInfoBtn) {
-        prdConfidenceInfoBtn.addEventListener('click', () => {
-            showInfoModal('PRD Confidence Score', `
-                <div class="space-y-4">
-                    <p>The <strong>PRD Confidence Score</strong> measures how well the generated code matches your original specification document.</p>
-
-                    <div class="bg-slate-100 dark:bg-surface-darker rounded-lg p-4 space-y-2">
-                        <div class="flex justify-between text-sm">
-                            <span class="text-slate-600 dark:text-slate-400">Requirements covered</span>
-                            <span class="text-slate-900 dark:text-white font-medium">142/151</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-slate-600 dark:text-slate-400">Semantic accuracy</span>
-                            <span class="text-slate-900 dark:text-white font-medium">96.2%</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="text-slate-600 dark:text-slate-400">Type coverage</span>
-                            <span class="text-slate-900 dark:text-white font-medium">100%</span>
-                        </div>
-                    </div>
-
-                    <p class="text-sm text-slate-500 dark:text-slate-400">
-                        A score above 90% indicates excellent alignment with specifications. Items below threshold are flagged for manual review.
-                    </p>
-                </div>
-            `);
-        });
-    }
-
-    // ========================================
-    // COMPLETE PAGE
-    // ========================================
-
-    // View Logs button
-    const viewLogsBtn = document.getElementById('view-logs-btn');
-    if (viewLogsBtn) {
-        viewLogsBtn.addEventListener('click', async () => {
-            // Show actual build logs if available, otherwise show empty state
-            const buildIdValue = document.getElementById('build-id-value');
-            const buildId = currentBuildId || (buildIdValue ? buildIdValue.textContent : null);
-
-            if (buildId && buildId !== '--') {
-                // Show loading state
-                showInfoModal('Build Logs', `
-                    <div class="font-mono text-xs bg-slate-900 rounded-lg p-4 max-h-80 overflow-y-auto text-slate-300">
-                        <div class="text-center py-8 text-slate-500">
-                            <span class="material-symbols-outlined text-2xl mb-2 animate-spin">sync</span>
-                            <p>Loading logs for build ${buildId}...</p>
-                        </div>
-                    </div>
-                `);
-
-                // Fetch real logs from FastAPI
-                try {
-                    const response = await fetch(`${CONFIG.apiUrl}/api/builds/${encodeURIComponent(buildId)}/logs`);
-                    const result = await response.json();
-
-                    // FastAPI returns logs directly in result.logs (not wrapped in data)
-                    if (result.logs && result.logs.length > 0) {
-                        const logsHtml = formatBuildLogs(result.logs);
-                        showInfoModal('Build Logs', logsHtml);
-                    } else {
-                        showInfoModal('Build Logs', `
-                            <div class="font-mono text-xs bg-slate-900 rounded-lg p-4 max-h-80 overflow-y-auto text-slate-300">
-                                <div class="text-center py-8 text-slate-500">
-                                    <span class="material-symbols-outlined text-2xl mb-2">terminal</span>
-                                    <p>No logs found for this build.</p>
-                                    <p class="text-xs mt-2">Logs may not have been recorded yet.</p>
-                                </div>
-                            </div>
-                        `);
-                    }
-                } catch (error) {
-                    console.error('[ViewLogs] API error:', error);
-                    showInfoModal('Build Logs', `
-                        <div class="font-mono text-xs bg-slate-900 rounded-lg p-4 max-h-80 overflow-y-auto text-slate-300">
-                            <div class="text-center py-8 text-rose-400">
-                                <span class="material-symbols-outlined text-2xl mb-2">error</span>
-                                <p>Failed to load logs</p>
-                                <p class="text-xs mt-2">${error.message}</p>
-                            </div>
-                        </div>
-                    `);
-                }
-            } else {
-                showInfoModal('Build Logs', `
-                    <div class="font-mono text-xs bg-slate-900 rounded-lg p-4 max-h-80 overflow-y-auto text-slate-300">
-                        <div class="text-center py-8 text-slate-500">
-                            <span class="material-symbols-outlined text-2xl mb-2">terminal</span>
-                            <p>No build logs available.</p>
-                            <p class="text-xs mt-2">Logs will appear here after a build completes.</p>
-                        </div>
-                    </div>
-                `);
-            }
-        });
-    }
-
-    // Download Package button
-    const downloadBtn = document.getElementById('download-btn');
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', downloadDemoPackage);
-    }
-
-    // Copy ID button
-    const copyIdBtn = document.getElementById('copy-id-btn');
-    if (copyIdBtn) {
-        copyIdBtn.addEventListener('click', () => {
-            const buildIdValue = document.getElementById('build-id-value');
-            if (buildIdValue) {
-                copyToClipboard(buildIdValue.textContent);
-            }
-        });
-    }
-
-    // Create Another button
-    const createAnotherBtn = document.getElementById('create-another-btn');
-    if (createAnotherBtn) {
-        createAnotherBtn.addEventListener('click', () => {
-            Router.navigate('/');
-        });
-    }
-
-    // ========================================
-    // NAVIGATION - Coming Soon Features
-    // ========================================
-
-    // All nav items now have their own pages
-    const validNavItems = ['landing', 'progress', 'config', 'logs', 'analytics', 'settings', 'documentation', 'support'];
-
-    document.querySelectorAll('[data-nav]').forEach(link => {
-        const navTarget = link.dataset.nav;
-
-        if (validNavItems.includes(navTarget)) {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                Router.navigate(navTarget === 'landing' ? '/' : `/${navTarget}`);
+            // Read file content
+            const prdContent = await selectedFile.text();
+
+            const response = await fetch(CONFIG.N8N_BASE_URL + CONFIG.ENDPOINTS.START_BUILD, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prd_file: selectedFile.name,
+                    prd_content: prdContent
+                })
             });
+
+            if (!response.ok) throw new Error('Build start failed');
+
+            const result = await response.json();
+
+            // Show status panel
+            buildStatus.classList.remove('hidden');
+            updateStatus('initiated', 'Starting...', 5);
+
+            // Start polling for status
+            startStatusPolling(result.buildId);
+
+            buildBtn.textContent = 'Build Started!';
+
+        } catch (error) {
+            console.error('Build start error:', error);
+            alert('Failed to start build. Please try again.');
+            buildBtn.disabled = false;
+            buildBtn.textContent = 'Start Build';
         }
     });
-
-    // ========================================
-    // GLOBAL KEYBOARD SHORTCUTS
-    // ========================================
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            closeAllModals();
-        }
-    });
 }
 
-/**
- * Cleanup current view before navigating away
- */
-function cleanupCurrentView() {
-    if (currentView === 'progress') {
-        cleanupProgressPage();
-    }
-    // Add other view cleanups as needed
-}
+// =============================================================================
+// Status Polling
+// =============================================================================
 
-/**
- * Register routes with the router
- */
-// Track current view for cleanup
-let currentView = null;
-
-function initRoutes() {
-    Router.register('/', () => {
-        cleanupCurrentView();
-        showView('landing');
-        currentView = 'landing';
-    });
-    Router.register('/progress', () => {
-        cleanupCurrentView();
-        showView('progress');
-        currentView = 'progress';
-        initProgressPage();
-    });
-    Router.register('/complete', () => {
-        cleanupCurrentView();
-        showView('complete');
-        currentView = 'complete';
-        const buildId = getBuildIdFromUrl();
-        initCompletePage(buildId);
-    });
-    Router.register('/config', () => {
-        showView('config');
-        loadConfigToForm();
-    });
-    Router.register('/logs', () => {
-        cleanupCurrentView();
-        showView('logs');
-        currentView = 'logs';
-        initLogsPage();
-    });
-    Router.register('/analytics', () => {
-        showView('analytics');
-        initBuildActivityChart();
-    });
-    Router.register('/settings', () => {
-        showView('settings');
-        loadSettingsToForm();
-    });
-    Router.register('/documentation', () => showView('documentation'));
-    Router.register('/support', () => showView('support'));
-}
-
-/**
- * Initialize global search handler
- */
-function initSearchHandler() {
-    const searchInput = document.getElementById('search-input');
-    if (!searchInput) return;
-
-    searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
-
-        // Filter based on current view
-        if (currentView === 'logs' && currentLogsData) {
-            if (query === '') {
-                updateLogsUI(currentLogsData);
-            } else {
-                const filtered = currentLogsData.filter(log =>
-                    (log.name && log.name.toLowerCase().includes(query)) ||
-                    (log.id && log.id.toLowerCase().includes(query)) ||
-                    (log.status && log.status.toLowerCase().includes(query))
-                );
-                updateLogsUI(filtered);
-            }
-        }
-    });
-
-    // Clear search on escape
-    searchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            searchInput.value = '';
-            if (currentView === 'logs' && currentLogsData) {
-                updateLogsUI(currentLogsData);
-            }
-        }
-    });
-
-    console.log('[Search] Search handler initialized');
-}
-
-/**
- * Initialize New Build button handler
- */
-function initNewBuildButton() {
-    const newBuildBtn = document.getElementById('new-build-btn');
-    if (!newBuildBtn) return;
-
-    newBuildBtn.addEventListener('click', () => {
-        // Open the PRD Wizard in a new tab
-        window.open(CONFIG.wizardUrl, '_blank');
-        console.log('[NewBuild] Opening PRD Wizard:', CONFIG.wizardUrl);
-    });
-
-    console.log('[NewBuild] New Build button initialized');
-}
-
-/**
- * Initialize Build Activity Chart on Analytics page
- */
-let buildActivityChart = null;
-
-async function initBuildActivityChart() {
-    const ctx = document.getElementById('build-activity-chart');
-    if (!ctx) return;
-
-    // Destroy existing chart if it exists
-    if (buildActivityChart) {
-        buildActivityChart.destroy();
-        buildActivityChart = null;
+function startStatusPolling(buildId) {
+    // Also show the active build section
+    if (activeBuildSection) {
+        activeBuildSection.classList.remove('hidden');
     }
 
-    // Default data
-    let chartData = [0, 0, 0, 0, 0, 0, 0];
-
-    // Try to fetch real data from analytics API
-    if (typeof GrimlockAPI !== 'undefined') {
+    pollInterval = setInterval(async () => {
         try {
-            const response = await GrimlockAPI.getAnalytics();
-            if (response?.success && response.data?.weeklyBuilds) {
-                chartData = response.data.weeklyBuilds;
-                console.log('[Chart] Loaded real analytics data:', chartData);
+            const response = await fetch(CONFIG.N8N_BASE_URL + CONFIG.ENDPOINTS.CHECK_STATUS);
+
+            if (!response.ok) throw new Error('Status check failed');
+
+            const result = await response.json();
+            const status = result.data || result;
+
+            // Update inline status
+            updateStatus(status.status, status.phase, status.progress);
+
+            // Update active build section
+            updateActiveBuild(status);
+
+            if (status.status === 'complete') {
+                stopStatusPolling();
+                if (status.mcp_download_url || status.mcpDownloadUrl) {
+                    mcpDownload.href = status.mcp_download_url || status.mcpDownloadUrl;
+                    mcpResult.classList.remove('hidden');
+                }
+                buildBtn.textContent = 'Build Complete!';
+            } else if (status.status === 'failed') {
+                stopStatusPolling();
+                statusBadge.className = 'px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded';
+                statusBadge.textContent = 'Failed';
+                buildBtn.disabled = false;
+                buildBtn.textContent = 'Retry Build';
             }
-        } catch (e) {
-            console.warn('[Chart] Using fallback data:', e.message);
-            chartData = [8, 12, 6, 15, 9, 3, 5]; // Fallback demo data
+
+        } catch (error) {
+            console.error('Status poll error:', error);
         }
+    }, CONFIG.POLL_INTERVAL);
+}
+
+function stopStatusPolling() {
+    if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+    }
+}
+
+function updateStatus(status, phase, progress) {
+    // Update badge
+    if (status === 'complete') {
+        statusBadge.className = 'px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded';
+        statusBadge.textContent = 'Complete';
+    } else if (status === 'running') {
+        statusBadge.className = 'px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded';
+        statusBadge.textContent = 'Building';
+    } else if (status === 'failed') {
+        statusBadge.className = 'px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded';
+        statusBadge.textContent = 'Failed';
     } else {
-        chartData = [8, 12, 6, 15, 9, 3, 5]; // Demo data when API not available
+        statusBadge.className = 'px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded';
+        statusBadge.textContent = 'Queued';
     }
 
-    // Create the chart
-    buildActivityChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-            datasets: [{
-                label: 'Builds',
-                data: chartData,
-                backgroundColor: '#135bec',
-                borderRadius: 4,
-                borderSkipped: false
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: 'rgba(100, 116, 139, 0.1)'
-                    },
-                    ticks: {
-                        color: '#94a3b8'
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        color: '#94a3b8'
-                    }
-                }
-            }
-        }
-    });
+    // Update phase
+    const phaseLabels = {
+        'prd_uploaded': 'PRD Uploaded',
+        'implementation': 'Building Implementation',
+        'testing': 'Running Tests',
+        'documentation': 'Generating Docs',
+        'packaging': 'Packaging MCP',
+        'complete': 'Complete'
+    };
+    statusPhase.textContent = phaseLabels[phase] || phase || 'Initializing...';
 
-    console.log('[Chart] Build Activity Chart initialized');
-
-    // Also load analytics stats
-    initAnalyticsData();
+    // Update progress bar
+    const progressValue = progress || 0;
+    progressBar.style.width = `${progressValue}%`;
+    progressText.textContent = `${progressValue}%`;
 }
 
-/**
- * Initialize analytics stats cards with real API data
- */
-async function initAnalyticsData() {
-    console.log('[Analytics] Loading analytics data...');
+function updateActiveBuild(status) {
+    if (!activeBuildSection) return;
 
-    if (typeof GrimlockAPI === 'undefined') {
-        console.warn('[Analytics] GrimlockAPI not available');
-        return;
+    // Extract project name from prd_file or build_id
+    const projectName = status.project ||
+        (status.prd_file ? status.prd_file.replace('-PRD.yaml', '').replace('.yaml', '') : null) ||
+        (status.build_id ? status.build_id.split('-').slice(0, -1).join('-') : 'Unknown');
+
+    activeBuildName.textContent = projectName;
+    activeBuildId.textContent = status.build_id || status.buildId || '-';
+
+    // Update badge
+    if (status.status === 'complete') {
+        activeStatusBadge.className = 'px-3 py-1 bg-green-500/20 text-green-400 text-sm rounded-full';
+        activeStatusBadge.textContent = 'Complete';
+    } else if (status.status === 'running') {
+        activeStatusBadge.className = 'px-3 py-1 bg-yellow-500/20 text-yellow-400 text-sm rounded-full';
+        activeStatusBadge.textContent = 'Building';
+    } else if (status.status === 'idle') {
+        activeStatusBadge.className = 'px-3 py-1 bg-gray-500/20 text-gray-400 text-sm rounded-full';
+        activeStatusBadge.textContent = 'Idle';
+    } else {
+        activeStatusBadge.className = 'px-3 py-1 bg-blue-500/20 text-blue-400 text-sm rounded-full';
+        activeStatusBadge.textContent = status.status || 'Unknown';
     }
 
+    // Update phase and progress
+    const phaseLabels = {
+        'prd_uploaded': 'PRD Uploaded',
+        'implementation': 'Building',
+        'testing': 'Testing',
+        'documentation': 'Documenting',
+        'packaging': 'Packaging',
+        'complete': 'Complete'
+    };
+    activePhase.textContent = phaseLabels[status.phase] || status.phase || '-';
+
+    const progressValue = status.progress || 0;
+    activeProgressBar.style.width = `${progressValue}%`;
+    activeProgressText.textContent = `${progressValue}%`;
+
+    // Show download if complete
+    if (status.status === 'complete' && (status.mcp_download_url || status.mcpDownloadUrl)) {
+        activeDownloadLink.href = status.mcp_download_url || status.mcpDownloadUrl;
+        activeDownload.classList.remove('hidden');
+    }
+}
+
+// =============================================================================
+// Initial Status Check
+// =============================================================================
+
+async function checkInitialStatus() {
     try {
-        // Fetch analytics and MCP projects data in parallel
-        const [analyticsResponse, mcpResponse] = await Promise.all([
-            GrimlockAPI.getAnalytics().catch(e => ({ success: false, error: e })),
-            GrimlockAPI.getMCPProjects().catch(e => ({ success: false, error: e }))
-        ]);
+        const response = await fetch(CONFIG.N8N_BASE_URL + CONFIG.ENDPOINTS.CHECK_STATUS);
+        if (!response.ok) return;
 
-        // Update analytics stats
-        if (analyticsResponse?.success && analyticsResponse.data) {
-            const data = analyticsResponse.data;
+        const result = await response.json();
+        const status = result.data || result;
 
-            // Total Builds
-            const totalBuildsEl = document.getElementById('analytics-total-builds');
-            const buildsChangeEl = document.getElementById('analytics-builds-change');
-            if (totalBuildsEl) {
-                totalBuildsEl.textContent = data.totalBuilds || 0;
+        // Only show active build section if there's an active or recent build
+        if (status.status && status.status !== 'idle') {
+            activeBuildSection.classList.remove('hidden');
+            updateActiveBuild(status);
+
+            // If build is running, start polling
+            if (status.status === 'running') {
+                startStatusPolling(status.build_id);
             }
-            if (buildsChangeEl && data.totalBuilds > 0) {
-                buildsChangeEl.textContent = '+' + Math.round(data.totalBuilds * 0.12) + '%';
-                buildsChangeEl.className = 'text-sm font-medium text-emerald-500';
-            }
-
-            // Success Rate
-            const successRateEl = document.getElementById('analytics-success-rate');
-            const successChangeEl = document.getElementById('analytics-success-change');
-            if (successRateEl) {
-                successRateEl.textContent = (data.successRate || 0) + '%';
-            }
-            if (successChangeEl && data.successRate > 0) {
-                successChangeEl.textContent = '+2.1%';
-                successChangeEl.className = 'text-sm font-medium text-emerald-500';
-            }
-
-            // Avg Build Time
-            const avgTimeEl = document.getElementById('analytics-avg-time');
-            const timeChangeEl = document.getElementById('analytics-time-change');
-            if (avgTimeEl) {
-                const avgSecs = data.avgDuration || 0;
-                const mins = Math.floor(avgSecs / 60);
-                const secs = avgSecs % 60;
-                avgTimeEl.textContent = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-            }
-            if (timeChangeEl && data.avgDuration > 0) {
-                timeChangeEl.textContent = '-3.2m';
-                timeChangeEl.className = 'text-sm font-medium text-emerald-500';
-            }
-
-            // Update donut chart center
-            const donutTotalEl = document.getElementById('analytics-donut-total');
-            if (donutTotalEl) {
-                donutTotalEl.textContent = data.totalBuilds || 0;
-            }
-
-            // Update Most Built MCPs table
-            if (data.mcps && data.mcps.length > 0) {
-                updateMCPsTable(data.mcps);
-            } else {
-                updateMCPsTable([]);
-            }
-
-            console.log('[Analytics] Loaded analytics:', data);
-        }
-
-        // Update MCP Projects count
-        if (mcpResponse?.success && mcpResponse.data) {
-            const mcpData = mcpResponse.data;
-
-            const mcpsCountEl = document.getElementById('analytics-mcps-count');
-            const mcpsChangeEl = document.getElementById('analytics-mcps-change');
-            if (mcpsCountEl) {
-                mcpsCountEl.textContent = mcpData.total || 0;
-            }
-            if (mcpsChangeEl && mcpData.total > 0) {
-                mcpsChangeEl.textContent = '+' + Math.min(mcpData.total, 5);
-                mcpsChangeEl.className = 'text-sm font-medium text-emerald-500';
-            }
-
-            console.log('[Analytics] Loaded MCP projects:', mcpData.total);
-        }
-
-    } catch (error) {
-        console.error('[Analytics] Failed to load data:', error);
-    }
-}
-
-/**
- * Update the Most Built MCPs table with real data
- * @param {Array} mcps - Array of MCP objects with name, builds, successRate, avgTime
- */
-function updateMCPsTable(mcps) {
-    const tbody = document.getElementById('mcps-table-body');
-    if (!tbody) return;
-
-    // Show empty state if no data
-    if (!mcps || mcps.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="4" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
-                    <span class="material-symbols-outlined text-2xl mb-2">inventory_2</span>
-                    <p>No MCP build data yet</p>
-                    <p class="text-xs mt-1">Data will appear after builds complete</p>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-
-    // Generate table rows
-    const rows = mcps.map(mcp => {
-        const name = mcp.name || 'Unknown';
-        const builds = mcp.builds || 0;
-        const successRate = mcp.successRate || 0;
-        const avgTime = mcp.avgTime || 0;
-
-        // Format average time
-        const mins = Math.floor(avgTime / 60);
-        const secs = avgTime % 60;
-        const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-
-        // Color code success rate
-        let rateColor = 'text-emerald-600 dark:text-emerald-400';
-        if (successRate < 90) rateColor = 'text-amber-600 dark:text-amber-400';
-        if (successRate < 70) rateColor = 'text-rose-600 dark:text-rose-400';
-
-        // Format name nicely
-        const displayName = name.replace(/-/g, ' ').replace(/_/g, ' ')
-            .split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-
-        return `
-            <tr class="hover:bg-slate-50 dark:hover:bg-surface-darker">
-                <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">${displayName}</td>
-                <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">${builds}</td>
-                <td class="px-6 py-4"><span class="text-sm font-medium ${rateColor}">${successRate}%</span></td>
-                <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">${timeStr}</td>
-            </tr>
-        `;
-    }).join('');
-
-    tbody.innerHTML = rows;
-    console.log('[MCPs Table] Updated with', mcps.length, 'entries');
-}
-
-/**
- * Initialize authentication and show/hide login overlay
- */
-function initAuth() {
-    console.log('[Auth] Initializing authentication...');
-
-    const loginOverlay = document.getElementById('login-overlay');
-    const googleLoginBtn = document.getElementById('google-login-btn');
-
-    console.log('[Auth] Login overlay found:', !!loginOverlay);
-    console.log('[Auth] Google login button found:', !!googleLoginBtn);
-
-    // Check if Auth module is loaded
-    if (typeof Auth === 'undefined') {
-        console.error('[Auth] Auth module not loaded!');
-        return;
-    }
-
-    try {
-        // Initialize auth module
-        const isAuthenticated = Auth.init();
-
-        if (isAuthenticated) {
-            // Hide login overlay
-            if (loginOverlay) loginOverlay.classList.add('hidden');
-
-            // Update user profile in sidebar
-            updateUserProfile();
-
-            console.log('[Auth] User authenticated:', Auth.getUser()?.email);
-        } else {
-            // Show login overlay
-            if (loginOverlay) loginOverlay.classList.remove('hidden');
-
-            console.log('[Auth] User not authenticated, showing login');
         }
     } catch (error) {
-        console.error('[Auth] Error during init:', error);
-    }
-
-    // Google login button handler
-    if (googleLoginBtn) {
-        googleLoginBtn.addEventListener('click', () => {
-            console.log('[Auth] Login button clicked!');
-            Auth.login();
-        });
-        console.log('[Auth] Login button click handler attached');
-    } else {
-        console.error('[Auth] Could not find google-login-btn element');
+        console.error('Initial status check failed:', error);
     }
 }
 
-/**
- * Update user profile in sidebar with real user data
- */
-function updateUserProfile() {
-    const user = Auth.getUser();
-    if (!user) return;
-
-    // Find the user profile container in sidebar
-    const profileContainer = document.querySelector('.mt-2.flex.items-center.gap-3.rounded-xl.bg-slate-100');
-    if (!profileContainer) return;
-
-    // Update with real user info
-    profileContainer.innerHTML = `
-        <div class="h-9 w-9 overflow-hidden rounded-full flex-shrink-0">
-            ${user.picture
-                ? `<img src="${user.picture}" alt="${user.name}" class="h-full w-full object-cover" referrerpolicy="no-referrer" />`
-                : `<div class="h-full w-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
-                     <span class="text-white text-sm font-bold">${user.name?.charAt(0) || 'U'}</span>
-                   </div>`
-            }
-        </div>
-        <div class="flex flex-col overflow-hidden flex-1">
-            <span class="truncate text-sm font-semibold dark:text-white">${user.name || 'User'}</span>
-            <span class="truncate text-xs text-slate-500 dark:text-text-secondary">${user.email || ''}</span>
-        </div>
-        <button id="logout-btn" class="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-surface-dark transition-colors" title="Sign out">
-            <span class="material-symbols-outlined text-slate-500 dark:text-text-secondary text-lg">logout</span>
-        </button>
-    `;
-
-    // Add logout handler
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            showConfirmModal(
-                'Sign Out',
-                'Are you sure you want to sign out?',
-                () => {
-                    Auth.logout();
-                }
-            );
-        });
-    }
-}
-
-/**
- * Initialize the application
- */
-function init() {
-    // Initialize authentication first
-    initAuth();
-
-    // Apply stored configuration first
-    applyStoredConfig();
-
-    initRoutes();
-    initEventListeners();
-    initConfigEventListeners();
-    initSettingsEventListeners();
-    initLogsEventListeners();
-    initAnalyticsEventListeners();
-    initDocsEventListeners();
-    initSupportEventListeners();
-    initSearchHandler();
-    initNewBuildButton();
-    Router.init();
-
-    console.log('MCP Factory Dashboard initialized');
-    console.log('Routes: /, /progress, /complete, /config, /logs, /analytics, /settings, /documentation, /support');
-}
-
-// Start the app when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// Check status on page load
+document.addEventListener('DOMContentLoaded', checkInitialStatus);
