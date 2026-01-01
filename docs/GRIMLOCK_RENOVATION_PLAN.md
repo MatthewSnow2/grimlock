@@ -175,201 +175,329 @@ grimlock/
 
 ---
 
-## Phase 2: n8n Workflow Modifications
+## Phase 2: n8n Workflow Audit & Modifications
 
-### Workflow 1: PRD Generator
+### Current State: 20 Workflows → 3 to Keep (+1 New)
 
-**Endpoint:** `POST /webhook/grimlock/generate-prd`
+An audit of all GRIMLOCK-labeled workflows revealed significant redundancy and over-engineering. The renovation reduces 20 workflows to 4.
 
-**Trigger:** n8n Form or Webhook
+---
 
-**Input Schema:**
-```json
-{
-  "mcpName": "weather-api",
-  "purpose": "Fetch weather data from OpenWeatherMap API",
-  "targetApis": ["OpenWeatherMap API"],
-  "language": "python",
-  "additionalNotes": "Support both current weather and 5-day forecast"
-}
+### 🗑️ WORKFLOWS TO DELETE (17 total)
+
+#### Dashboard/Auth Workflows (13) - Replaced by simplified single-page
+
+| Workflow ID | Name | Reason for Deletion |
+|-------------|------|---------------------|
+| `jPCWR9tZI9u8lA8x` | GRIMLOCK Dashboard - Build Status | Duplicate of PeQ6mkzN6YCXCicI |
+| `wwpds7oOB0gJlxLY` | GRIMLOCK Dashboard - Build History | Not needed for MVP |
+| `N3YSLrRahBaU2f6R` | GRIMLOCK Dashboard - System Health | Over-engineered |
+| `Y4RJIGhEAQEPiWBc` | GRIMLOCK Dashboard - Analytics | Not needed for MVP |
+| `vm7qLBjJFnlvgx5o` | GRIMLOCK Dashboard - Build Details | Not needed for MVP |
+| `r7sVeR9oPdb9xB4v` | GRIMLOCK Dashboard - Build History | Duplicate |
+| `3xAVulGA6oMWI2CB` | GRIMLOCK Dashboard - MCP Projects | Not needed for MVP |
+| `UrrwyAGUNn70PbkQ` | GRIMLOCK Dashboard - Latest PRD | Not needed for MVP |
+| `yFDQ1FOaR34pIaBi` | GRIMLOCK Dashboard - Build Event Logger | FastAPI-dependent |
+| `LBZ22dDFZd0Ohny3` | GRIMLOCK Dashboard - Build Logs API | FastAPI-dependent |
+| `jpjndU27c1q9wZyk` | GRIMLOCK Dashboard - PRD Upload | Redundant with Form Wizard |
+| `KB21K01o97qkGp4F` | GRIMLOCK Auth - Login | No auth in simplified version |
+| `Dx99ybuuDcXjHfpV` | GRIMLOCK Auth - Callback | No auth in simplified version |
+
+#### Orchestration Overhead Workflows (4) - Over-engineered for MVP
+
+| Workflow ID | Name | Reason for Deletion |
+|-------------|------|---------------------|
+| `JqbktRzofeVSvsLt` | GRIMLOCK Heartbeat Monitor | Scheduled polling, Slack alerts - not needed |
+| `AD5CpXHxSQ7LExPI` | GRIMLOCK Milestone Gate Validation | Over-engineered approval flow |
+| `HxnmkkumPCgxkuX3` | GRIMLOCK Escalation Handler | Google Sheets logging, Slack DMs - not needed |
+| `MSEsx9Z7WJtJbnBE` | GRIMLOCK Sprint Completion Validation | Over-engineered |
+
+**Action:** Deactivate these workflows (don't delete yet - keep for reference for 1 week)
+
+---
+
+### ✅ WORKFLOWS TO KEEP & MODIFY (3 existing + 1 new)
+
+---
+
+### Workflow 1: GRIMLOCK Form Wizard (MODIFY)
+
+**Workflow ID:** `XwmTcWU9DNzMD2ep`
+
+**Current Endpoint:** Form at `/webhook/grimlock-wizard`
+
+**Current State:** 
+- Has duplicate paths (Form Trigger + Form Trigger1) - messy
+- Saves PRD to GitHub via SSH
+- Triggers Sprint Initiator via HTTP
+- Shows completion form
+
+**Required Modifications:**
+
+1. **CLEAN UP duplicate nodes:**
+   - Remove disabled nodes: `Form Trigger1`, `Parse Tools`, `Calculate Context Efficiency`, `Generate PRD YAML`, `Save PRD to EC2`, `Launch Sprint`, `Trigger Heartbeat`, `Notify Slack`, `Emit PRD Uploaded`, `Emit Build Started`, `Commit to GitHub`, `Show PRD Result`, `Respond to Form`
+   - Keep active path: `Form Trigger` → `Parse Tools1` → `Calculate Context Efficiency1` → `Generate PRD YAML1` → `Save PRD to GitHub` → `Trigger Sprint Initiator` → `Form`
+
+2. **ADD Google Drive Upload node** after `Generate PRD YAML1`:
+   ```
+   Node: Google Drive (Upload)
+   Operation: Upload
+   Folder ID: 1CC9A4ODJZT9rK9pxEK4JSWGxldSxsNkZ
+   File Name: ={{ $json.prdFilename }}
+   Binary Property: Create from text content
+   ```
+
+3. **MODIFY completion Form** to include download link:
+   ```
+   Completion Title: "PRD Generated & Build Started! 🚀"
+   Completion Message: 
+   "MCP: {{ $('Generate PRD YAML1').item.json.projectName }}
+   Build ID: {{ $json.buildId }}
+   
+   📥 Download PRD: {{ $('Google Drive Upload').item.json.webViewLink }}"
+   ```
+
+**Final Workflow Shape:**
+```
+Form Trigger 
+    → Parse Tools1 
+    → Calculate Context Efficiency1 
+    → Generate PRD YAML1 
+    → Google Drive Upload (NEW)
+    → Save PRD to GitHub 
+    → Trigger Sprint Initiator 
+    → Form (completion with GDrive link)
 ```
 
-**Workflow Steps:**
+---
 
-1. **Webhook/Form Trigger** - Receive request
-2. **Claude API Node** - Generate PRD YAML
-   ```
-   Model: claude-sonnet-4-20250514
-   Prompt: "Generate a GRIMLOCK PRD YAML for an MCP server with these specs:
-   Name: {{ $json.mcpName }}
-   Purpose: {{ $json.purpose }}
-   APIs: {{ $json.targetApis }}
-   Language: {{ $json.language }}
-   Notes: {{ $json.additionalNotes }}
-   
-   Follow the GRIMLOCK PRD format exactly."
-   ```
-3. **Google Drive Upload Node**
-   - Folder ID: `1CC9A4ODJZT9rK9pxEK4JSWGxldSxsNkZ`
-   - Subfolder: `prds/`
-   - Filename: `{{ $json.mcpName }}-PRD-{{ Date.now() }}.yaml`
-   - Content: PRD YAML from Claude
-4. **Respond to Webhook**
-   ```json
-   {
-     "status": "complete",
-     "prdContent": "<full PRD YAML>",
-     "downloadUrl": "https://drive.google.com/file/d/xxx/view",
-     "filename": "mcp-weather-api-PRD-1704067200000.yaml"
-   }
-   ```
+### Workflow 2: GRIMLOCK Sprint Initiator (MODIFY)
 
-### Workflow 2: Sprint Initiator (MODIFY EXISTING)
+**Workflow ID:** `cxvGUu8xVbui1WR2`
 
 **Endpoint:** `POST /webhook/grimlock/start`
 
-**Current State:** Has FastAPI calls that need removal
+**Current State:** 
+- Webhook receives PRD filename
+- Responds immediately ✓
+- Calls FastAPI to create build record ✗
+- Launches Claude Code via SSH ✓
+- Calls FastAPI to log build start ✗
 
-**Required Changes:**
+**Required Modifications:**
 
 1. **DELETE these nodes:**
-   - `Create Build in DB` (HTTP Request to FastAPI)
-   - `Log Build Start` (HTTP Request to FastAPI)
+   - `Create Build in DB` - calls `http://54.225.171.108:8000/api/builds`
+   - `Log Build Start` - calls `http://54.225.171.108:8000/api/builds/{id}/logs`
 
-2. **MODIFY `Set Build Info` node:**
+2. **MODIFY connection:** 
+   - Change: `Respond to Webhook` → ~~`Create Build in DB`~~ → `Launch Claude Code`
+   - To: `Respond to Webhook` → `Launch Claude Code`
+
+3. **MODIFY `Set Build Info` node** to accept PRD content:
    ```javascript
    {
-     "buildId": "{{ $json.body.prd_file.replace('.yaml', '').replace('.yml', '') }}-{{ Date.now() }}",
-     "prdFile": "{{ $json.body.prd_file }}",
-     "prdContent": "{{ $json.body.prd_content }}", // NEW: Accept PRD content directly
-     "timestamp": "{{ new Date().toISOString() }}",
+     "buildId": "={{ $json.body.prd_file.replace('.yaml', '').replace('.yml', '') }}-{{ Date.now() }}",
+     "prdFile": "={{ $json.body.prd_file }}",
+     "prdContent": "={{ $json.body.prd_content }}", // NEW field
+     "timestamp": "={{ new Date().toISOString() }}",
      "status": "initiated"
    }
    ```
 
-3. **ADD new node: Save PRD to EC2** (before Launch Claude)
-   - SSH Node
-   - Command: `echo '{{ $json.prdContent }}' > /home/ubuntu/projects/grimlock/prds/{{ $json.prdFile }}`
+4. **OPTIONAL: Add Save PRD to EC2 node** (if PRD content passed directly):
+   ```bash
+   cat > /home/ubuntu/projects/grimlock/prds/{{ $json.prdFile }} << 'PRDEOF'
+   {{ $json.prdContent }}
+   PRDEOF
+   ```
 
-4. **MODIFY `Launch Claude Code` command:**
+5. **MODIFY `Launch Claude Code` command** to include upload instruction:
    ```bash
    cd /home/ubuntu/projects/grimlock && \
    nohup /home/ubuntu/.local/bin/claude \
      --dangerously-skip-permissions \
-     -p "Build the MCP from PRD file: prds/{{ $json.prdFile }}. Follow the GRIMLOCK process. When complete, call the upload webhook." \
-     > /tmp/grimlock-build-{{ $json.buildId }}.log 2>&1 & \
+     -p "Build the MCP from PRD file: prds/{{ $('Set Build Info').item.json.prdFile }}. Follow the GRIMLOCK process. When complete, zip the MCP and call POST https://im4tlai.app.n8n.cloud/webhook/grimlock/upload-mcp with the result." \
+     > /tmp/grimlock-build-{{ $('Set Build Info').item.json.buildId }}.log 2>&1 & \
    echo "CLAUDE_PID=$!"
    ```
 
-5. **Final workflow shape:**
-   ```
-   Webhook → Set Build Info → Respond Immediately → Save PRD to EC2 → Launch Claude Code
-   ```
+**Final Workflow Shape:**
+```
+Webhook (POST /grimlock/start)
+    → Set Build Info
+    → Respond to Webhook (immediate return)
+    → Launch Claude Code (async)
+```
 
-### Workflow 3: Status Checker (NEW)
+---
 
-**Endpoint:** `GET /webhook/grimlock/status`
+### Workflow 3: GRIMLOCK Dashboard - Build Status (KEEP AS-IS)
 
-**Purpose:** Dashboard polls this to get build progress
+**Workflow ID:** `PeQ6mkzN6YCXCicI`
 
-**Workflow Steps:**
+**Endpoint:** `GET /webhook/grimlock/build-status`
 
-1. **Webhook Trigger**
-   - Method: GET
-   - Path: `grimlock/status`
-   - Response Mode: `responseNode`
+**Current State:** Already correct!
+- Webhook receives GET request
+- SSH reads GRIMLOCK_STATE.md
+- Code node parses YAML frontmatter
+- Returns JSON with status, progress, phase
 
-2. **SSH Node - Read State**
-   ```bash
-   cat /home/ubuntu/projects/grimlock/GRIMLOCK_STATE.md
-   ```
+**No modifications needed.** This workflow already does exactly what we need for dashboard polling.
 
-3. **Code Node - Parse State**
-   ```javascript
-   const stateContent = $input.first().json.stdout;
-   
-   // Parse GRIMLOCK_STATE.md format
-   const currentSprintMatch = stateContent.match(/## Current Sprint\n([\s\S]*?)(?=\n## |$)/);
-   const statusMatch = stateContent.match(/status:\s*(\w+)/);
-   const phaseMatch = stateContent.match(/phase:\s*(\w+)/);
-   const progressMatch = stateContent.match(/progress:\s*(\d+)/);
-   const mcpUrlMatch = stateContent.match(/mcp_download_url:\s*(https:\/\/[^\s]+)/);
-   
-   return {
-     status: statusMatch ? statusMatch[1] : 'unknown',
-     phase: phaseMatch ? phaseMatch[1] : 'unknown',
-     progress: progressMatch ? parseInt(progressMatch[1]) : 0,
-     mcpDownloadUrl: mcpUrlMatch ? mcpUrlMatch[1] : null,
-     lastUpdated: new Date().toISOString()
-   };
-   ```
-
-4. **Respond to Webhook**
-   ```json
-   {
-     "status": "{{ $json.status }}",
-     "phase": "{{ $json.phase }}",
-     "progress": "{{ $json.progress }}",
-     "mcpDownloadUrl": "{{ $json.mcpDownloadUrl }}",
-     "lastUpdated": "{{ $json.lastUpdated }}"
-   }
-   ```
-
-### Workflow 4: MCP Upload (NEW)
-
-**Endpoint:** `POST /webhook/grimlock/upload-mcp`
-
-**Purpose:** Claude Code calls this when build is complete
-
-**Input:**
+**Response Format:**
 ```json
 {
-  "buildId": "mcp-weather-api-1704067200000",
-  "mcpName": "mcp-weather-api",
-  "zipPath": "/home/ubuntu/projects/grimlock/mcps/mcp-weather-api.zip"
+  "success": true,
+  "timestamp": "2024-12-31T10:00:00Z",
+  "data": {
+    "project": "mcp-weather-api",
+    "status": "running",
+    "progress": 45,
+    "startedAt": "2024-12-31T09:00:00Z",
+    "phase": "implementation"
+  }
 }
 ```
 
-**Workflow Steps:**
+---
 
-1. **Webhook Trigger**
-   - Method: POST
-   - Path: `grimlock/upload-mcp`
+### Workflow 4: MCP Upload Handler (CREATE NEW)
 
-2. **SSH Node - Read ZIP file**
-   ```bash
-   base64 /home/ubuntu/projects/grimlock/mcps/{{ $json.body.mcpName }}.zip
-   ```
+**Endpoint:** `POST /webhook/grimlock/upload-mcp`
 
-3. **Code Node - Prepare for Upload**
-   ```javascript
-   const base64Content = $input.first().json.stdout;
-   return {
-     binaryData: Buffer.from(base64Content, 'base64'),
-     filename: `${$json.body.mcpName}-${Date.now()}.zip`
-   };
-   ```
+**Purpose:** Claude Code calls this webhook when build completes to upload MCP to Google Drive
 
-4. **Google Drive Upload Node**
-   - Folder ID: `1CC9A4ODJZT9rK9pxEK4JSWGxldSxsNkZ`
-   - Subfolder: `mcps/`
-   - Binary Property: `binaryData`
-   - Filename: From previous node
+**Workflow Design:**
 
-5. **SSH Node - Update State**
-   ```bash
-   sed -i 's|mcp_download_url:.*|mcp_download_url: {{ $json.webViewLink }}|' /home/ubuntu/projects/grimlock/GRIMLOCK_STATE.md
-   sed -i 's|status:.*|status: complete|' /home/ubuntu/projects/grimlock/GRIMLOCK_STATE.md
-   ```
+```
+┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
+│  Webhook    │──►│  SSH: Read  │──►│  Convert    │──►│  Google     │──►│  SSH:       │
+│  Trigger    │   │  ZIP file   │   │  to Binary  │   │  Drive      │   │  Update     │
+│             │   │  (base64)   │   │             │   │  Upload     │   │  STATE.md   │
+└─────────────┘   └─────────────┘   └─────────────┘   └─────────────┘   └─────────────┘
+                                                                               │
+                                                                               ▼
+                                                                        ┌─────────────┐
+                                                                        │  Respond    │
+                                                                        │  with URL   │
+                                                                        └─────────────┘
+```
 
-6. **Respond to Webhook**
-   ```json
-   {
-     "status": "uploaded",
-     "downloadUrl": "{{ $json.webViewLink }}",
-     "filename": "{{ $json.filename }}"
-   }
-   ```
+**Node Configuration:**
+
+**Node 1: Webhook Trigger**
+```
+HTTP Method: POST
+Path: grimlock/upload-mcp
+Response Mode: responseNode
+```
+
+**Node 2: SSH - Read ZIP**
+```
+Command: base64 /home/ubuntu/projects/grimlock/mcps/{{ $json.body.mcpName }}.zip
+```
+
+**Node 3: Code - Convert to Binary**
+```javascript
+const base64Content = $input.first().json.stdout.trim();
+const binaryData = Buffer.from(base64Content, 'base64');
+
+return [{
+  json: {
+    mcpName: $('Webhook').first().json.body.mcpName,
+    buildId: $('Webhook').first().json.body.buildId,
+    filename: `${$('Webhook').first().json.body.mcpName}-${Date.now()}.zip`
+  },
+  binary: {
+    data: {
+      data: base64Content,
+      mimeType: 'application/zip',
+      fileName: `${$('Webhook').first().json.body.mcpName}-${Date.now()}.zip`
+    }
+  }
+}];
+```
+
+**Node 4: Google Drive - Upload**
+```
+Resource: File
+Operation: Upload
+File Name: ={{ $json.filename }}
+Parent Folder: 1CC9A4ODJZT9rK9pxEK4JSWGxldSxsNkZ/mcps
+Binary Property: data
+```
+
+**Node 5: SSH - Update State**
+```bash
+cd /home/ubuntu/projects/grimlock && \
+sed -i 's|mcp_download_url:.*|mcp_download_url: {{ $json.webViewLink }}|' GRIMLOCK_STATE.md && \
+sed -i 's|status:.*|status: complete|' GRIMLOCK_STATE.md && \
+sed -i 's|progress:.*|progress: 100|' GRIMLOCK_STATE.md && \
+sed -i 's|phase:.*|phase: complete|' GRIMLOCK_STATE.md
+```
+
+**Node 6: Respond to Webhook**
+```json
+{
+  "success": true,
+  "status": "uploaded",
+  "downloadUrl": "{{ $('Google Drive').item.json.webViewLink }}",
+  "filename": "{{ $json.filename }}"
+}
+```
+
+**Input Schema (what Claude Code sends):**
+```json
+{
+  "buildId": "mcp-weather-api-1704067200000",
+  "mcpName": "mcp-weather-api"
+}
+```
+
+---
+
+### Final Workflow Architecture
+
+```
+┌────────────────────────────────────────────────────────────────────────────┐
+│                        n8n WORKFLOWS (4 total)                             │
+├────────────────────────────────────────────────────────────────────────────┤
+│                                                                            │
+│  1. GRIMLOCK Form Wizard (XwmTcWU9DNzMD2ep) - MODIFIED                     │
+│     Entry: Form UI at /webhook/grimlock-wizard                             │
+│     Flow: Form → Generate PRD → Upload to GDrive → Trigger Build           │
+│     Output: PRD download link + build started confirmation                 │
+│                                                                            │
+│  2. GRIMLOCK Sprint Initiator (cxvGUu8xVbui1WR2) - MODIFIED                │
+│     Entry: POST /webhook/grimlock/start                                    │
+│     Flow: Receive PRD → Respond immediately → Launch Claude Code           │
+│     Output: { buildId, status: 'initiated' }                               │
+│                                                                            │
+│  3. GRIMLOCK Dashboard - Build Status (PeQ6mkzN6YCXCicI) - KEEP AS-IS      │
+│     Entry: GET /webhook/grimlock/build-status                              │
+│     Flow: Read STATE.md → Parse → Return JSON                              │
+│     Output: { status, progress, phase, project }                           │
+│                                                                            │
+│  4. GRIMLOCK MCP Upload (NEW - CREATE)                                     │
+│     Entry: POST /webhook/grimlock/upload-mcp                               │
+│     Flow: Receive from Claude → Read ZIP → Upload GDrive → Update state    │
+│     Output: { downloadUrl, filename }                                      │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Workflow Endpoints Summary
+
+| Endpoint | Method | Workflow | Purpose |
+|----------|--------|----------|---------|
+| `/webhook/grimlock-wizard` | Form | Form Wizard | User-facing PRD generator |
+| `/webhook/grimlock/start` | POST | Sprint Initiator | Start build from PRD |
+| `/webhook/grimlock/build-status` | GET | Build Status | Dashboard polls for progress |
+| `/webhook/grimlock/upload-mcp` | POST | MCP Upload | Claude Code uploads completed MCP |
 
 ---
 
@@ -919,33 +1047,83 @@ updated_at: 2024-12-31T00:00:00Z
 
 ### Day 1: Cleanup & n8n Workflows
 
+**File Cleanup:**
 - [ ] Delete `grimlock-api/` directory
 - [ ] Delete unnecessary dashboard files (api.js, auth.js, toast.js, router.js, pages/)
-- [ ] Delete proxy-related files
-- [ ] Export existing n8n workflows as backup
-- [ ] Modify Sprint Initiator workflow (remove FastAPI nodes)
-- [ ] Create Status Checker workflow
-- [ ] Create MCP Upload workflow
-- [ ] Test all webhook endpoints manually with curl
+- [ ] Delete proxy-related files (verify-proxy-setup.sh, NETLIFY_PROXY_DEPLOYMENT.md)
+- [ ] Delete `stitch_mcp_factory_dashboard/` directory
+
+**n8n Workflow Cleanup (Deactivate 17 workflows):**
+- [ ] Deactivate `jPCWR9tZI9u8lA8x` - Dashboard Build Status (duplicate)
+- [ ] Deactivate `wwpds7oOB0gJlxLY` - Dashboard Build History
+- [ ] Deactivate `N3YSLrRahBaU2f6R` - Dashboard System Health
+- [ ] Deactivate `Y4RJIGhEAQEPiWBc` - Dashboard Analytics
+- [ ] Deactivate `vm7qLBjJFnlvgx5o` - Dashboard Build Details
+- [ ] Deactivate `r7sVeR9oPdb9xB4v` - Dashboard Build History (duplicate)
+- [ ] Deactivate `3xAVulGA6oMWI2CB` - Dashboard MCP Projects
+- [ ] Deactivate `UrrwyAGUNn70PbkQ` - Dashboard Latest PRD
+- [ ] Deactivate `yFDQ1FOaR34pIaBi` - Dashboard Build Event Logger
+- [ ] Deactivate `LBZ22dDFZd0Ohny3` - Dashboard Build Logs API
+- [ ] Deactivate `jpjndU27c1q9wZyk` - Dashboard PRD Upload
+- [ ] Deactivate `KB21K01o97qkGp4F` - Auth Login
+- [ ] Deactivate `Dx99ybuuDcXjHfpV` - Auth Callback
+- [ ] Deactivate `JqbktRzofeVSvsLt` - Heartbeat Monitor
+- [ ] Deactivate `AD5CpXHxSQ7LExPI` - Milestone Gate Validation
+- [ ] Deactivate `HxnmkkumPCgxkuX3` - Escalation Handler
+- [ ] Deactivate `MSEsx9Z7WJtJbnBE` - Sprint Completion Validation
+
+**n8n Workflow Modifications:**
+- [ ] Modify `cxvGUu8xVbui1WR2` (Sprint Initiator): Delete `Create Build in DB` node
+- [ ] Modify `cxvGUu8xVbui1WR2` (Sprint Initiator): Delete `Log Build Start` node
+- [ ] Modify `cxvGUu8xVbui1WR2` (Sprint Initiator): Reconnect `Respond to Webhook` → `Launch Claude Code`
+- [ ] Modify `XwmTcWU9DNzMD2ep` (Form Wizard): Add Google Drive Upload node
+- [ ] Modify `XwmTcWU9DNzMD2ep` (Form Wizard): Clean up duplicate/disabled nodes
+- [ ] Verify `PeQ6mkzN6YCXCicI` (Build Status) works - no changes needed
+- [ ] Create NEW workflow: MCP Upload Handler (`/webhook/grimlock/upload-mcp`)
+- [ ] Test all 4 webhook endpoints manually with curl:
+  - [ ] `curl -X POST https://im4tlai.app.n8n.cloud/webhook/grimlock/start -d '{"prd_file":"test.yaml"}'`
+  - [ ] `curl https://im4tlai.app.n8n.cloud/webhook/grimlock/build-status`
+  - [ ] `curl -X POST https://im4tlai.app.n8n.cloud/webhook/grimlock/upload-mcp -d '{"mcpName":"test","buildId":"test-123"}'`
 
 ### Day 2: Dashboard & Integration
 
-- [ ] Replace dashboard with new single-page design
-- [ ] Update n8n webhook URLs in app.js
-- [ ] Test PRD generation flow end-to-end
-- [ ] Test build initiation flow
-- [ ] Test status polling
-- [ ] Update CLAUDE.md with upload instructions
-- [ ] Update GRIMLOCK_STATE.md format
+**Dashboard Rewrite:**
+- [ ] Replace `dashboard/index.html` with new single-page design
+- [ ] Replace `dashboard/app.js` with simplified logic
+- [ ] Replace `dashboard/styles.css` with Tailwind-based styles
+- [ ] Update n8n webhook URLs in app.js CONFIG object
+- [ ] Delete old files: `dashboard/js/*`, `dashboard/pages/*`
+
+**Integration Testing:**
+- [ ] Test PRD generation via Form Wizard → verify GDrive upload
+- [ ] Test build initiation from dashboard → verify Claude Code launches
+- [ ] Test status polling → verify progress updates display
+- [ ] Update CLAUDE.md with MCP upload webhook instructions
+- [ ] Update GRIMLOCK_STATE.md to match expected format
+
+**Google Drive Setup:**
+- [ ] Create `prds/` subfolder in GRIMLOCK_ARTIFACTS
+- [ ] Create `mcps/` subfolder in GRIMLOCK_ARTIFACTS
+- [ ] Verify n8n Google Drive credentials have write access
 
 ### Day 3: Testing & Polish
 
-- [ ] Full end-to-end test: Generate PRD → Download → Upload → Build → Download MCP
-- [ ] Test error handling
-- [ ] Update README.md with new architecture
-- [ ] Record demo video for hackathon
-- [ ] Deploy to Netlify
-- [ ] Final verification
+**End-to-End Testing:**
+- [ ] Full test: Form Wizard → Generate PRD → Download from GDrive
+- [ ] Full test: Upload PRD → Start Build → Poll Status → Download MCP from GDrive
+- [ ] Test error handling (invalid PRD, build failures)
+- [ ] Test CORS headers on all webhook responses
+
+**Documentation:**
+- [ ] Update README.md with new architecture diagram
+- [ ] Update docs/ARCHITECTURE.md
+- [ ] Archive old documentation referencing FastAPI
+
+**Deployment:**
+- [ ] Deploy dashboard to Netlify
+- [ ] Verify production webhook URLs work
+- [ ] Record demo video for hackathon submission
+- [ ] Final verification of complete flow
 
 ---
 
