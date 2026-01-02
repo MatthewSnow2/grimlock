@@ -157,8 +157,10 @@ export class TemplateInjector {
     });
 
     // Type mapping helper for TypeScript/Python
+    // Use SafeString to prevent HTML escaping of < and > in generic types
     this.handlebars.registerHelper('mapType', (type: string, language: string) => {
-      return this.mapParameterType(type, language as 'typescript' | 'python');
+      const mapped = this.mapParameterType(type, language as 'typescript' | 'python');
+      return new this.handlebars.SafeString(mapped);
     });
 
     // Indentation helper
@@ -546,8 +548,16 @@ export class TemplateInjector {
 
   // Case conversion utilities
   toCamelCase(str: string): string {
-    return str
+    // Handle ALL_CAPS by checking if string is entirely uppercase with separators
+    const isAllCaps = /^[A-Z0-9_\-\s]+$/.test(str) && /[A-Z]/.test(str);
+    const normalized = isAllCaps ? str.toLowerCase() : str;
+
+    return normalized
+      // Insert separator before uppercase letters (for PascalCase input)
+      .replace(/([a-z])([A-Z])/g, '$1_$2')
+      // Convert separators to camelCase
       .replace(/[-_\s]+(.)?/g, (_, c) => (c ? c.toUpperCase() : ''))
+      // Lowercase first character
       .replace(/^(.)/, c => c.toLowerCase());
   }
 
