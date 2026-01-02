@@ -695,7 +695,7 @@ async function main() {
     for (const tool of prd.tools) {
       code += `        {
           name: '${tool.name}',
-          description: '${tool.description.replace(/'/g, "\\'")}',
+          description: '${this.escapeJsString(tool.description)}',
           inputSchema: {
             type: 'object',
             properties: {
@@ -704,7 +704,7 @@ async function main() {
       for (const param of tool.parameters) {
         code += `              ${param.name}: {
                 type: '${param.type}',
-                description: '${(param.description || '').replace(/'/g, "\\'")}',
+                description: '${this.escapeJsString(param.description || '')}',
               },
 `;
       }
@@ -1160,6 +1160,18 @@ export const ${this.toCamelCase(pattern)}Placeholder = true;
   private toPascalCase(str: string): string {
     const camel = this.toCamelCase(str);
     return camel.charAt(0).toUpperCase() + camel.slice(1);
+  }
+
+  /**
+   * Escape string for use in JavaScript single-quoted string literal
+   */
+  private escapeJsString(str: string): string {
+    return str
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
+      .replace(/\t/g, '\\t');
   }
 }
 
