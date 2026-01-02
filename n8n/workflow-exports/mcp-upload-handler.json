@@ -1,0 +1,112 @@
+{
+  "name": "GRIMLOCK MCP Upload Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "grimlock/upload-mcp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "webhookId": "grimlock-upload-mcp"
+    },
+    {
+      "parameters": {
+        "command": "=base64 /home/ubuntu/projects/grimlock/mcps/{{ $json.body.mcpName }}.zip"
+      },
+      "id": "ssh-read-zip",
+      "name": "SSH Read ZIP",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [440, 300],
+      "credentials": {
+        "sshPassword": {
+          "id": "YOUR_SSH_CREDENTIAL_ID",
+          "name": "EC2 SSH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const base64Content = $input.first().json.stdout.trim();\nconst mcpName = $('Webhook').first().json.body.mcpName;\nconst buildId = $('Webhook').first().json.body.buildId;\nconst filename = `${mcpName}-${Date.now()}.zip`;\n\nreturn [{\n  json: {\n    mcpName,\n    buildId,\n    filename\n  },\n  binary: {\n    data: await this.helpers.prepareBinaryData(\n      Buffer.from(base64Content, 'base64'),\n      filename,\n      'application/zip'\n    )\n  }\n}];"
+      },
+      "id": "code-convert",
+      "name": "Convert to Binary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "folderId": "1CC9A4ODJZT9rK9pxEK4JSWGxldSxsNkZ",
+        "name": "={{ $json.filename }}",
+        "options": {}
+      },
+      "id": "gdrive-upload",
+      "name": "Google Drive Upload",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [880, 300],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GDRIVE_CREDENTIAL_ID",
+          "name": "Google Drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "=sed -i 's|mcp_download_url:.*|mcp_download_url: {{ $json.webViewLink }}|' /home/ubuntu/projects/grimlock/GRIMLOCK_STATE.md && sed -i 's|status:.*|status: complete|' /home/ubuntu/projects/grimlock/GRIMLOCK_STATE.md && sed -i 's|phase:.*|phase: complete|' /home/ubuntu/projects/grimlock/GRIMLOCK_STATE.md && sed -i 's|progress:.*|progress: 100|' /home/ubuntu/projects/grimlock/GRIMLOCK_STATE.md && echo 'State updated'"
+      },
+      "id": "ssh-update-state",
+      "name": "SSH Update State",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [1100, 300],
+      "credentials": {
+        "sshPassword": {
+          "id": "YOUR_SSH_CREDENTIAL_ID",
+          "name": "EC2 SSH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"status\": \"uploaded\",\n  \"downloadUrl\": \"{{ $('Google Drive Upload').item.json.webViewLink }}\",\n  \"filename\": \"{{ $('Convert to Binary').item.json.filename }}\"\n}",
+        "options": {}
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1320, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{"node": "SSH Read ZIP", "type": "main", "index": 0}]]
+    },
+    "SSH Read ZIP": {
+      "main": [[{"node": "Convert to Binary", "type": "main", "index": 0}]]
+    },
+    "Convert to Binary": {
+      "main": [[{"node": "Google Drive Upload", "type": "main", "index": 0}]]
+    },
+    "Google Drive Upload": {
+      "main": [[{"node": "SSH Update State", "type": "main", "index": 0}]]
+    },
+    "SSH Update State": {
+      "main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

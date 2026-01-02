@@ -1,0 +1,55 @@
+name: sample-greeting-mcp
+version: 1.0.0
+description: A simple MCP server that provides greeting tools for testing GRIMLOCK
+
+language: typescript
+framework: mcp-sdk
+
+tools:
+  - name: say_hello
+    description: Returns a friendly greeting with the provided name
+    parameters:
+      - name: name
+        type: string
+        required: true
+        description: The name to greet
+    returns:
+      type: string
+      description: A greeting message
+
+  - name: say_goodbye
+    description: Returns a farewell message
+    parameters:
+      - name: name
+        type: string
+        required: true
+        description: The name to bid farewell
+    returns:
+      type: string
+      description: A farewell message
+
+  - name: get_time_greeting
+    description: Returns a time-appropriate greeting (good morning, afternoon, evening)
+    parameters: []
+    returns:
+      type: string
+      description: A time-based greeting
+
+resources: []
+
+prompts: []
+
+configuration:
+  environment_variables: []
+
+testing:
+  unit_tests: true
+  integration_tests: false
+
+metadata:
+  author: GRIMLOCK Test
+  created: 2026-01-02
+  tags:
+    - greeting
+    - sample
+    - test

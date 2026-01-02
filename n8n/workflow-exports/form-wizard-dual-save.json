@@ -157,13 +157,15 @@
     },
     {
       "id": "respond",
-      "name": "Respond to Form",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
+      "name": "Form Ending",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
       "position": [2250, 300],
       "parameters": {
+        "operation": "completion",
         "respondWith": "text",
-        "responseBody": "=## PRD Generated & Build Started! 🚀\n\n**MCP:** {{ $('Generate PRD YAML').item.json.projectName }}\n**SDK:** {{ $('Generate PRD YAML').item.json.sdk }}\n**Tools:** {{ $('Calculate Context Efficiency').item.json.contextEfficiency.toolCount }}\n**Tokens:** ~{{ $('Calculate Context Efficiency').item.json.contextEfficiency.estimatedTokens }}\n\n---\n\n**Build ID:** {{ $json.buildId }}\n**Status:** {{ $json.status }}\n\n📁 **PRD saved to Google Drive** - [View in Drive]({{ $('Upload to Google Drive').item.json.webViewLink }})\n\nYour MCP server is now being built! Check the [dashboard](https://grimlockfactory.netlify.app) for progress.\n\n```yaml\n{{ $('Generate PRD YAML').item.json.prdContent }}\n```"
+        "completionTitle": "PRD Generated & Build Started!",
+        "completionMessage": "=**MCP:** {{ $('Generate PRD YAML').item.json.projectName }}\n**SDK:** {{ $('Generate PRD YAML').item.json.sdk }}\n**Tools:** {{ $('Calculate Context Efficiency').item.json.contextEfficiency.toolCount }}\n**Tokens:** ~{{ $('Calculate Context Efficiency').item.json.contextEfficiency.estimatedTokens }}\n\n---\n\n**Build ID:** {{ $json.buildId }}\n**Status:** {{ $json.status }}\n\nYour MCP server is now being built! Check the [dashboard](https://grimlockfactory.netlify.app) for progress."
       }
     }
   ],
@@ -183,7 +185,7 @@
     "Convert to File": {"main": [[{"node": "Upload to Google Drive", "type": "main", "index": 0}]]},
     "Upload to Google Drive": {"main": [[{"node": "Merge Results", "type": "main", "index": 1}]]},
     "Merge Results": {"main": [[{"node": "Trigger Sprint Initiator", "type": "main", "index": 0}]]},
-    "Trigger Sprint Initiator": {"main": [[{"node": "Respond to Form", "type": "main", "index": 0}]]}
+    "Trigger Sprint Initiator": {"main": [[{"node": "Form Ending", "type": "main", "index": 0}]]}
   },
   "settings": {"executionOrder": "v1"}
 }

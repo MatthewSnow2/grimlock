@@ -1,0 +1,9 @@
+name: test-mcp
+version: 1.0.0
+description: Test MCP for workflow validation
+
+tools:
+  - name: hello_world
+    description: Returns a greeting
+    parameters: []
+
