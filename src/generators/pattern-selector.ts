@@ -141,15 +141,17 @@ export class PatternSelector {
       t.parameters.some(p => p.validation)
     );
 
-    return {
-      // Error types - when error handling is enabled with scenarios
-      errorTypes:
-        prd.patterns.global.errorHandling.enabled && errorScenarios.length > 0,
+    // Error handler is included when error handling is enabled or always included
+    const needsErrorHandler =
+      prd.patterns.global.errorHandling.enabled ||
+      this.config.alwaysIncludeErrorHandling;
 
-      // Error handler - when error handling is enabled
-      errorHandler:
-        prd.patterns.global.errorHandling.enabled ||
-        this.config.alwaysIncludeErrorHandling,
+    return {
+      // Error types - required when error handler is included (handler depends on types)
+      errorTypes: needsErrorHandler,
+
+      // Error handler - when error handling is enabled or always included
+      errorHandler: needsErrorHandler,
 
       // Logger - when logging is enabled
       logger: prd.patterns.global.logging.enabled,
