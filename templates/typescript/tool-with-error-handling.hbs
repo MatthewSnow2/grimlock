@@ -1,0 +1,188 @@
+{{!--
+  Complete Tool Implementation Template with Error Handling
+
+  Generates a full MCP tool implementation with:
+  - Try/catch wrapper
+  - Input validation using Zod schema
+  - Custom error types
+  - Proper error response formatting
+  - Type-safe return
+
+  Required Placeholders:
+    {{TOOL_NAME}}       - The name of the MCP tool (e.g., "get_customer")
+    {{RETURN_TYPE}}     - The TypeScript return type (e.g., "Customer")
+    {{SCHEMA_NAME}}     - The Zod schema name (e.g., "GetCustomerSchema")
+    {{BUSINESS_LOGIC}}  - Placeholder for business logic implementation
+
+  Optional Placeholders:
+    {{TOOL_DESCRIPTION}} - Description for the tool
+    {{INPUT_TYPE}}       - TypeScript type for input (defaults to z.infer<typeof SCHEMA_NAME>)
+--}}
+import { z } from 'zod';
+import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import {
+  McpError,
+  McpErrorCode,
+  ValidationError,
+  NotFoundError,
+  ApiError,
+  isMcpError,
+} from './error-types';
+import { handleMcpError, McpErrorResponse } from './error-handler';
+
+/**
+ * Input schema for {{TOOL_NAME}} tool.
+ * Defines the expected structure and validation rules for input parameters.
+ */
+export const {{SCHEMA_NAME}} = z.object({
+  {{!-- Schema fields should be defined here --}}
+  // Example fields - replace with actual schema definition
+  // id: z.string().uuid().describe('Unique identifier'),
+  // options: z.object({
+  //   limit: z.number().int().positive().optional().default(10),
+  // }).optional(),
+});
+
+/**
+ * Inferred TypeScript type from the input schema.
+ */
+export type {{SCHEMA_NAME}}Input = z.infer<typeof {{SCHEMA_NAME}}>;
+
+/**
+ * Return type for {{TOOL_NAME}} tool.
+ */
+export type {{TOOL_NAME}}Result = {{RETURN_TYPE}};
+
+/**
+ * Successful response type for {{TOOL_NAME}}.
+ */
+export interface {{TOOL_NAME}}Response {
+  content: Array<{
+    type: 'text';
+    text: string;
+  }>;
+  isError?: false;
+}
+
+/**
+ * {{#if TOOL_DESCRIPTION}}{{TOOL_DESCRIPTION}}{{else}}MCP Tool: {{TOOL_NAME}}{{/if}}
+ *
+ * This tool implementation includes:
+ * - Input validation via Zod schema
+ * - Comprehensive error handling
+ * - Type-safe return values
+ *
+ * @param args - Raw input arguments from MCP request
+ * @returns Tool result or error response
+ *
+ * @example
+ * ```typescript
+ * const result = await {{TOOL_NAME}}Handler({ id: '123' });
+ * if (result.isError) {
+ *   console.error('Tool failed:', result.content[0].text);
+ * } else {
+ *   console.log('Success:', result.content[0].text);
+ * }
+ * ```
+ */
+export async function {{TOOL_NAME}}Handler(
+  args: unknown
+): Promise<{{TOOL_NAME}}Response | McpErrorResponse> {
+  try {
+    // Step 1: Validate input against schema
+    const parseResult = {{SCHEMA_NAME}}.safeParse(args);
+
+    if (!parseResult.success) {
+      throw ValidationError.fromZodError(
+        parseResult.error,
+        '{{TOOL_NAME}} input'
+      );
+    }
+
+    const input: {{SCHEMA_NAME}}Input = parseResult.data;
+
+    // Step 2: Execute business logic
+    const result = await execute{{TOOL_NAME}}(input);
+
+    // Step 3: Format successful response
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  } catch (error) {
+    // Step 4: Handle errors with centralized handler
+    return handleMcpError(error, {
+      toolName: '{{TOOL_NAME}}',
+    });
+  }
+}
+
+/**
+ * Core business logic for {{TOOL_NAME}}.
+ * Separated from handler for testability and reusability.
+ *
+ * @param input - Validated input parameters
+ * @returns The result of type {{RETURN_TYPE}}
+ * @throws {NotFoundError} When requested resource is not found
+ * @throws {ApiError} When external API call fails
+ * @throws {McpError} For other operational errors
+ */
+async function execute{{TOOL_NAME}}(
+  input: {{SCHEMA_NAME}}Input
+): Promise<{{TOOL_NAME}}Result> {
+  {{!-- Business logic implementation goes here --}}
+  {{#if BUSINESS_LOGIC}}
+  {{{BUSINESS_LOGIC}}}
+  {{else}}
+  // TODO: Implement business logic
+  //
+  // Example implementation pattern:
+  //
+  // // Fetch data from external service
+  // const response = await fetchFromApi(input.id);
+  //
+  // // Handle not found case
+  // if (!response) {
+  //   throw new NotFoundError('Resource', input.id);
+  // }
+  //
+  // // Transform and return data
+  // return transformResponse(response);
+  //
+  throw new McpError(
+    McpErrorCode.INTERNAL_ERROR,
+    '{{TOOL_NAME}} business logic not implemented',
+    { retryable: false }
+  );
+  {{/if}}
+}
+
+/**
+ * Tool definition for MCP server registration.
+ * Use this when setting up the MCP server tools list.
+ */
+export const {{TOOL_NAME}}Definition = {
+  name: '{{TOOL_NAME}}',
+  description: '{{#if TOOL_DESCRIPTION}}{{TOOL_DESCRIPTION}}{{else}}Execute {{TOOL_NAME}} operation{{/if}}',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {{SCHEMA_NAME}}.shape,
+    required: Object.keys({{SCHEMA_NAME}}.shape).filter(
+      (key) => !{{SCHEMA_NAME}}.shape[key as keyof typeof {{SCHEMA_NAME}}.shape].isOptional()
+    ),
+  },
+};
+
+/**
+ * Type-safe handler registration helper.
+ * Maps tool name to its handler for use in MCP server setup.
+ */
+export const {{TOOL_NAME}}Registration = {
+  name: '{{TOOL_NAME}}' as const,
+  handler: {{TOOL_NAME}}Handler,
+  schema: {{SCHEMA_NAME}},
+} as const;

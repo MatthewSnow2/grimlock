@@ -1,0 +1,332 @@
+{{!--
+  Error Types Template for MCP Server Tools
+
+  Generates custom error classes and error code enums for type-safe error handling.
+
+  Usage:
+    Import generated file and use error classes throughout your MCP server.
+
+  Placeholders:
+    {{SERVER_NAME}} - Optional server identifier for namespacing
+--}}
+import { z } from 'zod';
+
+/**
+ * Error codes for MCP server operations.
+ * These map to standard error categories for consistent error handling.
+ */
+export enum McpErrorCode {
+  /** Input validation failed against schema */
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  /** External API call failed */
+  API_ERROR = 'API_ERROR',
+  /** Requested resource was not found */
+  NOT_FOUND = 'NOT_FOUND',
+  /** Rate limit exceeded for external service */
+  RATE_LIMIT = 'RATE_LIMIT',
+  /** Authentication or authorization failed */
+  AUTH_ERROR = 'AUTH_ERROR',
+  /** Operation timed out */
+  TIMEOUT = 'TIMEOUT',
+  /** Internal server error */
+  INTERNAL_ERROR = 'INTERNAL_ERROR',
+  /** Configuration or environment error */
+  CONFIG_ERROR = 'CONFIG_ERROR',
+  /** Resource conflict (e.g., duplicate entry) */
+  CONFLICT = 'CONFLICT',
+  /** Service temporarily unavailable */
+  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
+}
+
+/**
+ * Structured error details for debugging and logging.
+ */
+export interface McpErrorDetails {
+  /** Original error message if wrapped */
+  originalMessage?: string;
+  /** Stack trace for debugging */
+  stack?: string;
+  /** Additional context data */
+  context?: Record<string, unknown>;
+  /** Timestamp when error occurred */
+  timestamp: string;
+  /** Suggested retry delay in milliseconds (for retryable errors) */
+  retryAfterMs?: number;
+  /** Whether this error is retryable */
+  retryable: boolean;
+}
+
+/**
+ * Base error class for all MCP server errors.
+ * Provides consistent error structure with code, message, and details.
+ */
+export class McpError extends Error {
+  public readonly code: McpErrorCode;
+  public readonly details: McpErrorDetails;
+  public readonly statusCode: number;
+
+  constructor(
+    code: McpErrorCode,
+    message: string,
+    options: {
+      cause?: Error;
+      context?: Record<string, unknown>;
+      retryable?: boolean;
+      retryAfterMs?: number;
+      statusCode?: number;
+    } = {}
+  ) {
+    super(message);
+    this.name = 'McpError';
+    this.code = code;
+    this.statusCode = options.statusCode ?? this.getDefaultStatusCode(code);
+    this.details = {
+      originalMessage: options.cause?.message,
+      stack: options.cause?.stack,
+      context: options.context,
+      timestamp: new Date().toISOString(),
+      retryable: options.retryable ?? this.isRetryableByDefault(code),
+      retryAfterMs: options.retryAfterMs,
+    };
+
+    // Maintains proper stack trace for where error was thrown
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
+    }
+  }
+
+  private getDefaultStatusCode(code: McpErrorCode): number {
+    const statusMap: Record<McpErrorCode, number> = {
+      [McpErrorCode.VALIDATION_ERROR]: 400,
+      [McpErrorCode.API_ERROR]: 502,
+      [McpErrorCode.NOT_FOUND]: 404,
+      [McpErrorCode.RATE_LIMIT]: 429,
+      [McpErrorCode.AUTH_ERROR]: 401,
+      [McpErrorCode.TIMEOUT]: 504,
+      [McpErrorCode.INTERNAL_ERROR]: 500,
+      [McpErrorCode.CONFIG_ERROR]: 500,
+      [McpErrorCode.CONFLICT]: 409,
+      [McpErrorCode.SERVICE_UNAVAILABLE]: 503,
+    };
+    return statusMap[code];
+  }
+
+  private isRetryableByDefault(code: McpErrorCode): boolean {
+    const retryableCodes = new Set([
+      McpErrorCode.RATE_LIMIT,
+      McpErrorCode.TIMEOUT,
+      McpErrorCode.SERVICE_UNAVAILABLE,
+    ]);
+    return retryableCodes.has(code);
+  }
+
+  /**
+   * Converts error to a JSON-serializable format for MCP responses.
+   */
+  toJSON(): Record<string, unknown> {
+    return {
+      code: this.code,
+      message: this.message,
+      details: this.details,
+      statusCode: this.statusCode,
+    };
+  }
+}
+
+/**
+ * Validation error for input schema failures.
+ * Automatically extracts and formats Zod validation issues.
+ */
+export class ValidationError extends McpError {
+  public readonly validationIssues: z.ZodIssue[];
+
+  constructor(
+    message: string,
+    zodError?: z.ZodError,
+    context?: Record<string, unknown>
+  ) {
+    super(McpErrorCode.VALIDATION_ERROR, message, {
+      context: {
+        ...context,
+        issues: zodError?.issues,
+      },
+      retryable: false,
+    });
+    this.name = 'ValidationError';
+    this.validationIssues = zodError?.issues ?? [];
+  }
+
+  /**
+   * Creates a ValidationError from a Zod parsing result.
+   */
+  static fromZodError(zodError: z.ZodError, inputName?: string): ValidationError {
+    const issueMessages = zodError.issues
+      .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+      .join('; ');
+    const message = inputName
+      ? `Invalid ${inputName}: ${issueMessages}`
+      : `Validation failed: ${issueMessages}`;
+    return new ValidationError(message, zodError);
+  }
+}
+
+/**
+ * API error for external service call failures.
+ */
+export class ApiError extends McpError {
+  public readonly endpoint?: string;
+  public readonly httpStatus?: number;
+
+  constructor(
+    message: string,
+    options: {
+      cause?: Error;
+      endpoint?: string;
+      httpStatus?: number;
+      context?: Record<string, unknown>;
+      retryable?: boolean;
+    } = {}
+  ) {
+    super(McpErrorCode.API_ERROR, message, {
+      cause: options.cause,
+      context: {
+        ...options.context,
+        endpoint: options.endpoint,
+        httpStatus: options.httpStatus,
+      },
+      retryable: options.retryable ?? (options.httpStatus ? options.httpStatus >= 500 : false),
+    });
+    this.name = 'ApiError';
+    this.endpoint = options.endpoint;
+    this.httpStatus = options.httpStatus;
+  }
+}
+
+/**
+ * Not found error for missing resources.
+ */
+export class NotFoundError extends McpError {
+  public readonly resourceType: string;
+  public readonly resourceId: string;
+
+  constructor(resourceType: string, resourceId: string, context?: Record<string, unknown>) {
+    super(McpErrorCode.NOT_FOUND, `${resourceType} not found: ${resourceId}`, {
+      context: {
+        ...context,
+        resourceType,
+        resourceId,
+      },
+      retryable: false,
+    });
+    this.name = 'NotFoundError';
+    this.resourceType = resourceType;
+    this.resourceId = resourceId;
+  }
+}
+
+/**
+ * Rate limit error for throttled requests.
+ */
+export class RateLimitError extends McpError {
+  public readonly retryAfter: number;
+
+  constructor(
+    message: string,
+    retryAfterMs: number,
+    context?: Record<string, unknown>
+  ) {
+    super(McpErrorCode.RATE_LIMIT, message, {
+      context,
+      retryable: true,
+      retryAfterMs,
+    });
+    this.name = 'RateLimitError';
+    this.retryAfter = retryAfterMs;
+  }
+}
+
+/**
+ * Authentication/authorization error.
+ */
+export class AuthError extends McpError {
+  public readonly authType: 'authentication' | 'authorization';
+
+  constructor(
+    message: string,
+    authType: 'authentication' | 'authorization' = 'authentication',
+    context?: Record<string, unknown>
+  ) {
+    super(McpErrorCode.AUTH_ERROR, message, {
+      context: {
+        ...context,
+        authType,
+      },
+      retryable: false,
+      statusCode: authType === 'authorization' ? 403 : 401,
+    });
+    this.name = 'AuthError';
+    this.authType = authType;
+  }
+}
+
+/**
+ * Timeout error for operations that exceed time limits.
+ */
+export class TimeoutError extends McpError {
+  public readonly timeoutMs: number;
+  public readonly operation: string;
+
+  constructor(
+    operation: string,
+    timeoutMs: number,
+    context?: Record<string, unknown>
+  ) {
+    super(McpErrorCode.TIMEOUT, `Operation '${operation}' timed out after ${timeoutMs}ms`, {
+      context: {
+        ...context,
+        operation,
+        timeoutMs,
+      },
+      retryable: true,
+    });
+    this.name = 'TimeoutError';
+    this.timeoutMs = timeoutMs;
+    this.operation = operation;
+  }
+}
+
+/**
+ * Configuration error for missing or invalid configuration.
+ */
+export class ConfigError extends McpError {
+  public readonly configKey?: string;
+
+  constructor(message: string, configKey?: string, context?: Record<string, unknown>) {
+    super(McpErrorCode.CONFIG_ERROR, message, {
+      context: {
+        ...context,
+        configKey,
+      },
+      retryable: false,
+    });
+    this.name = 'ConfigError';
+    this.configKey = configKey;
+  }
+}
+
+/**
+ * Type guard to check if an error is an McpError.
+ */
+export function isMcpError(error: unknown): error is McpError {
+  return error instanceof McpError;
+}
+
+/**
+ * Type guard to check if an error is a specific McpError type.
+ */
+export function isMcpErrorWithCode(
+  error: unknown,
+  code: McpErrorCode
+): error is McpError {
+  return isMcpError(error) && error.code === code;
+}

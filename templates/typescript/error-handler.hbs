@@ -1,0 +1,325 @@
+{{!--
+  Centralized Error Handler Template for MCP Servers
+
+  Provides a unified error handling function that catches different error types,
+  maps them to appropriate MCP error responses, and includes logging hooks.
+
+  Usage:
+    Import and use as a wrapper around tool implementations or in catch blocks.
+
+  Placeholders:
+    {{LOGGER_IMPORT}} - Optional custom logger import path
+--}}
+import {
+  McpError,
+  McpErrorCode,
+  ValidationError,
+  ApiError,
+  NotFoundError,
+  RateLimitError,
+  AuthError,
+  TimeoutError,
+  ConfigError,
+  isMcpError,
+} from './error-types';
+import { z } from 'zod';
+
+/**
+ * Structured MCP error response format.
+ */
+export interface McpErrorResponse {
+  isError: true;
+  content: Array<{
+    type: 'text';
+    text: string;
+  }>;
+  _meta?: {
+    errorCode: McpErrorCode;
+    retryable: boolean;
+    retryAfterMs?: number;
+    timestamp: string;
+  };
+}
+
+/**
+ * Logger interface for error handler.
+ * Implement this interface to integrate with your logging system.
+ */
+export interface ErrorLogger {
+  error(message: string, context?: Record<string, unknown>): void;
+  warn(message: string, context?: Record<string, unknown>): void;
+  info(message: string, context?: Record<string, unknown>): void;
+}
+
+/**
+ * Default console logger implementation.
+ */
+const defaultLogger: ErrorLogger = {
+  error: (message, context) => console.error(`[ERROR] ${message}`, context),
+  warn: (message, context) => console.warn(`[WARN] ${message}`, context),
+  info: (message, context) => console.info(`[INFO] ${message}`, context),
+};
+
+/**
+ * Error handler configuration options.
+ */
+export interface ErrorHandlerOptions {
+  /** Custom logger implementation */
+  logger?: ErrorLogger;
+  /** Tool name for error context */
+  toolName?: string;
+  /** Whether to include stack traces in responses (disable in production) */
+  includeStackTrace?: boolean;
+  /** Custom error transformers for specific error types */
+  transformers?: Map<McpErrorCode, (error: McpError) => McpErrorResponse>;
+}
+
+/**
+ * Creates a formatted MCP error response from an McpError.
+ */
+function createMcpErrorResponse(
+  error: McpError,
+  includeStackTrace: boolean = false
+): McpErrorResponse {
+  const errorDetails = [
+    `Error: ${error.message}`,
+    `Code: ${error.code}`,
+  ];
+
+  if (error.details.retryable) {
+    errorDetails.push(`Retryable: Yes`);
+    if (error.details.retryAfterMs) {
+      errorDetails.push(`Retry after: ${error.details.retryAfterMs}ms`);
+    }
+  }
+
+  if (includeStackTrace && error.stack) {
+    errorDetails.push(`\nStack trace:\n${error.stack}`);
+  }
+
+  return {
+    isError: true,
+    content: [
+      {
+        type: 'text',
+        text: errorDetails.join('\n'),
+      },
+    ],
+    _meta: {
+      errorCode: error.code,
+      retryable: error.details.retryable,
+      retryAfterMs: error.details.retryAfterMs,
+      timestamp: error.details.timestamp,
+    },
+  };
+}
+
+/**
+ * Wraps a Zod error into a ValidationError.
+ */
+function handleZodError(error: z.ZodError, toolName?: string): McpError {
+  return ValidationError.fromZodError(
+    error,
+    toolName ? `${toolName} input` : undefined
+  );
+}
+
+/**
+ * Handles standard JavaScript errors and wraps them in McpError.
+ */
+function handleStandardError(error: Error, toolName?: string): McpError {
+  // Check for common error patterns
+  const message = error.message.toLowerCase();
+
+  if (message.includes('timeout') || message.includes('timed out')) {
+    return new TimeoutError(toolName ?? 'unknown', 30000, {
+      originalError: error.message,
+    });
+  }
+
+  if (message.includes('unauthorized') || message.includes('authentication')) {
+    return new AuthError(error.message, 'authentication', {
+      originalError: error.message,
+    });
+  }
+
+  if (message.includes('forbidden') || message.includes('permission')) {
+    return new AuthError(error.message, 'authorization', {
+      originalError: error.message,
+    });
+  }
+
+  if (message.includes('not found') || message.includes('404')) {
+    return new McpError(McpErrorCode.NOT_FOUND, error.message, {
+      cause: error,
+      retryable: false,
+    });
+  }
+
+  if (message.includes('rate limit') || message.includes('too many requests') || message.includes('429')) {
+    return new RateLimitError(error.message, 60000, {
+      originalError: error.message,
+    });
+  }
+
+  if (message.includes('econnrefused') || message.includes('enotfound') || message.includes('network')) {
+    return new ApiError(error.message, {
+      cause: error,
+      retryable: true,
+    });
+  }
+
+  // Default to internal error
+  return new McpError(McpErrorCode.INTERNAL_ERROR, error.message, {
+    cause: error,
+    retryable: false,
+  });
+}
+
+/**
+ * Handles unknown error types (non-Error objects).
+ */
+function handleUnknownError(error: unknown, toolName?: string): McpError {
+  const message = typeof error === 'string'
+    ? error
+    : `Unknown error in ${toolName ?? 'tool'}: ${JSON.stringify(error)}`;
+
+  return new McpError(McpErrorCode.INTERNAL_ERROR, message, {
+    context: { rawError: error },
+    retryable: false,
+  });
+}
+
+/**
+ * Central error handler for MCP tools.
+ * Catches different error types and maps them to appropriate MCP error responses.
+ *
+ * @param error - The caught error (any type)
+ * @param options - Handler configuration options
+ * @returns Formatted MCP error response
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   // Tool implementation
+ * } catch (error) {
+ *   return handleMcpError(error, {
+ *     toolName: 'get_customer',
+ *     logger: customLogger,
+ *   });
+ * }
+ * ```
+ */
+export function handleMcpError(
+  error: unknown,
+  options: ErrorHandlerOptions = {}
+): McpErrorResponse {
+  const {
+    logger = defaultLogger,
+    toolName,
+    includeStackTrace = process.env.NODE_ENV !== 'production',
+    transformers,
+  } = options;
+
+  let mcpError: McpError;
+
+  // Convert error to McpError if needed
+  if (isMcpError(error)) {
+    mcpError = error;
+  } else if (error instanceof z.ZodError) {
+    mcpError = handleZodError(error, toolName);
+  } else if (error instanceof Error) {
+    mcpError = handleStandardError(error, toolName);
+  } else {
+    mcpError = handleUnknownError(error, toolName);
+  }
+
+  // Log the error
+  const logContext = {
+    toolName,
+    errorCode: mcpError.code,
+    ...mcpError.details.context,
+  };
+
+  if (mcpError.code === McpErrorCode.INTERNAL_ERROR) {
+    logger.error(mcpError.message, logContext);
+  } else if (mcpError.details.retryable) {
+    logger.warn(mcpError.message, logContext);
+  } else {
+    logger.info(mcpError.message, logContext);
+  }
+
+  // Check for custom transformer
+  if (transformers?.has(mcpError.code)) {
+    const transformer = transformers.get(mcpError.code)!;
+    return transformer(mcpError);
+  }
+
+  // Return standard response
+  return createMcpErrorResponse(mcpError, includeStackTrace);
+}
+
+/**
+ * Creates an error handler with pre-configured options.
+ * Useful for creating tool-specific handlers with consistent configuration.
+ *
+ * @example
+ * ```typescript
+ * const handleToolError = createErrorHandler({
+ *   toolName: 'my_tool',
+ *   logger: myLogger,
+ * });
+ *
+ * try {
+ *   // Tool implementation
+ * } catch (error) {
+ *   return handleToolError(error);
+ * }
+ * ```
+ */
+export function createErrorHandler(
+  baseOptions: ErrorHandlerOptions
+): (error: unknown, overrides?: Partial<ErrorHandlerOptions>) => McpErrorResponse {
+  return (error, overrides = {}) =>
+    handleMcpError(error, { ...baseOptions, ...overrides });
+}
+
+/**
+ * Async wrapper that catches errors and returns MCP error responses.
+ * Useful for wrapping entire tool implementations.
+ *
+ * @example
+ * ```typescript
+ * const result = await withErrorHandling(
+ *   async () => {
+ *     // Tool implementation
+ *     return { content: [{ type: 'text', text: 'Success' }] };
+ *   },
+ *   { toolName: 'my_tool' }
+ * );
+ * ```
+ */
+export async function withErrorHandling<T>(
+  fn: () => Promise<T>,
+  options: ErrorHandlerOptions = {}
+): Promise<T | McpErrorResponse> {
+  try {
+    return await fn();
+  } catch (error) {
+    return handleMcpError(error, options);
+  }
+}
+
+/**
+ * Synchronous wrapper that catches errors and returns MCP error responses.
+ */
+export function withErrorHandlingSync<T>(
+  fn: () => T,
+  options: ErrorHandlerOptions = {}
+): T | McpErrorResponse {
+  try {
+    return fn();
+  } catch (error) {
+    return handleMcpError(error, options);
+  }
+}
