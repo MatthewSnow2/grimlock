@@ -71,11 +71,11 @@ phases:
           "variant": "phase:variant_planning"
 
   # --------------------------------------------------------------------------
-  # LANGUAGE SELECTION PHASE - SDK choice
+  # LANGUAGE SELECTION PHASE - SDK choice and production patterns
   # --------------------------------------------------------------------------
   - id: "language_selection"
     name: "Language Selection"
-    description: "Choose SDK and runtime version"
+    description: "Choose SDK, runtime version, and production patterns"
     questions:
       - id: "Q_LANG_01"
         text: "Which language would you like to use for this MCP?"
@@ -83,16 +83,21 @@ phases:
         required: true
         options:
           - value: "typescript"
-            label: "TypeScript (Node.js)"
-            description: "Best for: npm ecosystem, async/await patterns, existing JS tooling"
+            label: "TypeScript (Recommended)"
+            description: "Better type safety, standard for MCP ecosystem"
           - value: "python"
-            label: "Python"
-            description: "Best for: ML/AI libraries, data processing, scientific computing"
+            label: "Python (FastMCP)"
+            description: "Simpler syntax, ideal for ML/data processing"
         guidance: |
-          **TypeScript** is the standard for most n8n and MCP ecosystem tools.
-          **Python** is ideal when you need ML libraries, pandas, or scientific computing.
+          **TypeScript** is recommended for:
+          - Better IDE support and type checking
+          - Standard in MCP/n8n ecosystem
+          - Async/await patterns
 
-          Most community MCPs use TypeScript.
+          **Python** is ideal for:
+          - ML/AI library integration
+          - Data processing with pandas
+          - Simpler, more readable code
         maps_to: "collected_data.project.sdk"
 
       - id: "Q_LANG_02"
@@ -112,6 +117,40 @@ phases:
         maps_to_conditional:
           "typescript": "collected_data.project.node_version"
           "python": "collected_data.project.python_version"
+
+      - id: "Q_LANG_03"
+        text: "Which production patterns should be included?"
+        type: "multi_select"
+        required: true
+        options:
+          - value: "error_handling"
+            label: "Structured error handling"
+            description: "Custom error types and proper error responses"
+          - value: "progress_notifications"
+            label: "Progress notifications"
+            description: "Real-time updates for long-running operations"
+          - value: "input_validation"
+            label: "Input validation (recommended)"
+            description: "Schema validation for all tool inputs"
+            default_selected: true
+          - value: "logging"
+            label: "Logging & observability"
+            description: "Structured logging for debugging"
+          - value: "graceful_degradation"
+            label: "Graceful degradation (recommended)"
+            description: "Fallbacks when external services fail"
+            default_selected: true
+        min_selections: 0
+        guidance: |
+          **Recommended patterns** are pre-selected:
+          - Input validation: Prevents bad data from causing errors
+          - Graceful degradation: Keeps MCP functional when APIs fail
+
+          **Optional patterns** add robustness:
+          - Error handling: Custom error types for better debugging
+          - Progress notifications: Essential for 5+ second operations
+          - Logging: Helpful for production monitoring
+        maps_to: "collected_data.production_patterns"
 
   # --------------------------------------------------------------------------
   # INTEGRATION PHASE - Service and auth details
@@ -301,7 +340,173 @@ phases:
 
         conditional_flow:
           true: "question:Q_TOOLS_01"  # Loop back
-          false: "phase:context_review"
+          false: "phase:long_running"
+
+  # --------------------------------------------------------------------------
+  # LONG-RUNNING OPERATIONS PHASE
+  # --------------------------------------------------------------------------
+  - id: "long_running"
+    name: "Long-Running Operations"
+    description: "Identify tools that may take significant time"
+    questions:
+      - id: "Q_LONG_01"
+        text: "Do any of your tools take more than 5 seconds to complete?"
+        type: "choice"
+        required: true
+        options:
+          - value: "none"
+            label: "No - all operations complete quickly"
+            description: "All tools return in under 5 seconds"
+          - value: "some"
+            label: "Yes - some operations may take longer"
+            description: "Some tools may need progress notifications"
+        maps_to: "collected_data.long_running.enabled"
+        conditional_flow:
+          "none": "phase:external_dependencies"
+          "some": "question:Q_LONG_02"
+
+      - id: "Q_LONG_02"
+        text: "Which tools may take 5+ seconds?"
+        type: "multi_select"
+        required: true
+        options_from: "collected_data.tools"
+        display_field: "name"
+        guidance: |
+          Select tools that:
+          - Make multiple API calls
+          - Process large datasets
+          - Perform synchronization
+          - Generate reports
+        min_selections: 1
+        maps_to: "collected_data.long_running.tools"
+
+  # --------------------------------------------------------------------------
+  # EXTERNAL DEPENDENCIES PHASE
+  # --------------------------------------------------------------------------
+  - id: "external_dependencies"
+    name: "External Dependencies"
+    description: "Configure external API/service connections"
+    questions:
+      - id: "Q_EXT_01"
+        text: "Does this MCP call external APIs or services?"
+        type: "choice"
+        required: true
+        options:
+          - value: "no"
+            label: "No external dependencies"
+            description: "MCP works with local resources only"
+          - value: "yes"
+            label: "Yes - external API calls"
+            description: "MCP connects to external services"
+        maps_to: "collected_data.external_dependencies.enabled"
+        conditional_flow:
+          "no": "phase:error_handling"
+          "yes": "question:Q_EXT_02"
+
+      - id: "Q_EXT_02"
+        text: "What is the primary service URL?"
+        type: "url"
+        required: true
+        guidance: |
+          Enter the base URL for the external API.
+          Examples:
+          - https://api.notion.com/v1
+          - https://api.shopify.com/admin/api/2024-01
+        maps_to: "collected_data.external_dependencies.primary_url"
+
+      - id: "Q_EXT_03"
+        text: "Is there a fallback service URL? (optional)"
+        type: "url"
+        required: false
+        guidance: |
+          Enter a backup URL if the primary service is unavailable.
+          Leave blank if no fallback available.
+        maps_to: "collected_data.external_dependencies.fallback_url"
+
+      - id: "Q_EXT_04"
+        text: "What is the expected timeout in seconds?"
+        type: "number"
+        required: true
+        default: 10
+        validation:
+          minimum: 1
+          maximum: 120
+        guidance: |
+          How long should the MCP wait for API responses?
+          Common values:
+          - 5 seconds for simple queries
+          - 10 seconds for standard operations (default)
+          - 30+ seconds for complex batch operations
+        maps_to: "collected_data.external_dependencies.timeout_seconds"
+
+  # --------------------------------------------------------------------------
+  # ERROR HANDLING PHASE
+  # --------------------------------------------------------------------------
+  - id: "error_handling"
+    name: "Error Handling"
+    description: "Define expected error scenarios"
+    questions:
+      - id: "Q_ERR_01"
+        text: "What errors might occur? (Check all that apply)"
+        type: "multi_select"
+        required: true
+        options:
+          - value: "invalid_input"
+            label: "Invalid user input"
+            description: "Bad parameters, wrong types, missing required fields"
+          - value: "api_unavailable"
+            label: "External API unavailable"
+            description: "Service down, maintenance, connection refused"
+          - value: "rate_limiting"
+            label: "Rate limiting"
+            description: "Too many requests, quota exceeded"
+          - value: "auth_failure"
+            label: "Authentication failures"
+            description: "Invalid credentials, expired tokens"
+          - value: "network_timeout"
+            label: "Network timeouts"
+            description: "Slow responses, connection dropped"
+          - value: "resource_not_found"
+            label: "Resource not found"
+            description: "404 errors, deleted items, invalid IDs"
+        min_selections: 1
+        guidance: |
+          Select all error types your MCP might encounter.
+          This helps Grimlock implement proper error handling.
+        maps_to: "collected_data.error_handling.scenarios"
+
+  # --------------------------------------------------------------------------
+  # CONFIGURATION PHASE
+  # --------------------------------------------------------------------------
+  - id: "configuration"
+    name: "Configuration"
+    description: "Define environment variables and config options"
+    questions:
+      - id: "Q_CFG_01"
+        text: "What environment variables are needed?"
+        type: "structured_list"
+        required: false
+        item_fields:
+          - name: "var_name"
+            type: "text"
+            label: "Variable name (UPPER_CASE)"
+            validation:
+              pattern: "^[A-Z][A-Z0-9_]*$"
+          - name: "description"
+            type: "text"
+            label: "Description"
+          - name: "default"
+            type: "text"
+            label: "Default value (optional)"
+        min_items: 0
+        max_items: 20
+        guidance: |
+          Common environment variables:
+          - API_KEY: Your API key for the service
+          - TIMEOUT: Request timeout in milliseconds
+          - BASE_URL: Override default API URL
+          - DEBUG: Enable debug logging (true/false)
+        maps_to: "collected_data.configuration.env_vars"
 
   # --------------------------------------------------------------------------
   # CONTEXT REVIEW PHASE - Efficiency analysis

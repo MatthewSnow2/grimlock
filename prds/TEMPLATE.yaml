@@ -77,6 +77,51 @@ integration:
       env_variable: "EXAMPLE_API_KEY"
 
 # ----------------------------------------------------------------------------
+# EXTERNAL DEPENDENCIES
+# ----------------------------------------------------------------------------
+external_dependencies:
+  enabled: false                             # true if calling external APIs
+  primary_url: null                          # Primary API endpoint
+  fallback_url: null                         # Backup endpoint (optional)
+  timeout_seconds: 10                        # Request timeout
+  retry_config:
+    max_retries: 3                           # Number of retry attempts
+    backoff_multiplier: 2                    # Exponential backoff factor
+
+# ----------------------------------------------------------------------------
+# PRODUCTION PATTERNS
+# ----------------------------------------------------------------------------
+production_patterns:
+  enabled: []                                # List of enabled patterns
+  # Possible values:
+  # - error_handling        (Custom error types and responses)
+  # - progress_notifications (Real-time updates for long operations)
+  # - input_validation      (Schema validation for inputs)
+  # - logging               (Structured logging)
+  # - graceful_degradation  (Fallbacks for service failures)
+
+  long_running_operations: false             # true if any tool takes 5+ seconds
+
+# ----------------------------------------------------------------------------
+# ERROR HANDLING SPECIFICATION
+# ----------------------------------------------------------------------------
+error_handling:
+  expected_scenarios: []
+  # Possible values:
+  # - invalid_input
+  # - api_unavailable
+  # - rate_limiting
+  # - auth_failure
+  # - network_timeout
+  # - resource_not_found
+
+  custom_errors: []
+  # Format:
+  # - code: "ERR_RATE_LIMITED"
+  #   message: "API rate limit exceeded"
+  #   retry_after: true
+
+# ----------------------------------------------------------------------------
 # MCP TOOLS SPECIFICATION
 # ----------------------------------------------------------------------------
 # Tools are model-controlled actions the AI can invoke
@@ -85,6 +130,11 @@ tools:
     description: |
       Clear description of what this tool does.
       Include when the AI should use this tool.
+
+    # Long-running operation flags
+    long_running: false                      # true if may take 5+ seconds
+    progress_notifications: false            # true to emit progress updates
+    estimated_duration_seconds: null         # Approximate time for long ops
 
     # Input Parameters
     parameters:
@@ -208,6 +258,38 @@ acceptance_criteria:
     - id: "NFR-003"
       category: "reliability"
       description: "Graceful degradation when API is unavailable"
+
+# ----------------------------------------------------------------------------
+# CONFIGURATION
+# ----------------------------------------------------------------------------
+configuration:
+  # Environment variables (extends security.credentials)
+  environment_variables:
+    - name: "EXAMPLE_API_KEY"
+      description: "API key for Example service"
+      required: true
+
+    - name: "EXAMPLE_TIMEOUT"
+      description: "Request timeout in milliseconds"
+      required: false
+      default: "10000"
+
+    - name: "EXAMPLE_BASE_URL"
+      description: "Override default API URL"
+      required: false
+      default: null
+
+  # Runtime configuration options
+  runtime_options:
+    - name: "retry_on_failure"
+      type: "boolean"
+      default: true
+      description: "Automatically retry failed requests"
+
+    - name: "cache_ttl_seconds"
+      type: "number"
+      default: 300
+      description: "Cache duration for read operations"
 
 # ----------------------------------------------------------------------------
 # SECURITY REQUIREMENTS
