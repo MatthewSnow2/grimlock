@@ -179,22 +179,79 @@ grimlock/
 ├── prds/                  # PRD specifications
 │   ├── TEMPLATE.yaml      # MCP PRD template
 │   └── GRIMLOCK-PRD.yaml  # V1 PRD (historical)
+├── src/                   # Core generators
+│   ├── types/             # TypeScript type definitions
+│   │   └── patterns.ts    # Pattern type system
+│   └── generators/        # Code generation engine
+│       ├── pattern-selector.ts   # PRD → pattern requirements
+│       ├── template-injector.ts  # Handlebars template engine
+│       └── mcp-generator.ts      # Full MCP generation pipeline
+├── templates/             # Handlebars templates
+│   └── typescript/        # TypeScript pattern templates
+│       ├── error-types.hbs
+│       ├── error-handler.hbs
+│       ├── tool-with-error-handling.hbs
+│       └── validated-tool-wrapper.hbs
+├── tests/                 # Test suites
+│   ├── generators/        # Unit tests for generators
+│   └── integration/       # End-to-end tests
 ├── docs/                  # Documentation
 │   ├── ARCHITECTURE.md
 │   ├── RUNBOOK.md
 │   ├── LESSONS_LEARNED.md
 │   ├── MCP_BEST_PRACTICES.md  # Tool design guidelines
-│   └── ROADMAP.md             # Phase 1-4 milestones (NEW)
+│   ├── PATTERNS.md            # Production patterns guide
+│   ├── README-TEMPLATE.md     # README template for MCPs
+│   └── ROADMAP.md             # Phase 1-4 milestones
 ├── n8n/                   # Workflow backups
 │   └── workflow-exports/
 │       ├── sprint-initiator.json
 │       ├── design-wizard.json     # Design Wizard workflow
-│       ├── form-wizard.json       # Form-based PRD wizard (NEW)
+│       ├── form-wizard.json       # Form-based PRD wizard
 │       └── context-analyzer.json  # Context analysis
-└── templates/             # File templates
-    ├── STATE_TEMPLATE.md
-    └── COMPLETION_REPORT.md
+└── build-logs/            # Sprint build logs and reports
 ```
+
+## Production Patterns
+
+GRIMLOCK generates MCPs with industry-standard production patterns, not toy examples:
+
+### Included Patterns
+
+| Pattern | Purpose | When Applied |
+|---------|---------|--------------|
+| **Error Handling** | MCP protocol error codes, structured error types | Always |
+| **Input Validation** | Zod schemas for runtime type safety | Always |
+| **Progress Notifications** | Real-time updates for long operations | Tools >5 seconds |
+| **Logging** | Structured logging via MCP protocol | When enabled |
+| **Graceful Degradation** | Fallback strategies for external failures | External APIs |
+| **Retry Logic** | Automatic retry with exponential backoff | External APIs |
+
+### Why These Patterns Matter
+
+Generated MCPs demonstrate production readiness:
+
+- **Error handling**: Most MCPs crash on unexpected input - ours return structured errors
+- **Validation**: Type safety prevents runtime errors before they happen
+- **Progress**: Long operations timeout without feedback - ours keep users informed
+- **Degradation**: External APIs fail; apps should handle gracefully, not crash
+- **Logging**: Production issues need debugging context
+
+### Pattern Architecture
+
+```
+Request → Validation → Retry → Progress → Cache → Business Logic
+                                                        ↓
+Response ← Error Handler ← Logging ← Format ←──────────┘
+```
+
+Patterns compose as decorators, automatically selected based on PRD configuration.
+
+### Learning Resource
+
+Each generated README explains **WHY** patterns are used, making GRIMLOCK a teaching tool for MCP development.
+
+See [Production Patterns Guide](docs/PATTERNS.md) for detailed documentation.
 
 ## Safety Features
 
