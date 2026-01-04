@@ -55,6 +55,20 @@ button:disabled {
     animation: pulse 2s ease-in-out infinite;
 }
 
+/* Spin animation for refresh button */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
 /* Focus states for accessibility */
 input:focus,
 button:focus,

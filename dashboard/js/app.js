@@ -40,6 +40,11 @@ const activeProgressText = document.getElementById('active-progress-text');
 const activeDownload = document.getElementById('active-download');
 const activeDownloadLink = document.getElementById('active-download-link');
 
+// Refresh button
+const refreshBtn = document.getElementById('refresh-btn');
+const refreshIcon = document.getElementById('refresh-icon');
+const refreshText = document.getElementById('refresh-text');
+
 let selectedFile = null;
 let pollInterval = null;
 
@@ -294,3 +299,48 @@ async function checkInitialStatus() {
 
 // Check status on page load
 document.addEventListener('DOMContentLoaded', checkInitialStatus);
+
+// =============================================================================
+// Manual Refresh
+// =============================================================================
+
+async function refreshBuildStatus() {
+    if (!refreshBtn) return;
+
+    // Show refreshing state
+    refreshBtn.disabled = true;
+    refreshIcon.classList.add('animate-spin');
+    refreshText.textContent = 'Refreshing...';
+
+    try {
+        const response = await fetch(CONFIG.N8N_BASE_URL + CONFIG.ENDPOINTS.CHECK_STATUS);
+        if (!response.ok) throw new Error('Status check failed');
+
+        const result = await response.json();
+        const status = result.data || result;
+
+        // Show build section if there's any status
+        if (status.status && activeBuildSection) {
+            activeBuildSection.classList.remove('hidden');
+            updateActiveBuild(status);
+        }
+
+        // Update inline status if visible
+        if (buildStatus && !buildStatus.classList.contains('hidden')) {
+            updateStatus(status.status, status.phase, status.progress);
+        }
+
+    } catch (error) {
+        console.error('Refresh failed:', error);
+    } finally {
+        // Reset button state
+        refreshBtn.disabled = false;
+        refreshIcon.classList.remove('animate-spin');
+        refreshText.textContent = 'Refresh';
+    }
+}
+
+// Attach refresh click handler
+if (refreshBtn) {
+    refreshBtn.addEventListener('click', refreshBuildStatus);
+}

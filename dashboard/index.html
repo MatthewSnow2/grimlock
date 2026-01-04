@@ -109,7 +109,15 @@
 
         <!-- Current Build Status Section -->
         <div id="active-build-section" class="mt-12 hidden">
-            <h2 class="text-2xl font-bold mb-6 text-center">Current Build</h2>
+            <div class="flex justify-center items-center gap-4 mb-6">
+                <h2 class="text-2xl font-bold">Current Build</h2>
+                <button id="refresh-btn" class="flex items-center gap-2 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors">
+                    <svg id="refresh-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    <span id="refresh-text">Refresh</span>
+                </button>
+            </div>
             <div class="bg-gray-800 rounded-xl p-6 max-w-2xl mx-auto border border-gray-700">
                 <div class="flex justify-between items-center mb-4">
                     <div>
@@ -143,6 +151,36 @@
         </footer>
     </div>
 
-    <script src="js/app.js?v=2"></script>
+    <script src="js/app.js?v=3"></script>
+
+    <!-- n8n Chat Widget -->
+    <link href="https://cdn.n8n.io/chat/style.css" rel="stylesheet" />
+    <script type="module">
+        import { createChat } from 'https://cdn.n8n.io/chat/chat.bundle.es.js';
+
+        createChat({
+            webhookUrl: 'https://im4tlai.app.n8n.cloud/webhook/7d72a34d-bb56-4d34-876a-b003cbc129ed/chat',
+            mode: 'window',
+            showWelcomeScreen: true,
+            initialMessages: [
+                "Hey! I'm Grimlock, your MCP design assistant.",
+                "I can help you design a PRD, validate an existing one, check build status, or answer questions about MCP best practices.",
+                "What would you like to do?"
+            ],
+            i18n: {
+                en: {
+                    title: 'Grimlock',
+                    subtitle: 'MCP Factory Assistant',
+                    getStarted: 'Start Designing',
+                    inputPlaceholder: 'Ask me anything about building MCPs...',
+                },
+            },
+            theme: {
+                primaryColor: '#06b6d4',
+                chatBackgroundColor: '#111827',
+                userMessageColor: '#06b6d4',
+            }
+        });
+    </script>
 </body>
 </html>
