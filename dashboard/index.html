@@ -20,11 +20,78 @@
             </p>
         </header>
 
-        <!-- Main Grid -->
+        <!-- Hero Chat Section (PRIMARY) -->
+        <section class="mb-8">
+            <div class="bg-gradient-to-br from-gray-800 to-gray-900 border border-cyan-500/30 rounded-2xl p-8 shadow-lg shadow-cyan-500/10">
+                <!-- Header with Grimlock icon -->
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-14 h-14 bg-cyan-500/20 rounded-xl flex items-center justify-center text-3xl">
+                        <span role="img" aria-label="Grimlock">&#129302;</span>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-cyan-400">Grimlock</h2>
+                        <p class="text-gray-400 text-sm">Your MCP Factory Assistant</p>
+                    </div>
+                </div>
+
+                <!-- Chat messages area -->
+                <div id="hero-chat-messages" class="bg-gray-950/50 rounded-xl p-4 mb-4 h-80 overflow-y-auto space-y-4">
+                    <!-- Welcome message -->
+                    <div class="flex gap-3">
+                        <div class="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center text-sm flex-shrink-0">
+                            <span>&#129302;</span>
+                        </div>
+                        <div class="bg-gray-800 rounded-lg rounded-tl-none p-3 max-w-[85%]">
+                            <p class="text-gray-200">Hey! I'm Grimlock, your MCP design assistant.</p>
+                            <p class="text-gray-200 mt-2">I can help you design a PRD, validate an existing one, check build status, or answer questions about MCP best practices.</p>
+                            <p class="text-gray-200 mt-2">What would you like to do?</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input area -->
+                <div class="flex gap-3 mb-4">
+                    <input type="text"
+                           id="hero-chat-input"
+                           placeholder="Ask me anything about building MCPs..."
+                           class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-cyan-500 focus:outline-none">
+                    <button id="hero-chat-send"
+                            class="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors flex items-center gap-2">
+                        <span>Send</span>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Quick action buttons -->
+                <div class="flex flex-wrap gap-2">
+                    <button class="hero-quick-action bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors border border-gray-600/50"
+                            data-message="I want to design a new MCP server">
+                        Design New MCP
+                    </button>
+                    <button class="hero-quick-action bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors border border-gray-600/50"
+                            data-message="Can you validate my PRD specification?">
+                        Validate PRD
+                    </button>
+                    <button class="hero-quick-action bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors border border-gray-600/50"
+                            data-message="What is the current build status?">
+                        Check Build Status
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Manual Options Label -->
+        <div class="text-center mb-4">
+            <span class="text-gray-500 text-sm">Or use manual options</span>
+        </div>
+
+        <!-- Main Grid (SECONDARY) -->
         <div class="grid md:grid-cols-2 gap-8">
 
             <!-- Card 1: Build a PRD -->
-            <div class="bg-gradient-to-br from-purple-900/50 to-gray-800 rounded-xl p-6 border border-purple-500/30">
+            <div class="bg-gradient-to-br from-purple-900/30 to-gray-800 rounded-xl p-6 border border-purple-500/20">
                 <div class="flex items-center gap-3 mb-4">
                     <div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
                         <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -46,7 +113,7 @@
             </div>
 
             <!-- Card 2: I Have a PRD -->
-            <div class="bg-gradient-to-br from-cyan-900/50 to-gray-800 rounded-xl p-6 border border-cyan-500/30">
+            <div class="bg-gradient-to-br from-cyan-900/30 to-gray-800 rounded-xl p-6 border border-cyan-500/20">
                 <div class="flex items-center gap-3 mb-4">
                     <div class="w-12 h-12 bg-cyan-500/20 rounded-lg flex items-center justify-center">
                         <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,36 +218,6 @@
         </footer>
     </div>
 
-    <script src="js/app.js?v=3"></script>
-
-    <!-- n8n Chat Widget -->
-    <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
-    <script type="module">
-        import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
-
-        createChat({
-            webhookUrl: 'https://im4tlai.app.n8n.cloud/webhook/7d72a34d-bb56-4d34-876a-b003cbc129ed/chat',
-            mode: 'window',
-            showWelcomeScreen: true,
-            initialMessages: [
-                "Hey! I'm Grimlock, your MCP design assistant.",
-                "I can help you design a PRD, validate an existing one, check build status, or answer questions about MCP best practices.",
-                "What would you like to do?"
-            ],
-            i18n: {
-                en: {
-                    title: 'Grimlock',
-                    subtitle: 'MCP Factory Assistant',
-                    getStarted: 'Start Designing',
-                    inputPlaceholder: 'Ask me anything about building MCPs...',
-                },
-            },
-            theme: {
-                primaryColor: '#06b6d4',
-                chatBackgroundColor: '#111827',
-                userMessageColor: '#06b6d4',
-            }
-        });
-    </script>
+    <script src="js/app.js?v=4"></script>
 </body>
 </html>

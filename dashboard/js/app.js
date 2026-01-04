@@ -7,10 +7,199 @@ const CONFIG = {
     N8N_BASE_URL: 'https://im4tlai.app.n8n.cloud/webhook',
     ENDPOINTS: {
         START_BUILD: '/grimlock/start',
-        CHECK_STATUS: '/grimlock/build-status'
+        CHECK_STATUS: '/grimlock/build-status',
+        CHAT: '/7d72a34d-bb56-4d34-876a-b003cbc129ed/chat'
     },
     POLL_INTERVAL: 10000  // 10 seconds
 };
+
+// =============================================================================
+// Chat Session Management
+// =============================================================================
+
+function getChatSessionId() {
+    let sessionId = localStorage.getItem('grimlock_chat_session_id');
+    if (!sessionId) {
+        sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem('grimlock_chat_session_id', sessionId);
+    }
+    return sessionId;
+}
+
+const chatSessionId = getChatSessionId();
+
+// =============================================================================
+// Hero Chat Elements
+// =============================================================================
+
+const heroChatMessages = document.getElementById('hero-chat-messages');
+const heroChatInput = document.getElementById('hero-chat-input');
+const heroChatSend = document.getElementById('hero-chat-send');
+const heroQuickActions = document.querySelectorAll('.hero-quick-action');
+
+// =============================================================================
+// Chat Utility Functions
+// =============================================================================
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function generateMessageId() {
+    return 'msg-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+}
+
+function addMessageToChat(role, content, messageId = null) {
+    if (!heroChatMessages) return null;
+
+    const id = messageId || generateMessageId();
+    const messageDiv = document.createElement('div');
+    messageDiv.id = id;
+    messageDiv.className = 'flex gap-3';
+
+    if (role === 'user') {
+        messageDiv.innerHTML = `
+            <div class="ml-auto max-w-[85%]">
+                <div class="bg-cyan-600 rounded-lg rounded-tr-none p-3">
+                    <p class="text-white">${escapeHtml(content)}</p>
+                </div>
+            </div>
+        `;
+    } else if (role === 'assistant') {
+        messageDiv.innerHTML = `
+            <div class="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center text-sm flex-shrink-0">
+                <span>&#129302;</span>
+            </div>
+            <div class="bg-gray-800 rounded-lg rounded-tl-none p-3 max-w-[85%]">
+                <p class="text-gray-200">${escapeHtml(content)}</p>
+            </div>
+        `;
+    } else if (role === 'typing') {
+        messageDiv.innerHTML = `
+            <div class="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center text-sm flex-shrink-0">
+                <span>&#129302;</span>
+            </div>
+            <div class="bg-gray-800 rounded-lg rounded-tl-none p-3">
+                <div class="flex gap-1">
+                    <span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0ms;"></span>
+                    <span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 150ms;"></span>
+                    <span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 300ms;"></span>
+                </div>
+            </div>
+        `;
+    }
+
+    heroChatMessages.appendChild(messageDiv);
+    heroChatMessages.scrollTop = heroChatMessages.scrollHeight;
+
+    return id;
+}
+
+function removeMessage(messageId) {
+    const element = document.getElementById(messageId);
+    if (element) {
+        element.remove();
+    }
+}
+
+// =============================================================================
+// Grimlock Chat API
+// =============================================================================
+
+async function sendToGrimlock(message) {
+    if (!message.trim()) return;
+
+    // Disable input while sending
+    if (heroChatInput) heroChatInput.disabled = true;
+    if (heroChatSend) heroChatSend.disabled = true;
+
+    // Add user message
+    addMessageToChat('user', message);
+
+    // Add typing indicator
+    const typingId = addMessageToChat('typing', '');
+
+    try {
+        const response = await fetch(CONFIG.N8N_BASE_URL + CONFIG.ENDPOINTS.CHAT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                chatInput: message,
+                sessionId: chatSessionId
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Chat request failed');
+        }
+
+        const data = await response.json();
+
+        // Remove typing indicator
+        removeMessage(typingId);
+
+        // Add assistant response
+        const responseText = data.output || data.message || 'I received your message but got an unexpected response format.';
+        addMessageToChat('assistant', responseText);
+
+    } catch (error) {
+        console.error('Chat error:', error);
+
+        // Remove typing indicator
+        removeMessage(typingId);
+
+        // Add error message
+        addMessageToChat('assistant', 'Sorry, I encountered an error. Please try again.');
+    } finally {
+        // Re-enable input
+        if (heroChatInput) {
+            heroChatInput.disabled = false;
+            heroChatInput.value = '';
+            heroChatInput.focus();
+        }
+        if (heroChatSend) heroChatSend.disabled = false;
+    }
+}
+
+// =============================================================================
+// Chat Event Listeners
+// =============================================================================
+
+if (heroChatSend) {
+    heroChatSend.addEventListener('click', () => {
+        const message = heroChatInput?.value?.trim();
+        if (message) {
+            sendToGrimlock(message);
+        }
+    });
+}
+
+if (heroChatInput) {
+    heroChatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            const message = heroChatInput.value.trim();
+            if (message) {
+                sendToGrimlock(message);
+            }
+        }
+    });
+}
+
+if (heroQuickActions) {
+    heroQuickActions.forEach(button => {
+        button.addEventListener('click', () => {
+            const message = button.getAttribute('data-message');
+            if (message) {
+                sendToGrimlock(message);
+            }
+        });
+    });
+}
 
 // =============================================================================
 // DOM Elements
