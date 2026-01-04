@@ -62,15 +62,15 @@ function addMessageToChat(role, content, messageId = null) {
     if (role === 'user') {
         messageDiv.innerHTML = `
             <div class="ml-auto max-w-[85%]">
-                <div class="bg-cyan-600 rounded-lg rounded-tr-none p-3">
+                <div class="bg-orange-600 rounded-lg rounded-tr-none p-3">
                     <p class="text-white">${escapeHtml(content)}</p>
                 </div>
             </div>
         `;
     } else if (role === 'assistant') {
         messageDiv.innerHTML = `
-            <div class="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center text-sm flex-shrink-0">
-                <span>&#129302;</span>
+            <div class="w-8 h-8 bg-amber-500/20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <img src="assets/grimlock-avatar.png" alt="Grimlock" class="w-6 h-6 object-contain"/>
             </div>
             <div class="bg-gray-800 rounded-lg rounded-tl-none p-3 max-w-[85%]">
                 <p class="text-gray-200">${escapeHtml(content)}</p>
@@ -78,8 +78,8 @@ function addMessageToChat(role, content, messageId = null) {
         `;
     } else if (role === 'typing') {
         messageDiv.innerHTML = `
-            <div class="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center text-sm flex-shrink-0">
-                <span>&#129302;</span>
+            <div class="w-8 h-8 bg-amber-500/20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <img src="assets/grimlock-avatar.png" alt="Grimlock" class="w-6 h-6 object-contain"/>
             </div>
             <div class="bg-gray-800 rounded-lg rounded-tl-none p-3">
                 <div class="flex gap-1">

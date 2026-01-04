@@ -1,5 +1,15 @@
-/* MCP Factory Dashboard - Custom Styles */
+/* MCP Forge Dashboard - Custom Styles */
 /* Tailwind handles most styling via CDN */
+
+/* ============================================================================
+   CSS Variables - Forge Theme
+   ============================================================================ */
+:root {
+    --forge-amber: rgb(245, 158, 11);
+    --forge-orange: rgb(234, 88, 12);
+    --forge-amber-glow: rgba(245, 158, 11, 0.2);
+    --forge-amber-subtle: rgba(245, 158, 11, 0.1);
+}
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -12,11 +22,11 @@ body {
     transition-duration: 150ms;
 }
 
-/* Drop zone active state */
+/* Drop zone active state - Forge amber theme */
 #drop-zone.dragover,
 #drop-zone:hover {
-    border-color: rgb(34, 211, 238);
-    background-color: rgba(34, 211, 238, 0.05);
+    border-color: var(--forge-amber);
+    background-color: var(--forge-amber-subtle);
 }
 
 /* Progress bar animation */
@@ -31,14 +41,14 @@ button:disabled {
     opacity: 0.7;
 }
 
-/* Card hover effects */
+/* Card hover effects - Forge theme with amber glow */
 .rounded-xl {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .rounded-xl:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 40px -10px var(--forge-amber-glow);
 }
 
 /* Status badge pulse animation for "Building" state */
@@ -69,11 +79,11 @@ button:disabled {
     animation: spin 1s linear infinite;
 }
 
-/* Focus states for accessibility */
+/* Focus states for accessibility - Forge amber theme */
 input:focus,
 button:focus,
 a:focus {
-    outline: 2px solid rgb(34, 211, 238);
+    outline: 2px solid var(--forge-amber);
     outline-offset: 2px;
 }
 
@@ -97,7 +107,7 @@ a:focus {
 }
 
 /* =============================================================================
-   Hero Chat Styles
+   Hero Chat Styles - Forge Theme
    ============================================================================= */
 
 /* Chat messages container scrollbar */
@@ -132,9 +142,9 @@ a:focus {
     animation: bounce 1.4s ease-in-out infinite;
 }
 
-/* Chat input focus glow effect */
+/* Chat input focus glow effect - Forge amber theme */
 #hero-chat-input:focus {
-    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+    box-shadow: 0 0 0 3px var(--forge-amber-glow);
 }
 
 /* Quick action button hover effect */
@@ -168,4 +178,37 @@ a:focus {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* =============================================================================
+   Forge Theme Accent Styles
+   ============================================================================= */
+
+/* Forge glow effect for hero section */
+.shadow-amber-500\/20 {
+    box-shadow: 0 10px 40px -10px var(--forge-amber-glow);
+}
+
+/* Mascot image glow */
+.drop-shadow-\[0_0_15px_rgba\(245\,158\,11\,0\.3\)\] {
+    filter: drop-shadow(0 0 15px rgba(245, 158, 11, 0.3));
+}
+
+/* Forge command header icon container */
+.bg-amber-500\/20 {
+    background-color: var(--forge-amber-glow);
+}
+
+/* Amber border accent */
+.border-amber-500\/30 {
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+/* Forge button hover state transition */
+.bg-orange-600 {
+    transition: background-color 0.2s ease;
+}
+
+.bg-orange-600:hover {
+    background-color: rgb(220, 38, 38);
 }

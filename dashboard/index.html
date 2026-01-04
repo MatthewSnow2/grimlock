@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCP Factory | GRIMLOCK</title>
+    <title>MCP Forge | GRIMLOCK</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -13,71 +13,76 @@
         <!-- Header -->
         <header class="text-center mb-12">
             <h1 class="text-4xl font-bold mb-4">
-                Welcome to <span class="text-cyan-400">MCP Factory</span>
+                Welcome to <span class="text-amber-400">MCP Forge</span>
             </h1>
             <p class="text-gray-400 text-lg">
-                Generate PRDs with AI or upload existing specifications to build MCP servers automatically.
+                Generate Blueprints with AI or upload existing specifications to build MCP servers automatically.
             </p>
         </header>
 
         <!-- Hero Chat Section (PRIMARY) -->
         <section class="mb-8">
-            <div class="bg-gradient-to-br from-gray-800 to-gray-900 border border-cyan-500/30 rounded-2xl p-8 shadow-lg shadow-cyan-500/10">
-                <!-- Header with Grimlock icon -->
-                <div class="flex items-center gap-4 mb-6">
-                    <div class="w-14 h-14 bg-cyan-500/20 rounded-xl flex items-center justify-center text-3xl">
-                        <span role="img" aria-label="Grimlock">&#129302;</span>
-                    </div>
-                    <div>
-                        <h2 class="text-2xl font-bold text-cyan-400">Grimlock</h2>
-                        <p class="text-gray-400 text-sm">Your MCP Factory Assistant</p>
-                    </div>
-                </div>
+            <div class="bg-gradient-to-br from-gray-800 to-gray-900 border border-amber-500/30 rounded-2xl p-6 shadow-lg shadow-amber-500/20">
 
-                <!-- Chat messages area -->
-                <div id="hero-chat-messages" class="bg-gray-950/50 rounded-xl p-4 mb-4 h-80 overflow-y-auto space-y-4">
-                    <!-- Welcome message -->
-                    <div class="flex gap-3">
-                        <div class="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center text-sm flex-shrink-0">
-                            <span>&#129302;</span>
+                <div class="grid md:grid-cols-3 gap-6">
+
+                    <!-- Left Column: Chat (2/3 width) -->
+                    <div class="md:col-span-2">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center overflow-hidden">
+                                <img src="assets/grimlock-avatar.png" alt="Grimlock" class="w-8 h-8 object-contain"/>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-amber-400">Grimlock Command</h2>
+                                <p class="text-gray-500 text-sm">MCP Forge Assistant</p>
+                            </div>
                         </div>
-                        <div class="bg-gray-800 rounded-lg rounded-tl-none p-3 max-w-[85%]">
-                            <p class="text-gray-200">Hey! I'm Grimlock, your MCP design assistant.</p>
-                            <p class="text-gray-200 mt-2">I can help you design a PRD, validate an existing one, check build status, or answer questions about MCP best practices.</p>
-                            <p class="text-gray-200 mt-2">What would you like to do?</p>
+
+                        <!-- Chat messages area - KEEP EXISTING ID AND STRUCTURE -->
+                        <div id="hero-chat-messages" class="bg-gray-900/50 border border-gray-700 rounded-xl p-4 mb-4 h-64 overflow-y-auto space-y-4">
+                            <!-- Welcome message -->
+                            <div class="flex gap-3">
+                                <div class="w-8 h-8 bg-amber-500/20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                    <img src="assets/grimlock-avatar.png" alt="Grimlock" class="w-6 h-6 object-contain"/>
+                                </div>
+                                <div class="bg-gray-800 rounded-lg rounded-tl-none p-3 max-w-[85%]">
+                                    <p class="text-gray-200">Hey! I'm Grimlock, your MCP forge assistant.</p>
+                                    <p class="text-gray-200 mt-2">I can help you forge a blueprint, validate an existing one, check assembly status, or answer questions about MCP best practices.</p>
+                                    <p class="text-gray-200 mt-2">What would you like to forge?</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Input area - KEEP EXISTING IDs -->
+                        <div class="flex gap-3 mb-4">
+                            <input type="text" id="hero-chat-input" placeholder="Ask me anything about forging MCPs..." class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"/>
+                            <button id="hero-chat-send" class="bg-orange-600 hover:bg-red-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors flex items-center gap-2">
+                                <span>Send</span>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Quick actions - KEEP class="hero-quick-action" and data-message attributes -->
+                        <div class="flex flex-wrap gap-2">
+                            <button class="hero-quick-action bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors border border-gray-600/50" data-message="I want to design a new MCP server">
+                                &#9874; Forge Blueprint
+                            </button>
+                            <button class="hero-quick-action bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors border border-gray-600/50" data-message="Can you validate my PRD specification?">
+                                &#10003; Validate
+                            </button>
+                            <button class="hero-quick-action bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors border border-gray-600/50" data-message="What is the current build status?">
+                                &#128202; Assembly Status
+                            </button>
                         </div>
                     </div>
-                </div>
 
-                <!-- Input area -->
-                <div class="flex gap-3 mb-4">
-                    <input type="text"
-                           id="hero-chat-input"
-                           placeholder="Ask me anything about building MCPs..."
-                           class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-cyan-500 focus:outline-none">
-                    <button id="hero-chat-send"
-                            class="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors flex items-center gap-2">
-                        <span>Send</span>
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-                        </svg>
-                    </button>
-                </div>
+                    <!-- Right Column: Grimlock Image (1/3 width) -->
+                    <div class="hidden md:flex items-center justify-center">
+                        <img src="assets/grimlock-mascot.png" alt="Grimlock" class="max-h-[280px] object-contain drop-shadow-[0_0_15px_rgba(245,158,11,0.3)]"/>
+                    </div>
 
-                <!-- Quick action buttons -->
-                <div class="flex flex-wrap gap-2">
-                    <button class="hero-quick-action bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors border border-gray-600/50"
-                            data-message="I want to design a new MCP server">
-                        Design New MCP
-                    </button>
-                    <button class="hero-quick-action bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors border border-gray-600/50"
-                            data-message="Can you validate my PRD specification?">
-                        Validate PRD
-                    </button>
-                    <button class="hero-quick-action bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-white px-4 py-2 rounded-lg text-sm transition-colors border border-gray-600/50"
-                            data-message="What is the current build status?">
-                        Check Build Status
-                    </button>
                 </div>
             </div>
         </section>
@@ -90,7 +95,7 @@
         <!-- Main Grid (SECONDARY) -->
         <div class="grid md:grid-cols-2 gap-8">
 
-            <!-- Card 1: Build a PRD -->
+            <!-- Card 1: Forge Blueprint -->
             <div class="bg-gradient-to-br from-purple-900/30 to-gray-800 rounded-xl p-6 border border-purple-500/20">
                 <div class="flex items-center gap-3 mb-4">
                     <div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
@@ -98,49 +103,49 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
                         </svg>
                     </div>
-                    <h2 class="text-xl font-semibold text-purple-300">Build a PRD</h2>
+                    <h2 class="text-xl font-semibold text-purple-300">Forge Blueprint</h2>
                 </div>
 
                 <p class="text-gray-400 mb-6">
-                    Use our AI-powered wizard to generate a comprehensive PRD specification from scratch.
+                    Use our AI-powered wizard to generate a comprehensive Blueprint specification from scratch.
                 </p>
 
                 <a href="https://im4tlai.app.n8n.cloud/form/012792be-6319-4497-a54a-ba9ae10f1e70"
                    target="_blank"
                    class="block w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg text-center transition-colors">
-                    Open PRD Wizard
+                    Open Blueprint Forge
                 </a>
             </div>
 
-            <!-- Card 2: I Have a PRD -->
-            <div class="bg-gradient-to-br from-cyan-900/30 to-gray-800 rounded-xl p-6 border border-cyan-500/20">
+            <!-- Card 2: I Have a Blueprint -->
+            <div class="bg-gradient-to-br from-amber-900/30 to-gray-800 rounded-xl p-6 border border-amber-500/20">
                 <div class="flex items-center gap-3 mb-4">
-                    <div class="w-12 h-12 bg-cyan-500/20 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-12 h-12 bg-amber-500/20 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                         </svg>
                     </div>
-                    <h2 class="text-xl font-semibold text-cyan-300">I have a PRD</h2>
+                    <h2 class="text-xl font-semibold text-amber-300">I have a Blueprint</h2>
                 </div>
 
                 <p class="text-gray-400 mb-6">
-                    Already have specs? Upload your YAML file to start the factory automation immediately.
+                    Already have specs? Upload your YAML file to start the forge automation immediately.
                 </p>
 
                 <form id="upload-form" class="space-y-4">
                     <div id="drop-zone"
-                        class="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center hover:border-cyan-500 transition-colors cursor-pointer">
+                        class="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center hover:border-amber-500 transition-colors cursor-pointer">
                         <svg class="w-12 h-12 mx-auto text-gray-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                         </svg>
                         <p class="text-gray-400">Drop your .yaml file here or click to browse</p>
                         <input type="file" id="prd-file" accept=".yaml,.yml" class="hidden">
-                        <p id="file-name" class="text-cyan-400 mt-2 hidden"></p>
+                        <p id="file-name" class="text-amber-400 mt-2 hidden"></p>
                     </div>
 
                     <button type="submit" id="build-btn" disabled
-                        class="w-full bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors">
-                        Start Build
+                        class="w-full bg-orange-600 hover:bg-red-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors">
+                        Initiate Assembly
                     </button>
                 </form>
 
@@ -177,7 +182,7 @@
         <!-- Current Build Status Section -->
         <div id="active-build-section" class="mt-12 hidden">
             <div class="flex justify-center items-center gap-4 mb-6">
-                <h2 class="text-2xl font-bold">Current Build</h2>
+                <h2 class="text-2xl font-bold">Assembly Status</h2>
                 <button id="refresh-btn" class="flex items-center gap-2 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors">
                     <svg id="refresh-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -188,7 +193,7 @@
             <div class="bg-gray-800 rounded-xl p-6 max-w-2xl mx-auto border border-gray-700">
                 <div class="flex justify-between items-center mb-4">
                     <div>
-                        <h3 id="active-build-name" class="text-lg font-semibold text-cyan-400">-</h3>
+                        <h3 id="active-build-name" class="text-lg font-semibold text-amber-400">-</h3>
                         <p id="active-build-id" class="text-xs text-gray-500">-</p>
                     </div>
                     <span id="active-status-badge" class="px-3 py-1 bg-yellow-500/20 text-yellow-400 text-sm rounded-full">-</span>
@@ -205,7 +210,7 @@
                 <div id="active-download" class="hidden">
                     <a id="active-download-link" href="#" target="_blank"
                         class="block w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg text-center transition-colors text-sm">
-                        Download Completed MCP
+                        Download Forged MCP
                     </a>
                 </div>
             </div>
@@ -213,8 +218,9 @@
 
         <!-- Footer -->
         <footer class="text-center mt-12 text-gray-500 text-sm">
-            <p>GRIMLOCK MCP Factory | Powered by Claude Code</p>
-            <p class="mt-2 text-xs">Hackathon Entry - January 2025</p>
+            <p>GRIMLOCK MCP Forge | Powered by Claude Code & n8n</p>
+            <p class="mt-1 text-xs">Hackathon Entry - January 2025</p>
+            <p class="mt-1 text-gray-600 text-xs">"Grimlock" is a fan tribute name - Not affiliated with Hasbro</p>
         </footer>
     </div>
 
