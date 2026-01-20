@@ -1,26 +1,25 @@
 # GRIMLOCK
 
-**Autonomous MCP Server Factory for Marathon Development Sprints**
+**Autonomous MCP Server Factory**
 
-GRIMLOCK enables Claude Code to autonomously build production-ready MCP (Model Context Protocol) servers over extended periods (Friday evening to Monday morning) with human oversight, safety mechanisms, and structured reporting.
+GRIMLOCK enables Claude Code to autonomously build production-ready MCP (Model Context Protocol) servers from PRD specifications, with human oversight, safety mechanisms, and structured reporting.
 
 ## How It Works
 
 ```
-Week 1 (Human)          Weekend (Grimlock)       Week 2 (Human)
-━━━━━━━━━━━━━━━━━      ━━━━━━━━━━━━━━━━━━━      ━━━━━━━━━━━━━━━━━
-Define requirements     Autonomous build         Security review
-Fill PRD template       MCP server code          Integration testing
-Gather API docs         Tests & documentation    Production hardening
-Friday handoff          Monday delivery          Deploy & monitor
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  Define PRD     │────▶│  GRIMLOCK       │────▶│  Production     │
+│  (Human)        │     │  (Autonomous)   │     │  MCP Server     │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+     Design              Build + Test            Review + Deploy
 ```
 
 ## Architecture
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│     Slack       │────▶│      n8n        │────▶│   Claude Code   │
-│   (Commands)    │     │  (Orchestration)│     │  (Builds MCP)   │
+│   MCP Forge     │────▶│      n8n        │────▶│   Claude Code   │
+│   (Dashboard)   │     │  (Orchestration)│     │  (Builds MCP)   │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
                                │                        │
                                ▼                        ▼
@@ -38,26 +37,24 @@ MCPs built autonomously by GRIMLOCK:
 |---------|-------------|--------|
 | [mcp-dyson-appliances](https://github.com/m2ai-mcp-servers/mcp-dyson-appliances) | Dyson air purifier control (5 tools) | Production |
 | [mcp-philips-hue](https://github.com/m2ai-mcp-servers/mcp-philips-hue) | Philips Hue smart lighting (4 tools) | Production |
-| [mcp-mirage](https://github.com/MatthewSnow2/mcp-mirage) | Brand extraction from websites (5 tools) | Production |
-| [mcp-pointcare-ratchet](https://github.com/m2ai-mcp-servers/mcp-pointcare-ratchet) | EMR integration for home health (3 tools) | Development |
+| [mcp-mirage-brand-extract](https://github.com/MatthewSnow2/mcp-mirage-brand-extract) | Brand extraction from websites (5 tools) | Production |
+| [mcp-ratchet-clinical-charting](https://github.com/m2ai-mcp-servers/mcp-ratchet-clinical-charting) | Clinical charting for home health (3 tools) | Development |
 
 ## Quick Start
 
 ### Prerequisites
 
-- n8n Cloud account with configured credentials (Slack, SSH, Google Sheets)
+- n8n Cloud account with configured credentials (SSH, Google Sheets)
 - AWS EC2 instance with Claude Code installed
-- Slack workspace with GRIMLOCK bot
 - GitHub repository for code output
 
 ### Design Wizard (Recommended)
 
 Transform your MCP idea into a PRD through guided questions:
 
-**Via Slack:**
-```
-/grimlock design
-```
+**Via MCP Forge Dashboard:**
+
+Access the [MCP Forge](dashboard/index.html) chatbot and ask Grimlock to help design your MCP.
 
 **Via Claude Code:**
 ```
@@ -107,32 +104,34 @@ Returns a complete PRD YAML with context efficiency analysis.
 
 See [MCP Best Practices](docs/MCP_BEST_PRACTICES.md) for tool design guidelines.
 
-### Starting a Sprint
+### Starting a Build
+
+Use the MCP Forge dashboard or trigger via n8n webhook:
 
 ```
-/grimlock start MY-MCP-PRD.yaml
+grimlock start MY-MCP-PRD.yaml
 ```
 
 ### Monitoring
 
-Heartbeats post to `#grimlock-ops` every 30 minutes with:
+Build progress is displayed in the MCP Forge dashboard with:
 - Current status (running/paused)
 - Active milestone and progress
-- Next checkpoint time
+- Build logs and output
 
 ### Commands
 
 | Command | Description |
 |---------|-------------|
-| `/grimlock design` | Start Design Wizard (guided PRD creation) |
-| `/grimlock start {prd}` | Start a new sprint |
-| `/grimlock status` | Get current state |
-| `/grimlock resume` | Continue after pause |
-| `/grimlock abort` | Cancel sprint |
+| `grimlock design` | Start Design Wizard (guided PRD creation) |
+| `grimlock start {prd}` | Start a new build |
+| `grimlock status` | Get current state |
+| `grimlock resume` | Continue after pause |
+| `grimlock abort` | Cancel build |
 
 ## MCP Server Output
 
-When Grimlock completes a sprint, it delivers:
+When Grimlock completes a build, it delivers:
 
 ```
 <project-name>/
@@ -161,14 +160,14 @@ When Grimlock completes a sprint, it delivers:
 | `acceptance_criteria` | Yes | Definition of done |
 | `security` | Yes | Credential handling |
 | `testing` | Yes | Test requirements |
-| `grimlock_handoff` | Yes | Pre-sprint checklist |
-| `week2_refinement` | Yes | Post-delivery checklist |
+| `grimlock_handoff` | Yes | Pre-build checklist |
+| `post_delivery` | Yes | Post-delivery checklist |
 
 ## Directory Structure
 
 ```
 grimlock/
-├── GRIMLOCK_STATE.md      # Current sprint state
+├── GRIMLOCK_STATE.md      # Current build state
 ├── README.md              # This file
 ├── CLAUDE.md              # AI guidance
 ├── config/                # Configuration files
@@ -205,11 +204,11 @@ grimlock/
 │   └── ROADMAP.md             # Phase 1-4 milestones
 ├── n8n/                   # Workflow backups
 │   └── workflow-exports/
-│       ├── sprint-initiator.json
+│       ├── build-initiator.json
 │       ├── design-wizard.json     # Design Wizard workflow
 │       ├── form-wizard.json       # Form-based PRD wizard
 │       └── context-analyzer.json  # Context analysis
-└── build-logs/            # Sprint build logs and reports
+└── build-logs/            # Build logs and reports
 ```
 
 ## Production Patterns
@@ -257,26 +256,18 @@ See [Production Patterns Guide](docs/PATTERNS.md) for detailed documentation.
 
 GRIMLOCK implements multiple safety layers:
 
-1. **Time Boundaries** - Sprints have hard end times
+1. **Time Boundaries** - Builds have hard end times
 2. **Circuit Breakers** - Automatic pause on failures
 3. **Human Commands** - Always-available override controls
 4. **Escalation Routing** - Graduated response by severity
 5. **Audit Logging** - All escalations logged to Google Sheets
-
-## Current Development
-
-**[mcp-pointcare-ratchet](https://github.com/m2ai-mcp-servers/mcp-pointcare-ratchet)** - PointCare EMR integration for home health nursing:
-
-- **Purpose**: Enable Claude to document patient visits directly into EMR
-- **Origin**: Evolution of M2AI NurseCall workflow
-- **Status**: Working in mock mode, pending PointCare API access
 
 ## Documentation
 
 - [Roadmap](docs/ROADMAP.md) - **Phase 1-4 milestones and success criteria**
 - [Architecture](docs/ARCHITECTURE.md) - System design details
 - [Runbook](docs/RUNBOOK.md) - Operational procedures
-- [Lessons Learned](docs/LESSONS_LEARNED.md) - Post-sprint retrospectives
+- [Lessons Learned](docs/LESSONS_LEARNED.md) - Post-build retrospectives
 - [MCP Best Practices](docs/MCP_BEST_PRACTICES.md) - Tool design guidelines
 
 ## Version
